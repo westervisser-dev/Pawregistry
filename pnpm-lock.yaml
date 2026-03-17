@@ -30,7 +30,7 @@ importers:
         specifier: ^5.0.20
         version: 5.2.11
       '@paw-registry/shared':
-        specifier: workspace:*
+        specifier: file:../shared
         version: link:../shared
       '@supabase/supabase-js':
         specifier: ^2.45.4
