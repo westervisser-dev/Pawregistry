@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"noImplicitAny": true,
+		"skipLibCheck": true,
+		"outDir": "dist",
+		"paths": {
+			"@paw-registry/shared": ["../shared/src/index.ts"]
+		}
+	},
+	"include": ["src/**/*", "drizzle.config.ts"],
+	"exclude": ["node_modules", "dist"]
+}

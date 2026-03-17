@@ -1,0 +1,1 @@
+export { AdminLitterDetail } from './index';

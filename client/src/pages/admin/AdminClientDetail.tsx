@@ -1,0 +1,1 @@
+export { AdminClientDetail } from './index';

@@ -1,0 +1,16 @@
+{
+	"name": "paw-registry",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "pnpm -r --parallel dev",
+		"build": "pnpm -r --parallel build",
+		"lint": "pnpm -r --parallel lint",
+		"format": "prettier --write \"**/*.{ts,tsx,json,md}\""
+	},
+	"devDependencies": {
+		"prettier": "^3.3.3",
+		"eslint": "^9.9.0",
+		"typescript": "^5.5.3"
+	}
+}

@@ -1,0 +1,1 @@
+export { PortalDocuments } from './index';

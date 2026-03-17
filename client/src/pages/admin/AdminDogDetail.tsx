@@ -1,0 +1,1 @@
+export { AdminDogDetail } from './index';

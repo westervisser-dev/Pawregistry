@@ -156,7 +156,3 @@ pnpm dev
 - **Update targeting** — an `Update` has `target_type` (litter/puppy/client) and `target_id`. The client portal fetches updates matching their litter ID, puppy ID, or client ID.
 - **Priority-based waitlist** — clients have an integer `priority` field. Lower value = higher priority. The waitlist UI lets admin reorder with a single PATCH.
 - **Magic-link only auth** — no passwords. Clients are only permitted to request a magic link if their email already exists in the `clients` table (applied first, then invited).
-# Pawregistry
-# Pawregistry
-# Pawregistry
-# Pawregistry

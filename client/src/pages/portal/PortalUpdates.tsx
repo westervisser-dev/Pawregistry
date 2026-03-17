@@ -1,0 +1,1 @@
+export { PortalUpdates } from './index';
