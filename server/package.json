@@ -10,19 +10,20 @@
 		"db:studio": "drizzle-kit studio"
 	},
 	"dependencies": {
-		"elysia": "^1.1.12",
 		"@elysiajs/cors": "^1.1.1",
 		"@elysiajs/jwt": "^1.1.1",
 		"@elysiajs/swagger": "^1.1.4",
-		"drizzle-orm": "^0.33.0",
-		"postgres": "^3.4.4",
+		"@paw-registry/shared": "workspace:*",
 		"@supabase/supabase-js": "^2.45.4",
-		"@paw-registry/shared": "workspace:*"
+		"drizzle-orm": "^0.33.0",
+		"elysia": "^1.1.12",
+		"postgres": "^3.4.4"
 	},
 	"devDependencies": {
+		"@types/node": "^22.5.4",
 		"bun-types": "^1.1.27",
+		"dotenv-cli": "^11.0.0",
 		"drizzle-kit": "^0.24.2",
-		"typescript": "^5.5.3",
-		"@types/node": "^22.5.4"
+		"typescript": "^5.5.3"
 	}
 }

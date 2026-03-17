@@ -185,13 +185,21 @@ export function AdminDogDetail() {
 		});
 	}, [id]);
 
-	const save = async () => {
-		setSaving(true);
-		if (id && id !== 'new') {
-			await api.dogs({ id }).patch(form as Parameters<typeof api.dogs>[0] extends never ? never : Parameters<ReturnType<typeof api.dogs>['patch']>[0]);
-		}
-		setSaving(false);
-	};
+const save = async () => {
+    setSaving(true);
+    if (id && id !== 'new') {
+        const { data } = await api.dogs({ id }).patch(form as Parameters<ReturnType<typeof api.dogs>['patch']>[0]);
+        if (data) setDog(data as Dog);
+    } else {
+        const { data, error } = await api.dogs.post(form as Parameters<typeof api.dogs.post>[0]);
+        if (error) {
+            console.error('Failed to create dog:', error);
+        } else if (data) {
+            window.location.href = `/admin/dogs/${(data as Dog).id}`;
+        }
+    }
+    setSaving(false);
+};
 
 	const set = (key: keyof Dog, value: unknown) => setForm((f) => ({ ...f, [key]: value }));
 
