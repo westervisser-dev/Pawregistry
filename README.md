@@ -158,3 +158,4 @@ pnpm dev
 - **Magic-link only auth** — no passwords. Clients are only permitted to request a magic link if their email already exists in the `clients` table (applied first, then invited).
 # Pawregistry
 # Pawregistry
+# Pawregistry
