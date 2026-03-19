@@ -70,9 +70,9 @@ Add new shared interfaces to `shared/src/index.ts`.
 
 ## Important Rules
 
-### 1. After every confirmed feature request — provide a commit + push command
+### 1. After every feature request implemented — provide a commit + push command to the user
 
-Once a feature is complete and the user confirms, always end with the commands to commit and push:
+Once a feature is completed, always end with the commands to commit and push for the users perusal:
 
 ```bash
 git add -A
