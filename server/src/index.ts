@@ -8,6 +8,7 @@ import { updatesRoutes } from './routes/updates';
 import { messagesRoutes } from './routes/messages';
 import { documentsRoutes } from './routes/documents';
 import { checklistRoutes } from './routes/documents/checklists';
+import { templatesRoutes } from './routes/templates';
 import { authRoutes } from './routes/auth';
 
 const app = new Elysia()
@@ -37,6 +38,7 @@ const app = new Elysia()
 	.use(messagesRoutes)
 	.use(documentsRoutes)
 	.use(checklistRoutes)
+	.use(templatesRoutes)
 
 	.listen(process.env.PORT ?? 3000);
 

@@ -8,6 +8,13 @@
       "when": 1773760636242,
       "tag": "0000_ordinary_darkstar",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1742342400000,
+      "tag": "0001_document_templates",
+      "breakpoints": true
     }
   ]
 }

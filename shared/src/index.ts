@@ -213,6 +213,24 @@ export interface GoHomeChecklist {
 	updatedAt: string;
 }
 
+// ─── Document Template ────────────────────────────────────────────────────────
+
+export interface DocumentTemplate {
+	id: string;
+	name: string;
+	description: string | null;
+	fileUrl: string;
+	category: string | null;
+	sortOrder: number;
+	isActive: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface DocumentTemplateWithChecklist extends DocumentTemplate {
+	checkedAt: string | null;
+}
+
 // ─── API response helpers ────────────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {

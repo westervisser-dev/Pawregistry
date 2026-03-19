@@ -19,6 +19,7 @@ export const STORAGE_BUCKETS = {
 	updates: 'update-media',
 	documents: 'client-documents',
 	healthCerts: 'health-certs',
+	templates: 'document-templates',
 } as const;
 
 export async function uploadFile(
