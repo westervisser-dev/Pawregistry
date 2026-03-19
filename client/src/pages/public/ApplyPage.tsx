@@ -19,6 +19,7 @@ interface FormData {
 	experienceDescription: string;
 	preferredSex: 'male' | 'female' | 'no_preference';
 	preferredColour: string;
+	otherLivingType: string;
 	reasonForBreed: string;
 	references: string;
 	agreedToContract: boolean;
@@ -27,7 +28,7 @@ interface FormData {
 const initial: FormData = {
 	firstName: '', lastName: '', email: '', phone: '', city: '', country: 'ZA',
 	livingType: 'house', hasGarden: false, hasChildren: false, hasOtherPets: false,
-	otherPetsDescription: '', previousDogExperience: false, experienceDescription: '',
+	otherPetsDescription: '', otherLivingType: '', previousDogExperience: false, experienceDescription: '',
 	preferredSex: 'no_preference', preferredColour: '', reasonForBreed: '', references: '',
 	agreedToContract: false,
 };
@@ -160,7 +161,7 @@ export function ApplyPage() {
 		<div className="max-w-2xl mx-auto px-6 py-16">
 			<div className="mb-8">
 				<h1 className="font-serif text-3xl font-bold text-stone-900 mb-2">Puppy Application</h1>
-				<p className="text-stone-500 text-sm">This form helps us find the right match for you and your family.</p>
+				<p className="text-stone-500 text-sm">This form helps us ensure that our clients and families are well equipped to home one of our pups.</p>
 			</div>
 
 			<StepIndicator current={step} />
@@ -202,6 +203,14 @@ export function ApplyPage() {
 									</button>
 								))}
 							</div>
+						{form.livingType === 'other' && (
+							<Input
+								label="Please describe your home type"
+								value={form.otherLivingType}
+								onChange={(e) => set('otherLivingType', e.target.value)}
+								placeholder="e.g. smallholding, houseboat…"
+							/>
+						)}
 						</div>
 						<Toggle label="We have a garden or yard" checked={form.hasGarden} onChange={(v) => set('hasGarden', v)} />
 						<Toggle label="We have children" checked={form.hasChildren} onChange={(v) => set('hasChildren', v)} />
