@@ -175,7 +175,8 @@ export function AdminDogDetail() {
 	const [dog, setDog] = useState<Dog | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
-	const [form, setForm] = useState<Partial<Dog>>({});
+	const [formError, setFormError] = useState('');
+	const [form, setForm] = useState<Partial<Dog>>({ sex: 'male', status: 'active' });
 
 	useEffect(() => {
 		if (!id || id === 'new') { setLoading(false); return; }
@@ -185,21 +186,26 @@ export function AdminDogDetail() {
 		});
 	}, [id]);
 
-const save = async () => {
-    setSaving(true);
-    if (id && id !== 'new') {
-        const { data } = await api.dogs({ id }).patch(form as Parameters<ReturnType<typeof api.dogs>['patch']>[0]);
-        if (data) setDog(data as Dog);
-    } else {
-        const { data, error } = await api.dogs.post(form as Parameters<typeof api.dogs.post>[0]);
-        if (error) {
-            console.error('Failed to create dog:', error);
-        } else if (data) {
-            window.location.href = `/admin/dogs/${(data as Dog).id}`;
-        }
-    }
-    setSaving(false);
-};
+	const save = async () => {
+		setFormError('');
+		if (!form.name?.trim() || !form.breed?.trim() || !form.colour?.trim() || !form.dob?.trim()) {
+			setFormError('Name, Breed, Colour, and Date of Birth are required.');
+			return;
+		}
+		setSaving(true);
+		if (id && id !== 'new') {
+			const { data } = await api.dogs({ id }).patch(form as Parameters<ReturnType<typeof api.dogs>['patch']>[0]);
+			if (data) setDog(data as Dog);
+		} else {
+			const { data, error } = await api.dogs.post(form as Parameters<typeof api.dogs.post>[0]);
+			if (error) {
+				setFormError('Failed to save. Please try again.');
+			} else if (data) {
+				window.location.href = `/admin/dogs/${(data as Dog).id}`;
+			}
+		}
+		setSaving(false);
+	};
 
 	const set = (key: keyof Dog, value: unknown) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -213,18 +219,21 @@ const save = async () => {
 			<Card className="p-6 flex flex-col gap-4">
 				<div className="grid grid-cols-2 gap-4">
 					{[
-						{ label: 'Name', key: 'name' as const },
+						{ label: 'Name', key: 'name' as const, required: true },
 						{ label: 'Call Name', key: 'callName' as const },
 						{ label: 'Registered Name', key: 'registeredName' as const },
-						{ label: 'Breed', key: 'breed' as const },
-						{ label: 'Colour', key: 'colour' as const },
-						{ label: 'Date of Birth', key: 'dob' as const },
+						{ label: 'Breed', key: 'breed' as const, required: true },
+						{ label: 'Colour', key: 'colour' as const, required: true },
+						{ label: 'Date of Birth', key: 'dob' as const, required: true, type: 'date' },
 						{ label: 'Microchip', key: 'microchipNumber' as const },
 						{ label: 'Registration No.', key: 'registrationNumber' as const },
-					].map(({ label, key }) => (
+					].map(({ label, key, required, type }) => (
 						<div key={key}>
-							<label className="block text-xs font-medium text-stone-500 mb-1">{label}</label>
+							<label className="block text-xs font-medium text-stone-500 mb-1">
+								{label}{required && <span className="text-red-400 ml-0.5">*</span>}
+							</label>
 							<input
+								type={type ?? 'text'}
 								value={(form[key] as string) ?? ''}
 								onChange={(e) => set(key, e.target.value)}
 								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
@@ -266,6 +275,9 @@ const save = async () => {
 						className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none resize-none"
 					/>
 				</div>
+				{formError && (
+					<p className="text-sm text-red-600">{formError}</p>
+				)}
 				<button
 					onClick={save}
 					disabled={saving}
@@ -330,15 +342,56 @@ export function AdminLitterDetail() {
 	const [litter, setLitter] = useState<Litter & { sire: Dog; dam: Dog; puppies: unknown[] } | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
+	const [formError, setFormError] = useState('');
 	const [newPuppy, setNewPuppy] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
+
+	// New-litter form state
+	const [dogs, setDogs] = useState<Dog[]>([]);
+	const [newForm, setNewForm] = useState<{ name: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string }>({
+		name: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '',
+	});
 
 	useEffect(() => {
 		if (!id) return;
+		if (id === 'new') {
+			api.dogs.get().then(({ data }) => {
+				if (data) setDogs(data as Dog[]);
+				setLoading(false);
+			});
+			return;
+		}
+		setLoading(true);
+		setLitter(null);
 		api.litters({ id }).get().then(({ data }) => {
 			if (data) setLitter(data as typeof litter);
 			setLoading(false);
 		});
 	}, [id]);
+
+	const createLitter = async () => {
+		setFormError('');
+		if (!newForm.name.trim() || !newForm.sireId || !newForm.damId) {
+			setFormError('Name, Sire, and Dam are required.');
+			return;
+		}
+		setSaving(true);
+		try {
+			const { data, error } = await api.litters.post({
+				name: newForm.name,
+				sireId: newForm.sireId,
+				damId: newForm.damId,
+				status: newForm.status as 'planned' | 'confirmed' | 'born' | 'weaning' | 'ready' | 'completed',
+				...(newForm.expectedDate ? { expectedDate: newForm.expectedDate } : {}),
+				...(newForm.notes ? { notes: newForm.notes } : {}),
+			});
+			if (error) { setFormError('Failed to save. Please try again.'); return; }
+			if (data) navigate('/admin/litters');
+		} catch {
+			setFormError('Failed to save. Please try again.');
+		} finally {
+			setSaving(false);
+		}
+	};
 
 	const updateStatus = async (status: string) => {
 		if (!id) return;
@@ -358,6 +411,102 @@ export function AdminLitterDetail() {
 	};
 
 	if (loading) return <LoadingPage />;
+
+	// ── New litter form ────────────────────────────────────────────────────────
+	if (id === 'new') {
+		const setF = (key: keyof typeof newForm, value: string) => setNewForm((f) => ({ ...f, [key]: value }));
+		return (
+			<div className="p-8 max-w-3xl">
+				<Link to="/admin/litters" className="text-sm text-stone-400 hover:text-stone-600 mb-6 inline-block">← Litters</Link>
+				<PageHeader title="New Litter" />
+				<Card className="p-6 flex flex-col gap-4">
+					<div className="grid grid-cols-2 gap-4">
+						<div className="col-span-2">
+							<label className="block text-xs font-medium text-stone-500 mb-1">
+								Litter Name<span className="text-red-400 ml-0.5">*</span>
+							</label>
+							<input
+								type="text"
+								value={newForm.name}
+								onChange={(e) => setF('name', e.target.value)}
+								placeholder="e.g. Autumn 2025 Litter"
+								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-stone-500 mb-1">
+								Sire (Father)<span className="text-red-400 ml-0.5">*</span>
+							</label>
+							<select
+								value={newForm.sireId}
+								onChange={(e) => setF('sireId', e.target.value)}
+								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							>
+								<option value="">Select sire…</option>
+								{dogs.filter((d) => d.sex === 'male').map((d) => (
+									<option key={d.id} value={d.id}>{d.name}</option>
+								))}
+							</select>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-stone-500 mb-1">
+								Dam (Mother)<span className="text-red-400 ml-0.5">*</span>
+							</label>
+							<select
+								value={newForm.damId}
+								onChange={(e) => setF('damId', e.target.value)}
+								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							>
+								<option value="">Select dam…</option>
+								{dogs.filter((d) => d.sex === 'female').map((d) => (
+									<option key={d.id} value={d.id}>{d.name}</option>
+								))}
+							</select>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-stone-500 mb-1">Status</label>
+							<select
+								value={newForm.status}
+								onChange={(e) => setF('status', e.target.value)}
+								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none"
+							>
+								{['planned', 'confirmed', 'born', 'weaning', 'ready', 'completed'].map((s) => (
+									<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+								))}
+							</select>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-stone-500 mb-1">Expected Date</label>
+							<input
+								type="date"
+								value={newForm.expectedDate}
+								onChange={(e) => setF('expectedDate', e.target.value)}
+								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none"
+							/>
+						</div>
+						<div className="col-span-2">
+							<label className="block text-xs font-medium text-stone-500 mb-1">Notes</label>
+							<textarea
+								value={newForm.notes}
+								onChange={(e) => setF('notes', e.target.value)}
+								rows={3}
+								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none resize-none"
+							/>
+						</div>
+					</div>
+					{formError && <p className="text-sm text-red-600">{formError}</p>}
+					<button
+						onClick={createLitter}
+						disabled={saving}
+						className="self-start px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 disabled:opacity-50"
+					>
+						{saving ? 'Saving…' : 'Create Litter'}
+					</button>
+				</Card>
+			</div>
+		);
+	}
+
 	if (!litter) return <div className="p-8 text-stone-500">Litter not found.</div>;
 
 	const statuses = ['planned', 'confirmed', 'born', 'weaning', 'ready', 'completed'];
@@ -366,7 +515,7 @@ export function AdminLitterDetail() {
 		<div className="p-8 max-w-4xl">
 			<PageHeader
 				title={litter.name}
-				subtitle={`${(litter as typeof litter & { sire: Dog }).sire.name} × ${(litter as typeof litter & { dam: Dog }).dam.name}`}
+				subtitle={`${(litter as typeof litter & { sire: Dog }).sire?.name ?? '—'} × ${(litter as typeof litter & { dam: Dog }).dam?.name ?? '—'}`}
 				action={
 					<button onClick={() => navigate('/admin/litters')} className="text-sm text-stone-500 hover:text-stone-700">
 						← Back

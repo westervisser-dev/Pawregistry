@@ -1,20 +1,27 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/ui';
+
+const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? '').split(',').map((s: string) => s.trim());
 
 export function CallbackPage() {
 	const navigate = useNavigate();
+	const init = useAuthStore((s) => s.init);
 
 	useEffect(() => {
-		supabase.auth.getSession().then(({ data: { session } }) => {
-			if (session) {
-				navigate('/portal', { replace: true });
-			} else {
-				navigate('/login', { replace: true });
-			}
+		init().then(() => {
+			supabase.auth.getSession().then(({ data: { session } }) => {
+				if (session) {
+					const isAdmin = ADMIN_EMAILS.includes(session.user.email ?? '');
+					navigate(isAdmin ? '/admin' : '/portal', { replace: true });
+				} else {
+					navigate('/login', { replace: true });
+				}
+			});
 		});
-	}, [navigate]);
+	}, [navigate, init]);
 
 	return (
 		<div className="min-h-screen flex items-center justify-center">

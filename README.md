@@ -131,22 +131,62 @@ pnpm dev
 
 ## Deployment (Railway + Supabase)
 
-### Backend
-1. Create a Railway service pointing to this repo
-2. Set build command: `pnpm --filter server build`  
-   Start command: `bun run server/dist/index.js`
-3. Add all server env vars in Railway's Variables tab
-4. Enable health check at `/health`
+Both services deploy from the **root of the repo** (`/`). Do not set a subdirectory as the root — Railway needs access to the full monorepo so `shared/` is available during builds.
 
-### Frontend
-1. Create a Railway static site service
-2. Build command: `pnpm --filter client build`
-3. Publish directory: `client/dist`
-4. Add all `VITE_*` env vars
+### Server service
 
-### Supabase
-- Use the **Transaction pooler** connection string (port `6543`) for `DATABASE_URL`
-- Do not use Railway's built-in database plugins
+1. In Railway, create a new project → Deploy from GitHub repo → select your repo
+2. Railway will auto-detect two services. Open the **server service → Settings**:
+   - **Root Directory:** leave empty (repo root)
+   - **Build command:** `npm install -g pnpm && pnpm install --no-frozen-lockfile`
+   - **Start command:** `cd server && bun run src/index.ts`
+3. **Settings → Networking** → Generate Domain
+4. **Variables** — add all of the following:
+
+```
+DATABASE_URL=postgresql://postgres.[ref]:[password]@aws-1-[region].pooler.supabase.com:6543/postgres
+SUPABASE_URL=https://[ref].supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ADMIN_USER_IDS=your-supabase-user-uuid
+CLIENT_URL=https://your-client-railway-url.up.railway.app
+PORT=3000
+NODE_ENV=production
+```
+
+> Use the **Transaction pooler** URL from Supabase (port 6543): Project Settings → Database → Connection string → Transaction mode.
+> URL-encode special characters in passwords (e.g. `!` becomes `%21`).
+
+### Client service
+
+1. Open the **client service → Settings**:
+   - **Root Directory:** leave empty (repo root)
+   - **Build command:** `npm install -g pnpm && cd client && pnpm install --no-frozen-lockfile && pnpm build`
+   - **Start command:** leave empty (static site)
+2. **Settings → Networking** → Generate Domain
+3. **Variables** — add:
+
+```
+VITE_API_URL=https://your-server-railway-url.up.railway.app
+VITE_SUPABASE_URL=https://[ref].supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_ADMIN_EMAILS=your@email.com
+RAILPACK_SPA_OUTPUT_DIR=client/dist
+```
+
+4. Once deployed, copy the client Railway URL and update `CLIENT_URL` in the server variables.
+
+### After deploying
+
+- Go to Supabase → **Authentication → URL Configuration** and add your client Railway URL to **Redirect URLs** (required for magic link auth)
+- Update the `emailRedirectTo` in `server/src/routes/auth/index.ts` to your production client URL
+
+### Important notes from setup
+
+- workspace:* dependencies do not work on Railway — both client and server package.json files reference the shared package as `file:../shared`
+- The client build script must be `"build": "vite build"` (not `tsc -b && vite build`) to skip type checking during deployment
+- Railway auto-detects pnpm once root directory is set to the repo root
+- Do not use Railway built-in database plugins — use Supabase only
+
 
 ---
 

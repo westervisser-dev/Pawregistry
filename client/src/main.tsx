@@ -20,6 +20,7 @@ import { AboutPage } from '@/pages/public/AboutPage';
 // Auth pages
 import { LoginPage } from '@/pages/LoginPage';
 import { CallbackPage } from '@/pages/CallbackPage';
+import { AdminLoginPage } from '@/pages/AdminLoginPage';
 
 // Portal pages
 import { PortalDashboard } from '@/pages/portal/PortalDashboard';
@@ -70,6 +71,7 @@ function App() {
 
 				{/* Auth */}
 				<Route path="/login" element={<LoginPage />} />
+				<Route path="/admin/login" element={<AdminLoginPage />} />
 				<Route path="/portal/callback" element={<CallbackPage />} />
 
 				{/* Client portal */}

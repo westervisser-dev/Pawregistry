@@ -9,15 +9,21 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 	.post(
 		'/magic-link',
 		async ({ body, error }) => {
-			// Only allow clients who already have an application on file
-			const client = await db.query.clients.findFirst({
-				where: eq(clients.email, body.email),
-			});
-			if (!client) {
-				return error(404, {
-					error: 'Not found',
-					message: 'No application found for this email address.',
+			const adminIds = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim());
+			const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+			const isAdmin = adminEmails.includes(body.email);
+
+			// Allow admins through without a client record; all others must have an application
+			if (!isAdmin) {
+				const client = await db.query.clients.findFirst({
+					where: eq(clients.email, body.email),
 				});
+				if (!client) {
+					return error(404, {
+						error: 'Not found',
+						message: 'No application found for this email address.',
+					});
+				}
 			}
 
 			const { error: authError } = await supabase.auth.signInWithOtp({

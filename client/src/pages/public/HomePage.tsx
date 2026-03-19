@@ -17,7 +17,13 @@ export function HomePage() {
 		<div>
 			{/* Hero */}
 			<section className="relative bg-stone-900 text-white overflow-hidden">
-				<div className="absolute inset-0 bg-gradient-to-br from-stone-900 via-stone-800 to-brand-900 opacity-90" />
+				<img
+					src="https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1600&q=85&auto=format&fit=crop"
+					alt=""
+					aria-hidden="true"
+					className="absolute inset-0 w-full h-full object-cover object-center scale-105"
+				/>
+				<div className="absolute inset-0 bg-gradient-to-br from-stone-900/90 via-stone-800/80 to-brand-900/75" />
 				<div className="relative max-w-6xl mx-auto px-6 py-32 flex flex-col items-start gap-6">
 					<span className="text-brand-300 text-sm font-medium uppercase tracking-widest">
 						Thoughtful Breeding
@@ -45,6 +51,7 @@ export function HomePage() {
 					</div>
 				</div>
 			</section>
+
 
 			{/* Why us */}
 			<section className="max-w-6xl mx-auto px-6 py-20">

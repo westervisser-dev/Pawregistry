@@ -1,32 +1,33 @@
 import Elysia from 'elysia';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
-export const authPlugin = new Elysia({ name: 'auth' }).derive(
-	{ as: 'scoped' },
-	async ({ headers, error }) => {
-		const authHeader = headers['authorization'];
-		if (!authHeader?.startsWith('Bearer ')) {
-			return error(401, { error: 'Unauthorized', message: 'Missing bearer token' });
+// derive runs globally so user is available in any route that composes this plugin
+export const authPlugin = new Elysia({ name: 'auth' })
+	.derive(
+		{ as: 'global' },
+		async ({ headers }): Promise<{ user: User | null }> => {
+			const authHeader = headers['authorization'];
+			if (!authHeader?.startsWith('Bearer ')) return { user: null };
+
+			const token = authHeader.slice(7);
+			const { data, error: authError } = await supabase.auth.getUser(token);
+
+			if (authError || !data.user) return { user: null };
+			return { user: data.user };
 		}
+	);
 
-		const token = authHeader.slice(7);
-		const { data, error: authError } = await supabase.auth.getUser(token);
-
-		if (authError || !data.user) {
-			return error(401, { error: 'Unauthorized', message: 'Invalid or expired token' });
-		}
-
-		return { user: data.user };
-	}
-);
-
-// Admin check — matches against ADMIN_USER_IDS env list
 export const adminPlugin = new Elysia({ name: 'admin' })
 	.use(authPlugin)
-	.derive({ as: 'scoped' }, ({ user, error }) => {
+	.onBeforeHandle({ as: 'scoped' }, ({ user, set }) => {
+		if (!user) {
+			set.status = 401;
+			return { error: 'Unauthorized', message: 'Not authenticated' };
+		}
 		const adminIds = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim());
 		if (!adminIds.includes(user.id)) {
-			return error(403, { error: 'Forbidden', message: 'Admin access required' });
+			set.status = 403;
+			return { error: 'Forbidden', message: 'Admin access required' };
 		}
-		return { admin: true as const };
 	});
