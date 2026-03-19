@@ -17,7 +17,7 @@ const applicationDataSchema = t.Object({
 	experienceDescription: t.Nullable(t.String()),
 	preferredSex: t.Union([t.Literal('male'), t.Literal('female'), t.Literal('no_preference')]),
 	preferredColour: t.Nullable(t.String()),
-	reasonForBreed: t.String(),
+	reasonForBreed: t.Optional(t.Nullable(t.String())),
 	references: t.Nullable(t.String()),
 	agreedToContract: t.Boolean(),
 	// ── Personal ──

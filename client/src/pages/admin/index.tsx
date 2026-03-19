@@ -690,6 +690,43 @@ export function AdminClients() {
 	);
 }
 
+// ─── Application view helpers ─────────────────────────────────────────────────
+
+function AppField({ label, value }: { label: string; value: unknown }) {
+	const display = () => {
+		if (value === null || value === undefined || value === '') return <span className="text-stone-300">—</span>;
+		if (typeof value === 'boolean') return value
+			? <span className="text-green-600 font-medium">Yes</span>
+			: <span className="text-stone-400">No</span>;
+		if (Array.isArray(value)) return value.length ? String(value.join(', ')) : <span className="text-stone-300">—</span>;
+		const str = String(value);
+		if (str === 'true') return <span className="text-green-600 font-medium">Yes</span>;
+		if (str === 'false') return <span className="text-stone-400">No</span>;
+		return <span className="text-stone-800">{str}</span>;
+	};
+	return (
+		<div className="py-2.5 border-b border-stone-100 last:border-0 grid grid-cols-2 gap-4 items-start">
+			<dt className="text-xs text-stone-400 pt-0.5">{label}</dt>
+			<dd className="text-sm">{display()}</dd>
+		</div>
+	);
+}
+
+function AppSection({ title, fields }: { title: string; fields: { label: string; value: unknown }[] }) {
+	const visible = fields.filter(({ value }) => value !== null && value !== undefined && value !== '');
+	if (visible.length === 0) return null;
+	return (
+		<div>
+			<p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-1">{title}</p>
+			<dl className="divide-y divide-stone-100">
+				{visible.map(({ label, value }) => (
+					<AppField key={label} label={label} value={value} />
+				))}
+			</dl>
+		</div>
+	);
+}
+
 // ─── Client detail ────────────────────────────────────────────────────────────
 
 export function AdminClientDetail() {
@@ -726,7 +763,13 @@ export function AdminClientDetail() {
 	if (loading) return <LoadingPage />;
 	if (!client) return <div className="p-8 text-stone-500">Client not found.</div>;
 
-	const app = client.applicationData as Record<string, unknown>;
+	const a = client.applicationData as Record<string, unknown>;
+
+	const readyLabels: Record<string, string> = {
+		asap: 'As soon as possible',
+		'6_months': 'In about 6 months',
+		'1_year': 'In about a year',
+	};
 
 	return (
 		<div className="p-8 max-w-4xl">
@@ -738,44 +781,90 @@ export function AdminClientDetail() {
 						{client.firstName} {client.lastName}
 					</h1>
 					<p className="text-stone-500 text-sm">{client.email}</p>
+					{client.phone && <p className="text-stone-400 text-sm">{client.phone}</p>}
+					{(client.city || client.country) && (
+						<p className="text-stone-400 text-sm">{[client.city, client.country].filter(Boolean).join(', ')}</p>
+					)}
 				</div>
 				<StageBadge stage={client.stage} />
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-				{/* Stage management */}
-				<Card className="p-5">
-					<h3 className="font-medium text-stone-900 mb-3">Move Stage</h3>
-					<div className="flex flex-wrap gap-2">
-						{(['enquiry', 'reviewed', 'waitlisted', 'matched', 'placed', 'declined'] as const).map((s) => (
-							<button
-								key={s}
-								onClick={() => updateStage(s)}
-								className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-									client.stage === s
-										? 'bg-stone-900 text-white'
-										: 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-								}`}
-							>
-								{s}
-							</button>
-						))}
-					</div>
-				</Card>
+			{/* Stage management */}
+			<Card className="p-5 mb-6">
+				<h3 className="font-medium text-stone-900 mb-3">Move Stage</h3>
+				<div className="flex flex-wrap gap-2">
+					{(['enquiry', 'reviewed', 'waitlisted', 'matched', 'placed', 'declined'] as const).map((s) => (
+						<button
+							key={s}
+							onClick={() => updateStage(s)}
+							className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+								client.stage === s
+									? 'bg-stone-900 text-white'
+									: 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+							}`}
+						>
+							{s}
+						</button>
+					))}
+				</div>
+			</Card>
 
-				{/* Application data */}
-				<Card className="p-5">
-					<h3 className="font-medium text-stone-900 mb-3">Application</h3>
-					<dl className="grid grid-cols-2 gap-2 text-sm">
-						{Object.entries(app).slice(0, 6).map(([k, v]) => (
-							<div key={k}>
-								<dt className="text-stone-400 text-xs">{k}</dt>
-								<dd className="text-stone-700">{String(v)}</dd>
-							</div>
-						))}
-					</dl>
-				</Card>
-			</div>
+			{/* Application */}
+			<Card className="p-6 mb-6">
+				<h3 className="font-medium text-stone-900 mb-6">Application</h3>
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+					<AppSection title="Personal Details" fields={[
+						{ label: 'Primary caregiver', value: a.primaryCaregiver },
+					]} />
+					<AppSection title="Home & Life" fields={[
+						{ label: 'Home ownership', value: a.residenceOwnership },
+						{ label: 'Type of home', value: a.livingType },
+						{ label: 'Home type (other)', value: a.otherLivingType },
+						{ label: 'Has fenced yard', value: a.hasGarden },
+						{ label: 'Yard size', value: a.yardSize },
+						{ label: 'Pool or open driveway', value: a.hasPoolOrDriveway },
+						{ label: 'Pool/driveway fenced off', value: a.poolDrivewayFenced },
+						{ label: 'Neighbourhood restrictions', value: a.neighbourhoodRestrictions },
+						{ label: 'Restriction details', value: a.neighbourhoodRestrictionsDetails },
+						{ label: 'Dog lives indoors', value: a.dogLivesIndoors },
+						{ label: 'Daytime location', value: a.puppyDaytimeLocation },
+						{ label: 'Hours alone per day', value: a.hoursAlonePerDay },
+						{ label: 'Someone home during the day', value: a.someoneHomeDuringDay },
+						{ label: 'Alone arrangements', value: a.aloneArrangements },
+						{ label: 'Activity level & hobbies', value: a.activityLevel },
+						{ label: 'All family members agree', value: a.allFamilyMembersAgree },
+						{ label: 'Dog allergies in household', value: a.allergiesToDogs },
+						{ label: 'Has children', value: a.hasChildren },
+						{ label: "Children's ages & genders", value: a.childrenGenderAges },
+						{ label: 'Has other pets', value: a.hasOtherPets },
+						{ label: 'Other pets', value: a.otherPetsDescription },
+					]} />
+					<AppSection title="Experience" fields={[
+						{ label: 'Previous dog experience', value: a.previousDogExperience },
+						{ label: 'Breeds owned previously', value: a.breedsOwnedPast },
+						{ label: 'Experience description', value: a.experienceDescription },
+						{ label: 'Returned pet to breeder', value: a.returnedPetToBreeder },
+						{ label: 'Return circumstances', value: a.returnedPetDetails },
+						{ label: 'Given a pet away', value: a.givenPetAway },
+						{ label: 'Given away circumstances', value: a.givenPetAwayDetails },
+						{ label: 'Willing for obedience classes', value: a.willingForObedienceClasses },
+						{ label: 'References', value: a.references },
+					]} />
+					<AppSection title="Puppy Preferences" fields={[
+						{ label: 'Purpose', value: a.puppyPurpose },
+						{ label: 'Ready timeframe', value: a.readyTimeframe ? readyLabels[a.readyTimeframe as string] ?? a.readyTimeframe : null },
+						{ label: 'Preferred breed & size', value: a.preferredBreedSize },
+						{ label: 'Second choice', value: a.secondChoiceBreedSize },
+						{ label: 'Open to other breed/size', value: a.considerOtherBreedSize },
+						{ label: 'Preferred sex', value: a.preferredSex },
+						{ label: 'Open to opposite sex', value: a.considerOppositeSex },
+						{ label: 'Preferred colour', value: a.preferredColour },
+						{ label: 'Open to other colour', value: a.considerOtherColour },
+						{ label: 'Would consider rehome', value: a.considerRehome },
+						{ label: 'Agreed to contract', value: a.agreedToContract },
+					]} />
+				</div>
+			</Card>
 
 			{/* Quick message */}
 			<Card className="p-5">
