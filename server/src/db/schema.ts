@@ -288,6 +288,7 @@ export const clientTemplateChecklist = pgTable('client_template_checklist', {
 	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
 	templateId: text('template_id').notNull().references(() => documentTemplates.id, { onDelete: 'cascade' }),
 	checkedAt: timestamp('checked_at', { withTimezone: true }),
+	uploadedFileUrl: text('uploaded_file_url'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

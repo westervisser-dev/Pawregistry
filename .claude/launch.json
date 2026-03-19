@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "client",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@paw-registry/client", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "server",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--watch", "src/index.ts"],
+      "cwd": "server",
+      "port": 3000,
+      "autoPort": false
+    }
+  ]
+}

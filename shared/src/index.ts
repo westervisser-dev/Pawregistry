@@ -229,6 +229,7 @@ export interface DocumentTemplate {
 
 export interface DocumentTemplateWithChecklist extends DocumentTemplate {
 	checkedAt: string | null;
+	uploadedFileUrl: string | null;
 }
 
 // ─── API response helpers ────────────────────────────────────────────────────

@@ -30,10 +30,14 @@ export const templatesRoutes = new Elysia({ prefix: '/templates' })
 	})
 
 	.post(
-		'/my/:templateId/toggle',
-		async ({ user, params, error }) => {
+		'/my/:templateId/upload',
+		async ({ user, params, body, error }) => {
 			const client = await db.query.clients.findFirst({ where: eq(clients.userId, user.id) });
 			if (!client) return error(404, { error: 'Not found', message: 'Client record not found' });
+
+			const file = body.file as File;
+			const path = `client-templates/${client.id}/${params.templateId}-${Date.now()}-${file.name}`;
+			const url = await uploadFile(STORAGE_BUCKETS.documents, path, file, file.type);
 
 			const existing = await db.query.clientTemplateChecklist.findFirst({
 				where: and(
@@ -43,24 +47,23 @@ export const templatesRoutes = new Elysia({ prefix: '/templates' })
 			});
 
 			if (existing) {
-				// Toggle: if checked, uncheck; if unchecked, check
-				const newCheckedAt = existing.checkedAt ? null : new Date();
 				const [updated] = await db
 					.update(clientTemplateChecklist)
-					.set({ checkedAt: newCheckedAt })
+					.set({ checkedAt: new Date(), uploadedFileUrl: url })
 					.where(eq(clientTemplateChecklist.id, existing.id))
 					.returning();
 				return updated;
 			} else {
-				// Create new checked entry
 				const [created] = await db.insert(clientTemplateChecklist).values({
 					clientId: client.id,
 					templateId: params.templateId,
 					checkedAt: new Date(),
+					uploadedFileUrl: url,
 				}).returning();
 				return created;
 			}
-		}
+		},
+		{ body: t.Object({ file: t.File() }) }
 	)
 
 	// ── Admin routes ──
