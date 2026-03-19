@@ -49,7 +49,10 @@ interface FormData {
 	readyTimeframe: 'asap' | '6_months' | '1_year' | '';
 	preferredBreed: string;
 	preferredSize: string;
-	secondChoiceBreedSize: string;
+	hasSecondChoiceBreed: boolean;
+	secondChoiceBreed: string;
+	secondChoiceSize: string;
+	hasSecondChoiceSize: boolean;
 	considerOtherBreedSize: boolean;
 	preferredSex: 'male' | 'female' | 'no_preference';
 	considerOppositeSex: boolean;
@@ -80,7 +83,9 @@ const initial: FormData = {
 	willingForObedienceClasses: false,
 	references: '',
 	puppyPurpose: '',
-	readyTimeframe: '', preferredBreed: '', preferredSize: '', secondChoiceBreedSize: '',
+	readyTimeframe: '', preferredBreed: '', preferredSize: '',
+	hasSecondChoiceBreed: false, secondChoiceBreed: '', secondChoiceSize: '',
+	hasSecondChoiceSize: false,
 	considerOtherBreedSize: false,
 	preferredSex: 'no_preference', considerOppositeSex: false,
 	preferredColour: '', considerOtherColour: false,
@@ -238,9 +243,14 @@ export function ApplyPage() {
 
 	const handleBreedChange = (breed: string) => {
 		const sizes = BREED_SIZES[breed] ?? [];
-		// Auto-select if only one size option
 		const autoSize = sizes.length === 1 ? sizes[0].value : '';
 		setForm((f) => ({ ...f, preferredBreed: breed, preferredSize: autoSize }));
+	};
+
+	const handleSecondBreedChange = (breed: string) => {
+		const sizes = BREED_SIZES[breed] ?? [];
+		const autoSize = sizes.length === 1 ? sizes[0].value : '';
+		setForm((f) => ({ ...f, secondChoiceBreed: breed, secondChoiceSize: autoSize }));
 	};
 
 	const submit = async () => {
@@ -249,6 +259,14 @@ export function ApplyPage() {
 		const preferredBreedSize = form.preferredSize
 			? `${form.preferredBreed} - ${form.preferredSize}`
 			: form.preferredBreed;
+		let secondChoiceBreedSize: string | null = null;
+		if (form.hasSecondChoiceBreed && form.secondChoiceBreed) {
+			secondChoiceBreedSize = form.secondChoiceSize
+				? `${form.secondChoiceBreed} - ${form.secondChoiceSize}`
+				: form.secondChoiceBreed;
+		} else if (!form.hasSecondChoiceBreed && form.hasSecondChoiceSize && form.secondChoiceSize) {
+			secondChoiceBreedSize = `${form.preferredBreed} - ${form.secondChoiceSize}`;
+		}
 		const { error: apiError } = await api.clients.apply.post({
 			firstName: form.firstName,
 			lastName: form.lastName,
@@ -301,7 +319,7 @@ export function ApplyPage() {
 				// Preferences
 				readyTimeframe: form.readyTimeframe || null,
 				preferredBreedSize: preferredBreedSize || null,
-				secondChoiceBreedSize: form.secondChoiceBreedSize || null,
+				secondChoiceBreedSize: secondChoiceBreedSize,
 				considerOppositeSex: form.considerOppositeSex,
 				considerOtherColour: form.considerOtherColour,
 				considerOtherBreedSize: form.considerOtherBreedSize,
@@ -326,6 +344,9 @@ export function ApplyPage() {
 	}
 
 	const sizeOptions = form.preferredBreed ? (BREED_SIZES[form.preferredBreed] ?? []) : [];
+	const secondChoiceSizeOptions = form.secondChoiceBreed ? (BREED_SIZES[form.secondChoiceBreed] ?? []) : [];
+	// Same breed, different size options (excludes first choice size)
+	const sameBrandAltSizeOptions = sizeOptions.filter((s) => s.value !== form.preferredSize);
 
 	return (
 		<div className="max-w-2xl mx-auto px-6 py-16">
@@ -638,17 +659,105 @@ export function ApplyPage() {
 						)}
 
 						<Toggle
-							label="I would consider a different breed or size if my first choice is unavailable"
-							checked={form.considerOtherBreedSize}
-							onChange={(v) => set('considerOtherBreedSize', v)}
+							label="Do you have a second choice breed?"
+							checked={form.hasSecondChoiceBreed}
+							onChange={(v) => {
+								setForm((f) => ({ ...f, hasSecondChoiceBreed: v, secondChoiceBreed: '', secondChoiceSize: '', hasSecondChoiceSize: false }));
+							}}
 						/>
 
-						<Input
-							label="Second choice breed / size (optional)"
-							value={form.secondChoiceBreedSize}
-							onChange={(e) => set('secondChoiceBreedSize', e.target.value)}
-							placeholder="e.g. F1b Goldendoodle - Miniature"
-						/>
+						{/* Second choice breed flow */}
+						{form.hasSecondChoiceBreed && (
+							<>
+								<div>
+									<label className="block text-sm font-medium text-stone-700 mb-2">Second choice breed</label>
+									<div className="flex flex-col gap-2">
+										{BREEDS.filter((b) => b.value !== form.preferredBreed).map((b) => (
+											<button
+												key={b.value}
+												type="button"
+												onClick={() => handleSecondBreedChange(b.value)}
+												className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
+													form.secondChoiceBreed === b.value
+														? 'bg-brand-50 border-brand-400 text-brand-700'
+														: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+												}`}
+											>
+												<span className="font-semibold">{b.label}</span>
+												<span className="ml-2 font-normal text-stone-400">{b.detail}</span>
+											</button>
+										))}
+									</div>
+								</div>
+
+								{form.secondChoiceBreed && secondChoiceSizeOptions.length > 1 && (
+									<div>
+										<label className="block text-sm font-medium text-stone-700 mb-2">Second choice size</label>
+										<div className="flex flex-col gap-2">
+											{secondChoiceSizeOptions.map((s) => (
+												<button
+													key={s.value}
+													type="button"
+													onClick={() => set('secondChoiceSize', s.value)}
+													className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
+														form.secondChoiceSize === s.value
+															? 'bg-brand-50 border-brand-400 text-brand-700'
+															: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+													}`}
+												>
+													<span className="font-semibold">{s.label}</span>
+													<span className="ml-2 font-normal text-stone-400">{s.detail}</span>
+												</button>
+											))}
+										</div>
+									</div>
+								)}
+
+								{form.secondChoiceBreed && secondChoiceSizeOptions.length === 1 && (
+									<div>
+										<label className="block text-sm font-medium text-stone-300 mb-2">Second choice size</label>
+										<div className="px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 text-sm text-stone-400">
+											<span className="font-medium">{secondChoiceSizeOptions[0].label}</span>
+											<span className="ml-2">{secondChoiceSizeOptions[0].detail}</span>
+										</div>
+									</div>
+								)}
+							</>
+						)}
+
+						{/* Second choice size (same breed) flow — only if no second breed chosen */}
+						{!form.hasSecondChoiceBreed && sameBrandAltSizeOptions.length > 0 && (
+							<Toggle
+								label="Do you have a second choice size?"
+								checked={form.hasSecondChoiceSize}
+								onChange={(v) => {
+									setForm((f) => ({ ...f, hasSecondChoiceSize: v, secondChoiceSize: '' }));
+								}}
+							/>
+						)}
+
+						{!form.hasSecondChoiceBreed && form.hasSecondChoiceSize && sameBrandAltSizeOptions.length > 0 && (
+							<div>
+								<label className="block text-sm font-medium text-stone-700 mb-2">Second choice size</label>
+								<div className="flex flex-col gap-2">
+									{sameBrandAltSizeOptions.map((s) => (
+										<button
+											key={s.value}
+											type="button"
+											onClick={() => set('secondChoiceSize', s.value)}
+											className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
+												form.secondChoiceSize === s.value
+													? 'bg-brand-50 border-brand-400 text-brand-700'
+													: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+											}`}
+										>
+											<span className="font-semibold">{s.label}</span>
+											<span className="ml-2 font-normal text-stone-400">{s.detail}</span>
+										</button>
+									))}
+								</div>
+							</div>
+						)}
 
 						<div>
 							<label className="block text-sm font-medium text-stone-700 mb-2">Preferred sex</label>
