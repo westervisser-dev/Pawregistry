@@ -5,7 +5,9 @@ import { clients } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 
 const applicationDataSchema = t.Object({
-	livingType: t.Union([t.Literal('house'), t.Literal('apartment'), t.Literal('farm'), t.Literal('other')]),
+	// ── Existing fields ──
+	livingType: t.Union([t.Literal('house'), t.Literal('townhouse'), t.Literal('apartment'), t.Literal('farm'), t.Literal('other')]),
+	otherLivingType: t.Optional(t.Nullable(t.String())),
 	hasGarden: t.Boolean(),
 	hasChildren: t.Boolean(),
 	childrenAges: t.Array(t.Number()),
@@ -18,6 +20,40 @@ const applicationDataSchema = t.Object({
 	reasonForBreed: t.String(),
 	references: t.Nullable(t.String()),
 	agreedToContract: t.Boolean(),
+	// ── Personal ──
+	puppyPurpose: t.Optional(t.Nullable(t.String())),
+	residenceOwnership: t.Optional(t.Nullable(t.Union([t.Literal('own'), t.Literal('rent'), t.Literal('lease')]))),
+	primaryCaregiver: t.Optional(t.Nullable(t.String())),
+	allergiesToDogs: t.Optional(t.Boolean()),
+	allFamilyMembersAgree: t.Optional(t.Boolean()),
+	dogLivesIndoors: t.Optional(t.Boolean()),
+	// ── Home ──
+	yardSize: t.Optional(t.Nullable(t.String())),
+	hasPoolOrDriveway: t.Optional(t.Boolean()),
+	poolDrivewayFenced: t.Optional(t.Boolean()),
+	puppyDaytimeLocation: t.Optional(t.Nullable(t.String())),
+	hoursAlonePerDay: t.Optional(t.Nullable(t.String())),
+	someoneHomeDuringDay: t.Optional(t.Boolean()),
+	aloneArrangements: t.Optional(t.Nullable(t.String())),
+	neighbourhoodRestrictions: t.Optional(t.Boolean()),
+	neighbourhoodRestrictionsDetails: t.Optional(t.Nullable(t.String())),
+	childrenGenderAges: t.Optional(t.Nullable(t.String())),
+	// ── Experience ──
+	breedsOwnedPast: t.Optional(t.Nullable(t.String())),
+	returnedPetToBreeder: t.Optional(t.Boolean()),
+	returnedPetDetails: t.Optional(t.Nullable(t.String())),
+	givenPetAway: t.Optional(t.Boolean()),
+	givenPetAwayDetails: t.Optional(t.Nullable(t.String())),
+	activityLevel: t.Optional(t.Nullable(t.String())),
+	willingForObedienceClasses: t.Optional(t.Boolean()),
+	// ── Preferences ──
+	readyTimeframe: t.Optional(t.Nullable(t.Union([t.Literal('asap'), t.Literal('6_months'), t.Literal('1_year')]))),
+	preferredBreedSize: t.Optional(t.Nullable(t.String())),
+	secondChoiceBreedSize: t.Optional(t.Nullable(t.String())),
+	considerOppositeSex: t.Optional(t.Boolean()),
+	considerOtherColour: t.Optional(t.Boolean()),
+	considerOtherBreedSize: t.Optional(t.Boolean()),
+	considerRehome: t.Optional(t.Boolean()),
 });
 
 export const clientsRoutes = new Elysia({ prefix: '/clients' })

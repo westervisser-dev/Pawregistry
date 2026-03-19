@@ -134,7 +134,9 @@ export interface Client {
 }
 
 export interface ClientApplication {
-	livingType: 'house' | 'apartment' | 'farm' | 'other';
+	// ── Existing ──
+	livingType: 'house' | 'townhouse' | 'apartment' | 'farm' | 'other';
+	otherLivingType: string | null;
 	hasGarden: boolean;
 	hasChildren: boolean;
 	childrenAges: number[];
@@ -147,6 +149,40 @@ export interface ClientApplication {
 	reasonForBreed: string;
 	references: string | null;
 	agreedToContract: boolean;
+	// ── Personal ──
+	puppyPurpose: string | null;
+	residenceOwnership: 'own' | 'rent' | 'lease' | null;
+	primaryCaregiver: string | null;
+	allergiesToDogs: boolean;
+	allFamilyMembersAgree: boolean;
+	dogLivesIndoors: boolean;
+	// ── Home ──
+	yardSize: string | null;
+	hasPoolOrDriveway: boolean;
+	poolDrivewayFenced: boolean;
+	puppyDaytimeLocation: string | null;
+	hoursAlonePerDay: string | null;
+	someoneHomeDuringDay: boolean;
+	aloneArrangements: string | null;
+	neighbourhoodRestrictions: boolean;
+	neighbourhoodRestrictionsDetails: string | null;
+	childrenGenderAges: string | null;
+	// ── Experience ──
+	breedsOwnedPast: string | null;
+	returnedPetToBreeder: boolean;
+	returnedPetDetails: string | null;
+	givenPetAway: boolean;
+	givenPetAwayDetails: string | null;
+	activityLevel: string | null;
+	willingForObedienceClasses: boolean;
+	// ── Preferences ──
+	readyTimeframe: 'asap' | '6_months' | '1_year' | null;
+	preferredBreedSize: string | null;
+	secondChoiceBreedSize: string | null;
+	considerOppositeSex: boolean;
+	considerOtherColour: boolean;
+	considerOtherBreedSize: boolean;
+	considerRehome: boolean;
 }
 
 // ─── Update (puppy journal posts) ────────────────────────────────────────────
