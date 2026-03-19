@@ -14,11 +14,10 @@ import { authRoutes } from './routes/auth';
 const app = new Elysia()
 	.use(
 		cors({
-			origin: [
-				'http://localhost:5173',
-				'http://localhost:5174',
-				...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
-			],
+			origin: (req) => {
+				const origin = req.headers.get('origin') ?? '';
+				return /^http:\/\/localhost:\d+$/.test(origin) || origin === process.env.CLIENT_URL;
+			},
 			credentials: true,
 		})
 	)
