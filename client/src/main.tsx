@@ -39,6 +39,7 @@ import { AdminClients } from '@/pages/admin/AdminClients';
 import { AdminClientDetail } from '@/pages/admin/AdminClientDetail';
 import { AdminUpdates } from '@/pages/admin/AdminUpdates';
 import { AdminWaitlist } from '@/pages/admin/AdminWaitlist';
+import { AdminDocuments } from '@/pages/admin/AdminDocuments';
 
 // Guards
 import { PortalGuard } from '@/components/ui/PortalGuard';
@@ -97,6 +98,7 @@ function App() {
 						<Route path="/admin/clients/:id" element={<AdminClientDetail />} />
 						<Route path="/admin/updates" element={<AdminUpdates />} />
 						<Route path="/admin/waitlist" element={<AdminWaitlist />} />
+						<Route path="/admin/documents" element={<AdminDocuments />} />
 					</Route>
 				</Route>
 

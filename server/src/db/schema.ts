@@ -262,3 +262,36 @@ export const goHomeChecklists = pgTable('go_home_checklists', {
 	notes: text('notes'),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ─── Document Templates ───────────────────────────────────────────────────────
+
+export const documentTemplates = pgTable('document_templates', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	name: text('name').notNull(),
+	description: text('description'),
+	fileUrl: text('file_url').notNull(),
+	category: text('category'),
+	sortOrder: integer('sort_order').notNull().default(0),
+	isActive: boolean('is_active').notNull().default(true),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const documentTemplatesRelations = relations(documentTemplates, ({ many }) => ({
+	checklist: many(clientTemplateChecklist),
+}));
+
+// ─── Client Template Checklist ────────────────────────────────────────────────
+
+export const clientTemplateChecklist = pgTable('client_template_checklist', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+	templateId: text('template_id').notNull().references(() => documentTemplates.id, { onDelete: 'cascade' }),
+	checkedAt: timestamp('checked_at', { withTimezone: true }),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const clientTemplateChecklistRelations = relations(clientTemplateChecklist, ({ one }) => ({
+	client: one(clients, { fields: [clientTemplateChecklist.clientId], references: [clients.id] }),
+	template: one(documentTemplates, { fields: [clientTemplateChecklist.templateId], references: [documentTemplates.id] }),
+}));

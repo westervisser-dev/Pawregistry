@@ -8,6 +8,7 @@ const adminNav = [
 	{ to: '/admin/waitlist', label: 'Waitlist', icon: '📋' },
 	{ to: '/admin/clients', label: 'Clients', icon: '👥' },
 	{ to: '/admin/updates', label: 'Updates', icon: '📷' },
+	{ to: '/admin/documents', label: 'Documents', icon: '📁' },
 ];
 
 export function AdminLayout() {
