@@ -664,24 +664,35 @@ export function AdminClients() {
 
 			{loading ? <LoadingPage /> : (
 				<Card>
-					<AdminTable headers={['Name', 'Email', 'Stage', 'Applied', '']}>
-						{clients.map((client) => (
-							<tr key={client.id} className="border-b border-stone-100 hover:bg-stone-50">
-								<td className="py-3 px-4 font-medium text-stone-900">
-									{client.firstName} {client.lastName}
-								</td>
-								<td className="py-3 px-4 text-stone-600">{client.email}</td>
-								<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
-								<td className="py-3 px-4 text-stone-400 text-xs">
-									{new Date(client.createdAt).toLocaleDateString()}
-								</td>
-								<td className="py-3 px-4">
-									<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
-										View →
-									</Link>
-								</td>
-							</tr>
-						))}
+					<AdminTable headers={['Name', 'Preference', 'Stage', 'Applied', '']}>
+						{clients.map((client) => {
+							const pbs = (client.applicationData as Record<string, unknown>)?.preferredBreedSize as string | undefined;
+							const parsed = formatBreedSize(pbs);
+							return (
+								<tr key={client.id} className="border-b border-stone-100 hover:bg-stone-50">
+									<td className="py-3 px-4">
+										<p className="font-medium text-stone-900">{client.firstName} {client.lastName}</p>
+										<p className="text-xs text-stone-400">{client.email}</p>
+									</td>
+									<td className="py-3 px-4">
+										{parsed ? (
+											<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
+												🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
+											</span>
+										) : <span className="text-stone-300 text-xs">—</span>}
+									</td>
+									<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
+									<td className="py-3 px-4 text-stone-400 text-xs">
+										{new Date(client.createdAt).toLocaleDateString()}
+									</td>
+									<td className="py-3 px-4">
+										<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
+											View →
+										</Link>
+									</td>
+								</tr>
+							);
+						})}
 					</AdminTable>
 					{clients.length === 0 && <EmptyState icon="👥" title="No clients" />}
 				</Card>
@@ -691,6 +702,44 @@ export function AdminClients() {
 }
 
 // ─── Application view helpers ─────────────────────────────────────────────────
+
+const BREED_LABELS: Record<string, string> = {
+	f1_goldendoodle: 'F1 Goldendoodle',
+	f1b_goldendoodle: 'F1b Goldendoodle',
+	f1_border_doodle: 'F1 Border Doodle',
+	f1_mini_biewer_doodle: 'F1 Mini Biewer Doodle',
+	red_tuxedo_french_poodle: 'Red Tuxedo French Poodle',
+};
+
+const SIZE_LABELS: Record<string, string> = {
+	standard: 'Standard',
+	miniature: 'Miniature',
+	dwarf: 'Dwarf',
+	border_doodle: 'Border Doodle',
+	biewer_doodle: 'Biewer Doodle',
+	standard_poodle: 'Standard Poodle',
+	moyen_poodle: 'Moyen Poodle',
+};
+
+function formatBreedSize(raw: string | null | undefined): { breed: string; size: string | null } | null {
+	if (!raw) return null;
+	const [breedRaw, sizeRaw] = raw.split(' - ');
+	return {
+		breed: BREED_LABELS[breedRaw] ?? breedRaw,
+		size: sizeRaw ? (SIZE_LABELS[sizeRaw] ?? sizeRaw) : null,
+	};
+}
+
+function BreedSizeDisplay({ raw }: { raw: string | null | undefined }) {
+	const parsed = formatBreedSize(raw);
+	if (!parsed) return <span className="text-stone-300">—</span>;
+	return (
+		<span className="text-stone-800">
+			<span className="font-medium">{parsed.breed}</span>
+			{parsed.size && <span className="text-stone-400"> · {parsed.size}</span>}
+		</span>
+	);
+}
 
 function AppField({ label, value }: { label: string; value: unknown }) {
 	const display = () => {
@@ -785,6 +834,21 @@ export function AdminClientDetail() {
 					{(client.city || client.country) && (
 						<p className="text-stone-400 text-sm">{[client.city, client.country].filter(Boolean).join(', ')}</p>
 					)}
+					{a.preferredBreedSize && (() => {
+						const p = formatBreedSize(a.preferredBreedSize as string);
+						return p ? (
+							<div className="mt-3 flex items-center gap-2 flex-wrap">
+								<span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700">
+									🐾 {p.breed}{p.size ? ` · ${p.size}` : ''}
+								</span>
+								{a.preferredSex && a.preferredSex !== 'no_preference' && (
+									<span className="inline-flex items-center px-2.5 py-1 bg-stone-100 rounded-full text-xs font-medium text-stone-600 capitalize">
+										{String(a.preferredSex)}
+									</span>
+								)}
+							</div>
+						) : null;
+					})()}
 				</div>
 				<StageBadge stage={client.stage} />
 			</div>
@@ -850,19 +914,39 @@ export function AdminClientDetail() {
 						{ label: 'Willing for obedience classes', value: a.willingForObedienceClasses },
 						{ label: 'References', value: a.references },
 					]} />
-					<AppSection title="Puppy Preferences" fields={[
-						{ label: 'Purpose', value: a.puppyPurpose },
-						{ label: 'Ready timeframe', value: a.readyTimeframe ? readyLabels[a.readyTimeframe as string] ?? a.readyTimeframe : null },
-						{ label: 'Preferred breed & size', value: a.preferredBreedSize },
-						{ label: 'Second choice', value: a.secondChoiceBreedSize },
-						{ label: 'Open to other breed/size', value: a.considerOtherBreedSize },
-						{ label: 'Preferred sex', value: a.preferredSex },
-						{ label: 'Open to opposite sex', value: a.considerOppositeSex },
-						{ label: 'Preferred colour', value: a.preferredColour },
-						{ label: 'Open to other colour', value: a.considerOtherColour },
-						{ label: 'Would consider rehome', value: a.considerRehome },
-						{ label: 'Agreed to contract', value: a.agreedToContract },
-					]} />
+					<div>
+						<p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-1">Puppy Preferences</p>
+						<dl className="divide-y divide-stone-100">
+							{a.puppyPurpose && <AppField label="Purpose" value={a.puppyPurpose} />}
+							{a.readyTimeframe && <AppField label="Ready timeframe" value={readyLabels[a.readyTimeframe as string] ?? a.readyTimeframe} />}
+							{a.preferredBreedSize && (
+								<div className="py-2.5 border-b border-stone-100 grid grid-cols-2 gap-4 items-start">
+									<dt className="text-xs text-stone-400 pt-0.5">First choice</dt>
+									<dd className="text-sm"><BreedSizeDisplay raw={a.preferredBreedSize as string} /></dd>
+								</div>
+							)}
+							{a.secondChoiceBreedSize && (
+								<div className="py-2.5 border-b border-stone-100 grid grid-cols-2 gap-4 items-start">
+									<dt className="text-xs text-stone-400 pt-0.5">Second choice</dt>
+									<dd className="text-sm"><BreedSizeDisplay raw={a.secondChoiceBreedSize as string} /></dd>
+								</div>
+							)}
+							<AppField label="Open to other breed/size" value={a.considerOtherBreedSize} />
+							{a.preferredSex && (
+								<div className="py-2.5 border-b border-stone-100 grid grid-cols-2 gap-4 items-start">
+									<dt className="text-xs text-stone-400 pt-0.5">Preferred sex</dt>
+									<dd className="text-sm text-stone-800">
+										{a.preferredSex === 'no_preference' ? 'No preference' : <span className="capitalize">{String(a.preferredSex)}</span>}
+									</dd>
+								</div>
+							)}
+							<AppField label="Open to opposite sex" value={a.considerOppositeSex} />
+							{a.preferredColour && <AppField label="Preferred colour" value={a.preferredColour} />}
+							<AppField label="Open to other colour" value={a.considerOtherColour} />
+							<AppField label="Would consider rehome" value={a.considerRehome} />
+							<AppField label="Agreed to contract" value={a.agreedToContract} />
+						</dl>
+					</div>
 				</div>
 			</Card>
 
