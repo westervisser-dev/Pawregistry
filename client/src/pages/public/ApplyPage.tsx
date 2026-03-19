@@ -46,9 +46,9 @@ interface FormData {
 	references: string;
 	// Preferences
 	puppyPurpose: string;
-	reasonForBreed: string;
 	readyTimeframe: 'asap' | '6_months' | '1_year' | '';
-	preferredBreedSize: string;
+	preferredBreed: string;
+	preferredSize: string;
 	secondChoiceBreedSize: string;
 	considerOtherBreedSize: boolean;
 	preferredSex: 'male' | 'female' | 'no_preference';
@@ -79,8 +79,8 @@ const initial: FormData = {
 	givenPetAway: false, givenPetAwayDetails: '',
 	willingForObedienceClasses: false,
 	references: '',
-	puppyPurpose: '', reasonForBreed: '',
-	readyTimeframe: '', preferredBreedSize: '', secondChoiceBreedSize: '',
+	puppyPurpose: '',
+	readyTimeframe: '', preferredBreed: '', preferredSize: '', secondChoiceBreedSize: '',
 	considerOtherBreedSize: false,
 	preferredSex: 'no_preference', considerOppositeSex: false,
 	preferredColour: '', considerOtherColour: false,
@@ -90,18 +90,39 @@ const initial: FormData = {
 
 const steps: Step[] = ['personal', 'home', 'experience', 'preferences', 'done'];
 
-const BREED_SIZES = [
-	{ value: 'standard_goldendoodle', label: 'Standard Goldendoodle' },
-	{ value: 'miniature_goldendoodle', label: 'Miniature Goldendoodle' },
-	{ value: 'dwarf_goldendoodle', label: 'Dwarf Goldendoodle' },
-	{ value: 'border_doodle', label: 'Border Doodle' },
-	{ value: 'biewer_doodle', label: 'Biewer Doodle' },
-	{ value: 'tuxedo_french_poodle', label: 'Tuxedo French Poodle' },
-	{ value: 'no_preference', label: 'No preference' },
+const BREEDS = [
+	{ value: 'f1_goldendoodle', label: 'F1 Goldendoodle', detail: 'Golden Retriever × Poodle' },
+	{ value: 'f1b_goldendoodle', label: 'F1b Goldendoodle', detail: 'F1 Goldendoodle × Poodle' },
+	{ value: 'f1_border_doodle', label: 'F1 Border Doodle', detail: 'Border Collie × Poodle' },
+	{ value: 'f1_mini_biewer_doodle', label: 'F1 Mini Biewer Doodle', detail: 'Biewer Terrier × Mini Poodle' },
+	{ value: 'red_tuxedo_french_poodle', label: 'Red Tuxedo French Poodle', detail: 'Pure bred poodle' },
 ];
 
+const BREED_SIZES: Record<string, { value: string; label: string; detail: string }[]> = {
+	f1_goldendoodle: [
+		{ value: 'standard', label: 'Standard', detail: 'Golden Retriever × Standard Poodle · ±32–45 kg / 55–65 cm' },
+		{ value: 'miniature', label: 'Miniature', detail: 'Golden Retriever × Miniature Poodle · ±25–28 kg / 45–50 cm' },
+		{ value: 'dwarf', label: 'Dwarf', detail: 'Golden Retriever × Dwarf Poodle · ±16–24 kg / 40–45 cm' },
+	],
+	f1b_goldendoodle: [
+		{ value: 'standard', label: 'Standard', detail: 'Golden Retriever × Standard Poodle · ±32–45 kg / 55–65 cm' },
+		{ value: 'miniature', label: 'Miniature', detail: 'Golden Retriever × Miniature Poodle · ±25–28 kg / 45–50 cm' },
+		{ value: 'dwarf', label: 'Dwarf', detail: 'Golden Retriever × Dwarf Poodle · ±16–24 kg / 40–45 cm' },
+	],
+	f1_border_doodle: [
+		{ value: 'border_doodle', label: 'Border Doodle', detail: 'Border Collie × Miniature Poodle · ±13–18 kg / 30–38 cm' },
+	],
+	f1_mini_biewer_doodle: [
+		{ value: 'biewer_doodle', label: 'Biewer Doodle', detail: 'Biewer Terrier × Miniature Poodle · ±7–12 kg / 20–25 cm' },
+	],
+	red_tuxedo_french_poodle: [
+		{ value: 'standard_poodle', label: 'Standard Poodle', detail: 'Pure bred poodle · ±25–30 kg / 40–50 cm' },
+		{ value: 'moyen_poodle', label: 'Moyen Poodle', detail: 'Pure bred poodle of medium size · ±12–18 kg / 30–38 cm' },
+	],
+};
+
 function StepIndicator({ current }: { current: Step }) {
-	const labels = ['Personal', 'Home & Life', 'Experience', 'Preferences'];
+	const labels = ['Personal Details', 'Home & Life', 'Experience', 'Puppy Preference'];
 	const currentIdx = steps.indexOf(current);
 	return (
 		<div className="flex items-center gap-0 mb-10">
@@ -215,9 +236,19 @@ export function ApplyPage() {
 	const next = () => setStep(steps[steps.indexOf(step) + 1] as Step);
 	const back = () => setStep(steps[steps.indexOf(step) - 1] as Step);
 
+	const handleBreedChange = (breed: string) => {
+		const sizes = BREED_SIZES[breed] ?? [];
+		// Auto-select if only one size option
+		const autoSize = sizes.length === 1 ? sizes[0].value : '';
+		setForm((f) => ({ ...f, preferredBreed: breed, preferredSize: autoSize }));
+	};
+
 	const submit = async () => {
 		if (!form.agreedToContract) { setError('You must agree to the terms.'); return; }
 		setSubmitting(true);
+		const preferredBreedSize = form.preferredSize
+			? `${form.preferredBreed} - ${form.preferredSize}`
+			: form.preferredBreed;
 		const { error: apiError } = await api.clients.apply.post({
 			firstName: form.firstName,
 			lastName: form.lastName,
@@ -239,7 +270,7 @@ export function ApplyPage() {
 				experienceDescription: form.experienceDescription || null,
 				preferredSex: form.preferredSex,
 				preferredColour: form.preferredColour || null,
-				reasonForBreed: form.reasonForBreed,
+				reasonForBreed: null,
 				references: form.references || null,
 				agreedToContract: form.agreedToContract,
 				// Personal
@@ -269,7 +300,7 @@ export function ApplyPage() {
 				willingForObedienceClasses: form.willingForObedienceClasses,
 				// Preferences
 				readyTimeframe: form.readyTimeframe || null,
-				preferredBreedSize: form.preferredBreedSize || null,
+				preferredBreedSize: preferredBreedSize || null,
 				secondChoiceBreedSize: form.secondChoiceBreedSize || null,
 				considerOppositeSex: form.considerOppositeSex,
 				considerOtherColour: form.considerOtherColour,
@@ -293,6 +324,8 @@ export function ApplyPage() {
 			</div>
 		);
 	}
+
+	const sizeOptions = form.preferredBreed ? (BREED_SIZES[form.preferredBreed] ?? []) : [];
 
 	return (
 		<div className="max-w-2xl mx-auto px-6 py-16">
@@ -535,13 +568,6 @@ export function ApplyPage() {
 							placeholder="e.g. family companion, therapy dog…"
 						/>
 
-						<Textarea
-							label="Why this breed?"
-							value={form.reasonForBreed}
-							onChange={(e) => set('reasonForBreed', e.target.value)}
-							placeholder="Tell us why you've chosen this breed and what draws you to it…"
-						/>
-
 						<ButtonGroup
 							label="When would you be ready to adopt a puppy?"
 							options={[
@@ -554,25 +580,74 @@ export function ApplyPage() {
 							cols={3}
 						/>
 
-						<ButtonGroup
-							label="Preferred breed / size"
-							options={BREED_SIZES}
-							value={form.preferredBreedSize as typeof BREED_SIZES[number]['value'] | ''}
-							onChange={(v) => set('preferredBreedSize', v)}
-							cols={2}
+						{/* Breed selector */}
+						<div>
+							<label className="block text-sm font-medium text-stone-700 mb-2">Preferred breed</label>
+							<div className="flex flex-col gap-2">
+								{BREEDS.map((b) => (
+									<button
+										key={b.value}
+										type="button"
+										onClick={() => handleBreedChange(b.value)}
+										className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
+											form.preferredBreed === b.value
+												? 'bg-brand-50 border-brand-400 text-brand-700'
+												: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+										}`}
+									>
+										<span className="font-semibold">{b.label}</span>
+										<span className="ml-2 font-normal text-stone-400">{b.detail}</span>
+									</button>
+								))}
+							</div>
+						</div>
+
+						{/* Size selector — shown after breed is chosen, hidden if only one (auto-selected) */}
+						{form.preferredBreed && sizeOptions.length > 1 && (
+							<div>
+								<label className="block text-sm font-medium text-stone-700 mb-2">Preferred size</label>
+								<div className="flex flex-col gap-2">
+									{sizeOptions.map((s) => (
+										<button
+											key={s.value}
+											type="button"
+											onClick={() => set('preferredSize', s.value)}
+											className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
+												form.preferredSize === s.value
+													? 'bg-brand-50 border-brand-400 text-brand-700'
+													: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+											}`}
+										>
+											<span className="font-semibold">{s.label}</span>
+											<span className="ml-2 font-normal text-stone-400">{s.detail}</span>
+										</button>
+									))}
+								</div>
+							</div>
+						)}
+
+						{/* Show auto-selected size as info */}
+						{form.preferredBreed && sizeOptions.length === 1 && (
+							<div>
+								<label className="block text-sm font-medium text-stone-300 mb-2">Preferred size</label>
+								<div className="px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 text-sm text-stone-400">
+									<span className="font-medium">{sizeOptions[0].label}</span>
+									<span className="ml-2">{sizeOptions[0].detail}</span>
+								</div>
+							</div>
+						)}
+
+						<Toggle
+							label="I would consider a different breed or size if my first choice is unavailable"
+							checked={form.considerOtherBreedSize}
+							onChange={(v) => set('considerOtherBreedSize', v)}
 						/>
 
 						<Input
 							label="Second choice breed / size (optional)"
 							value={form.secondChoiceBreedSize}
 							onChange={(e) => set('secondChoiceBreedSize', e.target.value)}
-							placeholder="e.g. Miniature Goldendoodle"
-						/>
-
-						<Toggle
-							label="I would consider a different breed or size if my first choice is unavailable"
-							checked={form.considerOtherBreedSize}
-							onChange={(v) => set('considerOtherBreedSize', v)}
+							placeholder="e.g. F1b Goldendoodle - Miniature"
 						/>
 
 						<div>
