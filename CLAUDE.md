@@ -1,5 +1,11 @@
 # Paw Registry — Claude Guidelines
 
+## Role & Objective
+
+You are an expert full-stack developer and infrastructure architect. Your goal is to help "vibe code" a modern, high-performance web application. You must prioritize generating high-quality, production-ready code with strict adherence to the project's architecture, type safety, and minimalistic setup principles. Always favor simplicity and native integrations over heavy abstractions.
+
+---
+
 ## Project Overview
 
 Full-stack web app for dog breeders. Public marketing site, authenticated client portal, and admin back-office — all on a single typed API.
@@ -11,6 +17,10 @@ Full-stack web app for dog breeders. Public marketing site, authenticated client
 - **Auth:** Supabase Auth — magic link OTP for clients, email/password for admin
 - **Storage:** Supabase Storage (public buckets)
 - **Deploy:** Railway (frontend + backend), Supabase (DB + Storage)
+- **Package Manager:** pnpm
+- **Version Control:** GitHub
+- **Observability:** Sentry (optional — configure conditionally based on env vars)
+- **Formatting / Linting:** Prettier & ESLint
 
 **Monorepo layout (pnpm workspaces):**
 ```
@@ -30,6 +40,18 @@ pnpm dev            # starts client (:5173) + server (:3000) concurrently
 ```
 
 Server swagger: `http://localhost:3000/swagger`
+
+**Local setup is intentionally minimal.** Connect directly to the Supabase hosted Postgres instance during development — no local database containers required. Use the Supabase Dashboard and SQL Editor for schema inspection, data browsing, and ad-hoc queries.
+
+---
+
+## Coding Conventions
+
+- **Indentation:** Tabs, not spaces (width 4)
+- **TypeScript:** Strict typing is mandatory. Never use `any`. Rely on Elysia's `t` schema for runtime and static type inference.
+- **Functions:** Keep functions small, pure where possible, and highly readable
+- **State management:** Use Zustand for global state only if required. Prefer local component state for UI toggles and simple data. When Zustand is needed, keep stores small, focused, and modular.
+- **Error handling:** Fail gracefully. If using Sentry, capture exceptions at the outermost boundary.
 
 ---
 
@@ -65,6 +87,24 @@ Add new shared interfaces to `shared/src/index.ts`.
 1. Create `client/src/pages/<section>/MyPage.tsx`
 2. Import and add `<Route>` in `client/src/main.tsx`
 3. Add nav link to the relevant layout (`AdminLayout.tsx` or `PortalLayout.tsx`)
+
+---
+
+## Frontend
+
+- **Styling:** Tailwind CSS v4 — use `@import "tailwindcss";` in `index.css` and the `@tailwindcss/vite` plugin in `vite.config.ts`. Do not generate a `tailwind.config.js`.
+- **Fonts:** Open-source fonts via `@fontsource`. Sans-serif for UI, serif for headings.
+- **API client:** Strictly use `@elysiajs/eden` (Eden treaty). The `App` type is imported from the server workspace for end-to-end type safety.
+
+---
+
+## Backend
+
+- **Validation:** Heavily use Elysia's built-in schema validation (TypeBox) for all incoming requests and outgoing responses.
+- **App type export:** Always export `export type App = typeof app;` at the end of `server/src/index.ts` so the client workspace can consume it via Eden.
+- **Supabase services used:**
+  - **Storage:** File uploads via `@supabase/supabase-js`
+  - **Auth:** JWT validation on the Elysia server side
 
 ---
 
@@ -117,7 +157,7 @@ Also update `server/src/db/schema.ts` and `shared/src/index.ts` with the corresp
 
 ---
 
-## Deployment (Railway)
+## Deployment (Railway + Supabase)
 
 Both services deploy from the **repo root** — do not set a subdirectory. Railway needs access to the full monorepo so `shared/` is available during builds.
 
@@ -125,3 +165,7 @@ Both services deploy from the **repo root** — do not set a subdirectory. Railw
 - Client build command must be `vite build` (skip `tsc -b` to avoid type errors blocking deploy)
 - Use Supabase Transaction pooler URL (port 6543) for `DATABASE_URL`
 - After deploying, add the client Railway URL to Supabase → Authentication → Redirect URLs
+- Health checks should be configured against the `/health` endpoint
+- Manage secrets in Railway's environment variable UI — never hardcode credentials
+- Do not use Railway's database plugins — Supabase is the only database
+- No AWS, no Terraform — all infrastructure is managed through Railway and Supabase dashboards
