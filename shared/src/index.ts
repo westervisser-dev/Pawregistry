@@ -73,6 +73,7 @@ export interface Litter {
 	depositAmount: number | null;
 	purchasePrice: number | null;
 	notes: string | null;
+	coverImageUrl: string | null;
 	isPublic: boolean;
 	createdAt: string;
 	updatedAt: string;

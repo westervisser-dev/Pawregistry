@@ -130,6 +130,7 @@ export const litters = pgTable('litters', {
 	depositAmount: real('deposit_amount'),
 	purchasePrice: real('purchase_price'),
 	notes: text('notes'),
+	coverImageUrl: text('cover_image_url'),
 	isPublic: boolean('is_public').notNull().default(false),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

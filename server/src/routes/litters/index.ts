@@ -3,6 +3,7 @@ import { eq, desc } from 'drizzle-orm';
 import { db } from '../../db';
 import { litters, puppies } from '../../db/schema';
 import { adminPlugin } from '../../lib/auth';
+import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 
 export const littersRoutes = new Elysia({ prefix: '/litters' })
 	// ── Public: active public litters ──
@@ -75,6 +76,28 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			availableCount: t.Nullable(t.Number()), depositAmount: t.Nullable(t.Number()),
 			purchasePrice: t.Nullable(t.Number()), notes: t.Nullable(t.String()), isPublic: t.Boolean(),
 		})) }
+	)
+
+	// ── Admin: upload litter cover image ──
+	.post(
+		'/:id/images',
+		async ({ params, body, error }) => {
+			const litter = await db.query.litters.findFirst({ where: eq(litters.id, params.id) });
+			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
+
+			const file = body.file as File;
+			const path = `${params.id}/${Date.now()}-${file.name}`;
+			const url = await uploadFile(STORAGE_BUCKETS.litters, path, file, file.type);
+
+			const [updated] = await db
+				.update(litters)
+				.set({ coverImageUrl: url, updatedAt: new Date() })
+				.where(eq(litters.id, params.id))
+				.returning();
+
+			return updated;
+		},
+		{ body: t.Object({ file: t.File() }) }
 	)
 
 	// ── Puppy management within a litter ──

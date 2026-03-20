@@ -314,7 +314,7 @@ export function AdminDogDetail() {
 									<span>Choose image</span>
 									<input
 										type="file"
-										accept="image/jpeg,image/jpg,image/png,image/svg+xml,.heic,image/heic"
+										accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,.heic,image/heic"
 										onChange={handleImageChange}
 										className="hidden"
 									/>
@@ -328,7 +328,7 @@ export function AdminDogDetail() {
 										Remove image
 									</button>
 								)}
-								<p className="text-xs text-stone-400">JPEG, PNG, SVG or HEIC</p>
+								<p className="text-xs text-stone-400">JPEG, PNG, WebP, SVG or HEIC</p>
 							</div>
 						</div>
 					</div>
@@ -487,6 +487,8 @@ export function AdminLitterDetail() {
 	const [newForm, setNewForm] = useState<{ name: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
 		name: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
 	});
+	const [pendingImage, setPendingImage] = useState<File | null>(null);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!id) return;
@@ -523,7 +525,13 @@ export function AdminLitterDetail() {
 				isPublic: newForm.isPublic,
 			});
 			if (error) { setFormError('Failed to save. Please try again.'); return; }
-			if (data) navigate('/admin/litters');
+			if (data) {
+				const newId = (data as Litter).id;
+				if (pendingImage) {
+					await api.litters({ id: newId }).images.post({ file: pendingImage });
+				}
+				navigate('/admin/litters');
+			}
 		} catch {
 			setFormError('Failed to save. Please try again.');
 		} finally {
@@ -565,6 +573,45 @@ export function AdminLitterDetail() {
 				<Link to="/admin/litters" className="text-sm text-stone-400 hover:text-stone-600 mb-6 inline-block">← Litters</Link>
 				<PageHeader title="New Litter" />
 				<Card className="p-6 flex flex-col gap-4">
+					{/* Cover image */}
+					<div>
+						<label className="block text-xs font-medium text-stone-500 mb-2">Cover Image</label>
+						<div className="flex items-center gap-4">
+							<div className="w-20 h-20 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden flex items-center justify-center flex-shrink-0">
+								{previewUrl ? (
+									<img src={previewUrl} alt="Cover" className="w-full h-full object-cover" />
+								) : (
+									<span className="text-2xl">🐾</span>
+								)}
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
+									<span>Choose image</span>
+									<input
+										type="file"
+										accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,.heic,image/heic"
+										onChange={(e) => {
+											const file = e.target.files?.[0];
+											if (!file) return;
+											setPendingImage(file);
+											setPreviewUrl(URL.createObjectURL(file));
+										}}
+										className="hidden"
+									/>
+								</label>
+								{previewUrl && (
+									<button
+										type="button"
+										onClick={() => { setPendingImage(null); setPreviewUrl(null); }}
+										className="text-xs text-stone-400 hover:text-red-500 text-left transition-colors"
+									>
+										Remove image
+									</button>
+								)}
+								<p className="text-xs text-stone-400">JPEG, PNG, WebP, SVG or HEIC</p>
+							</div>
+						</div>
+					</div>
 					<div className="grid grid-cols-2 gap-4">
 						<div className="col-span-2">
 							<label className="block text-xs font-medium text-stone-500 mb-1">
