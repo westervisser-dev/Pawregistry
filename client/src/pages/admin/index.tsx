@@ -368,11 +368,11 @@ export function AdminDogDetail() {
 						<textarea
 							value={(form.notes as string) ?? ''}
 							onChange={(e) => set('notes', e.target.value)}
-							maxLength={200}
+							maxLength={600}
 							rows={3}
 							className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"
 						/>
-						<p className="text-xs text-stone-400 mt-1 text-right">{((form.notes as string) ?? '').length}/200</p>
+						<p className="text-xs text-stone-400 mt-1 text-right">{((form.notes as string) ?? '').length}/600</p>
 					</div>
 				</div>
 
