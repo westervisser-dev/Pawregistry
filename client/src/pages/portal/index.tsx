@@ -47,7 +47,7 @@ export function PortalDashboard() {
 
 			<Card className="p-6">
 				<h2 className="font-medium text-stone-900 mb-3">Your Details</h2>
-				<dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+				<dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
 					{[
 						{ label: 'Name', value: `${client.firstName} ${client.lastName}` },
 						{ label: 'Email', value: client.email },
@@ -99,7 +99,7 @@ export function PortalUpdates() {
 					{updates.map((update) => (
 						<Card key={update.id} className="overflow-hidden">
 							{update.mediaUrls.length > 0 && (
-								<div className="grid grid-cols-3 gap-1">
+								<div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
 									{update.mediaUrls.slice(0, 3).map((url, i) => (
 										<div key={i} className="aspect-square bg-stone-100 overflow-hidden">
 											<img src={url} alt="" className="w-full h-full object-cover" />
@@ -161,7 +161,7 @@ export function PortalMessages() {
 				<p className="text-stone-500 text-sm mt-1">Direct line to your breeder.</p>
 			</div>
 
-			<Card className="flex flex-col" style={{ height: '60vh' }}>
+			<Card className="flex flex-col h-[60vh] min-h-80">
 				<div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
 					{messages.length === 0 && (
 						<p className="text-stone-400 text-sm text-center mt-8">No messages yet. Say hello! 👋</p>
@@ -171,7 +171,7 @@ export function PortalMessages() {
 							key={msg.id}
 							className={`flex ${msg.author === 'client' ? 'justify-end' : 'justify-start'}`}
 						>
-							<div className={`max-w-xs px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+							<div className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
 								msg.author === 'client'
 									? 'bg-brand-500 text-white rounded-br-sm'
 									: 'bg-stone-100 text-stone-800 rounded-bl-sm'

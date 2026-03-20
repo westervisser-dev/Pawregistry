@@ -127,12 +127,12 @@ const BREED_SIZES: Record<string, { value: string; label: string; detail: string
 };
 
 function StepIndicator({ current }: { current: Step }) {
-	const labels = ['Personal Details', 'Home & Life', 'Experience', 'Puppy Preference'];
+	const labels = ['Personal', 'Home & Life', 'Experience', 'Preferences'];
 	const currentIdx = steps.indexOf(current);
 	return (
 		<div className="flex items-center gap-0 mb-10">
 			{labels.map((label, i) => (
-				<div key={label} className="flex items-center">
+				<div key={label} className="flex items-center flex-1 sm:flex-none">
 					<div className="flex flex-col items-center">
 						<div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
 							i < currentIdx ? 'bg-brand-500 text-white' :
@@ -141,12 +141,15 @@ function StepIndicator({ current }: { current: Step }) {
 						}`}>
 							{i < currentIdx ? '✓' : i + 1}
 						</div>
-						<span className={`text-xs mt-1 ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-stone-400'}`}>
+						<span className={`text-xs mt-1 hidden sm:block ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-stone-400'}`}>
 							{label}
+						</span>
+						<span className={`text-xs mt-1 sm:hidden ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-stone-400'}`}>
+							{i === currentIdx ? label : ''}
 						</span>
 					</div>
 					{i < labels.length - 1 && (
-						<div className={`h-px w-16 mx-2 mb-5 ${i < currentIdx ? 'bg-brand-300' : 'bg-stone-200'}`} />
+						<div className={`h-px flex-1 sm:w-16 sm:flex-none mx-2 mb-5 ${i < currentIdx ? 'bg-brand-300' : 'bg-stone-200'}`} />
 					)}
 				</div>
 			))}
@@ -206,10 +209,14 @@ function ButtonGroup<T extends string>({
 	onChange: (v: T) => void;
 	cols?: number;
 }) {
+	// On mobile always use 2 cols max; on sm+ use the specified cols
+	const gridClass = cols === 3
+		? 'grid grid-cols-2 sm:grid-cols-3 gap-2'
+		: 'grid grid-cols-2 gap-2';
 	return (
 		<div>
 			<label className="block text-sm font-medium text-stone-700 mb-2">{label}</label>
-			<div className={`grid gap-2`} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+			<div className={gridClass}>
 				{options.map((opt) => (
 					<button
 						key={opt.value}
@@ -349,7 +356,7 @@ export function ApplyPage() {
 	const sameBrandAltSizeOptions = sizeOptions.filter((s) => s.value !== form.preferredSize);
 
 	return (
-		<div className="max-w-2xl mx-auto px-6 py-16">
+		<div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 md:py-16">
 			<div className="mb-8">
 				<h1 className="font-serif text-3xl font-bold text-stone-900 mb-2">Puppy Application</h1>
 				<p className="text-stone-500 text-sm">This form helps us ensure that our clients and families are well equipped to home one of our pups.</p>
@@ -357,7 +364,7 @@ export function ApplyPage() {
 
 			<StepIndicator current={step} />
 
-			<div className="bg-white rounded-xl border border-stone-200 p-8">
+			<div className="bg-white rounded-xl border border-stone-200 p-5 md:p-8">
 
 				{/* ── Personal ── */}
 				{step === 'personal' && (

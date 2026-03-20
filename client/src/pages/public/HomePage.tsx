@@ -24,7 +24,7 @@ export function HomePage() {
 					className="absolute inset-0 w-full h-full object-cover object-center scale-105"
 				/>
 				<div className="absolute inset-0 bg-gradient-to-br from-stone-900/90 via-stone-800/80 to-brand-900/75" />
-				<div className="relative max-w-6xl mx-auto px-6 py-32 flex flex-col items-start gap-6">
+				<div className="relative max-w-6xl mx-auto px-6 py-16 md:py-32 flex flex-col items-start gap-6">
 					<span className="text-brand-300 text-sm font-medium uppercase tracking-widest">
 						Thoughtful Breeding
 					</span>
@@ -35,7 +35,7 @@ export function HomePage() {
 						We breed healthy, well-socialised dogs from health-tested parents with
 						verified pedigrees. Every puppy comes with lifetime breeder support.
 					</p>
-					<div className="flex gap-4 mt-2">
+					<div className="flex flex-col sm:flex-row gap-4 mt-2">
 						<Link
 							to="/litters"
 							className="px-6 py-3 bg-brand-500 text-white font-medium rounded-lg hover:bg-brand-400 transition-colors"

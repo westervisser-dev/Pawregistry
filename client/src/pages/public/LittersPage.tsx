@@ -64,7 +64,7 @@ export function LittersPage() {
 				</div>
 			)}
 
-			<div className="mt-16 bg-brand-50 border border-brand-200 rounded-2xl p-10 text-center">
+			<div className="mt-16 bg-brand-50 border border-brand-200 rounded-2xl p-6 md:p-10 text-center">
 				<h2 className="font-serif text-2xl font-bold text-stone-900 mb-2">Join our waitlist</h2>
 				<p className="text-stone-500 mb-6 text-sm max-w-md mx-auto">
 					Litters fill quickly. Submit an application and we'll contact you when a suitable match becomes available.
