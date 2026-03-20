@@ -729,6 +729,46 @@ export function AdminLitterDetail() {
 			/>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+				<Card className="p-6 md:col-span-2">
+					<h3 className="font-semibold text-stone-800 mb-4">Cover Image</h3>
+					<div className="flex items-center gap-4">
+						<div className="w-20 h-20 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden flex items-center justify-center flex-shrink-0">
+							{previewUrl || litter.coverImageUrl ? (
+								<img src={previewUrl ?? litter.coverImageUrl!} alt="Cover" className="w-full h-full object-cover" />
+							) : (
+								<span className="text-2xl">🐾</span>
+							)}
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
+								<span>Choose image</span>
+								<input
+									type="file"
+									accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,.heic,image/heic"
+									onChange={async (e) => {
+										const file = e.target.files?.[0];
+										if (!file || !id) return;
+										setPreviewUrl(URL.createObjectURL(file));
+										const { data } = await api.litters({ id }).images.post({ file });
+										if (data) setLitter(data as typeof litter);
+									}}
+									className="hidden"
+								/>
+							</label>
+							{(previewUrl || litter.coverImageUrl) && (
+								<button
+									type="button"
+									onClick={() => { setPreviewUrl(null); setLitter((l) => l ? { ...l, coverImageUrl: null } : l); }}
+									className="text-xs text-stone-400 hover:text-red-500 text-left transition-colors"
+								>
+									Remove image
+								</button>
+							)}
+							<p className="text-xs text-stone-400">JPEG, PNG, WebP, SVG or HEIC</p>
+						</div>
+					</div>
+				</Card>
+
 				<Card className="p-6">
 					<h3 className="font-semibold text-stone-800 mb-4">Status</h3>
 					<div className="flex flex-wrap gap-2">
