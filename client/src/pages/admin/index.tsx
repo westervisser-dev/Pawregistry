@@ -105,7 +105,8 @@ export function AdminDashboard() {
 export function AdminDogs() {
 	const [dogs, setDogs] = useState<Dog[]>([]);
 	const [loading, setLoading] = useState(true);
-	const { key } = useLocation();
+	const [toast, setToast] = useState('');
+	const location = useLocation();
 
 	useEffect(() => {
 		setLoading(true);
@@ -113,10 +114,20 @@ export function AdminDogs() {
 			if (data) setDogs(data as Dog[]);
 			setLoading(false);
 		});
-	}, [key]);
+		if ((location.state as { toast?: string })?.toast) {
+			setToast((location.state as { toast: string }).toast);
+			const t = setTimeout(() => setToast(''), 3000);
+			return () => clearTimeout(t);
+		}
+	}, [location.key]);
 
 	return (
 		<div className="p-8">
+			{toast && (
+				<div className="fixed bottom-6 right-6 z-50 bg-stone-800 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg">
+					{toast}
+				</div>
+			)}
 			<PageHeader
 				title="Dogs"
 				subtitle="Your breeding programme dogs."
@@ -255,7 +266,7 @@ export function AdminDogDetail() {
 				if (pendingImage) {
 					await api.dogs({ id: newId }).images.post({ file: pendingImage, isProfile: 'true' });
 				}
-				navigate(`/admin/dogs/${newId}`);
+				navigate('/admin/dogs', { state: { toast: `${form.name ?? 'Dog'} saved successfully.` } });
 			}
 		}
 		setSaving(false);
@@ -357,9 +368,11 @@ export function AdminDogDetail() {
 						<textarea
 							value={(form.notes as string) ?? ''}
 							onChange={(e) => set('notes', e.target.value)}
+							maxLength={200}
 							rows={3}
 							className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"
 						/>
+						<p className="text-xs text-stone-400 mt-1 text-right">{((form.notes as string) ?? '').length}/200</p>
 					</div>
 				</div>
 

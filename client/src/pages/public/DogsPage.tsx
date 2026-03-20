@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Badge } from '@/components/ui';
 import type { Dog } from '@paw-registry/shared';
@@ -48,11 +47,10 @@ export function DogsPage() {
 			{loading ? (
 				<LoadingPage />
 			) : (
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
 					{filtered.map((dog) => (
-						<Link
+						<div
 							key={dog.id}
-							to={`/dogs/${dog.id}`}
 							className="group bg-white rounded-xl border border-stone-200 overflow-hidden hover:shadow-md transition-shadow"
 						>
 							<div className="h-56 bg-stone-100 overflow-hidden flex items-center justify-center">
@@ -67,19 +65,28 @@ export function DogsPage() {
 								)}
 							</div>
 							<div className="p-5">
-								<div className="flex items-start justify-between mb-1">
-									<h3 className="font-serif font-bold text-stone-900 text-lg">{dog.name}</h3>
-									<Badge variant={dog.sex === 'male' ? 'blue' : 'purple'}>
-										{dog.sex}
-									</Badge>
+								<div className="flex items-start justify-between mb-1 gap-2">
+									<h3 className="font-serif font-bold text-stone-900 text-lg leading-snug">{dog.name}</h3>
+									<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-500 text-white whitespace-nowrap flex-shrink-0">
+										{dog.breed}
+									</span>
 								</div>
 								{dog.registeredName && (
 									<p className="text-xs text-stone-400 mb-2">{dog.registeredName}</p>
 								)}
-								<p className="text-sm text-stone-600">{dog.breed}</p>
-								<p className="text-sm text-stone-400 mt-1">{dog.colour}</p>
+								<p className="text-sm text-stone-500 capitalize">{dog.sex} · {dog.colour}</p>
+								{dog.notes && (
+									<p className="text-xs text-stone-400 mt-2 leading-relaxed">{dog.notes}</p>
+								)}
+								{dog.status !== 'active' && (
+									<p className="text-xs mt-2">
+										<Badge variant={dog.status === 'retired' ? 'amber' : 'default'}>
+											{dog.status === 'deceased' ? 'In Loving Memory' : 'Retired'}
+										</Badge>
+									</p>
+								)}
 							</div>
-						</Link>
+						</div>
 					))}
 				</div>
 			)}
