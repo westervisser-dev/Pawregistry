@@ -10,7 +10,7 @@ export function DogsPage() {
 	const [filter, setFilter] = useState<'all' | 'male' | 'female'>('all');
 
 	useEffect(() => {
-		api.dogs.get({ query: { status: 'active' } }).then(({ data }) => {
+		api.dogs.get({ query: {} }).then(({ data }) => {
 			if (data) setDogs(data as Dog[]);
 			setLoading(false);
 		});

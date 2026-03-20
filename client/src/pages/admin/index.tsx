@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '@/lib/api';
 import {
 	LoadingPage, Card, PageHeader, StageBadge, LitterStatusBadge,
@@ -105,13 +105,15 @@ export function AdminDashboard() {
 export function AdminDogs() {
 	const [dogs, setDogs] = useState<Dog[]>([]);
 	const [loading, setLoading] = useState(true);
+	const { key } = useLocation();
 
 	useEffect(() => {
+		setLoading(true);
 		api.dogs.get({ query: {} }).then(({ data }) => {
 			if (data) setDogs(data as Dog[]);
 			setLoading(false);
 		});
-	}, []);
+	}, [key]);
 
 	return (
 		<div className="p-8">
@@ -172,39 +174,98 @@ export function AdminDogs() {
 
 export function AdminDogDetail() {
 	const { id } = useParams<{ id: string }>();
+	const navigate = useNavigate();
 	const [dog, setDog] = useState<Dog | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [formError, setFormError] = useState('');
 	const [form, setForm] = useState<Partial<Dog>>({ sex: 'male', status: 'active' });
+	const [knownBreeds, setKnownBreeds] = useState<string[]>([]);
+	const [knownColours, setKnownColours] = useState<string[]>([]);
+	const [pendingImage, setPendingImage] = useState<File | null>(null);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+	useEffect(() => {
+		api.dogs.get().then(({ data }) => {
+			if (data) {
+				const dogs = data as Dog[];
+				setKnownBreeds([...new Set(dogs.map((d) => d.breed).filter(Boolean))].sort());
+				setKnownColours([...new Set(dogs.map((d) => d.colour).filter(Boolean))].sort());
+			}
+		});
+	}, []);
 
 	useEffect(() => {
 		if (!id || id === 'new') { setLoading(false); return; }
 		api.dogs({ id }).get().then(({ data }) => {
-			if (data) { setDog(data as Dog); setForm(data as Dog); }
+			if (data) {
+				const dog = data as Dog;
+				const normalizedDob = dog.dob ? new Date(dog.dob).toISOString().split('T')[0] : '';
+				setDog(dog);
+				setForm({ ...dog, dob: normalizedDob });
+			}
 			setLoading(false);
 		});
 	}, [id]);
 
 	const save = async () => {
 		setFormError('');
-		if (!form.name?.trim() || !form.breed?.trim() || !form.colour?.trim() || !form.dob?.trim()) {
+		if (!form.name?.trim() || !form.breed?.trim() || !form.colour?.trim() || !String(form.dob ?? '').trim()) {
 			setFormError('Name, Breed, Colour, and Date of Birth are required.');
 			return;
 		}
 		setSaving(true);
+
+		// Strip read-only/server-generated fields before sending
+		const patchBody = {
+			name: form.name,
+			callName: form.callName ?? null,
+			registeredName: form.registeredName ?? null,
+			breed: form.breed,
+			sex: form.sex,
+			dob: form.dob,
+			colour: form.colour,
+			status: form.status,
+			sireId: form.sireId ?? null,
+			damId: form.damId ?? null,
+			microchipNumber: form.microchipNumber ?? null,
+			registrationNumber: form.registrationNumber ?? null,
+			notes: form.notes ?? null,
+		};
+
 		if (id && id !== 'new') {
-			const { data } = await api.dogs({ id }).patch(form as Parameters<ReturnType<typeof api.dogs>['patch']>[0]);
-			if (data) setDog(data as Dog);
+			const { data, error } = await api.dogs({ id }).patch(patchBody as Parameters<ReturnType<typeof api.dogs>['patch']>[0]);
+			if (error) {
+				setFormError('Failed to save. Please try again.');
+			} else if (data) {
+				if (pendingImage) {
+					const updated = await api.dogs({ id }).images.post({ file: pendingImage, isProfile: 'true' });
+					if (updated.data) setDog(updated.data as Dog);
+					else setDog(data as Dog);
+				} else {
+					setDog(data as Dog);
+				}
+			}
 		} else {
 			const { data, error } = await api.dogs.post(form as Parameters<typeof api.dogs.post>[0]);
 			if (error) {
 				setFormError('Failed to save. Please try again.');
 			} else if (data) {
-				window.location.href = `/admin/dogs/${(data as Dog).id}`;
+				const newId = (data as Dog).id;
+				if (pendingImage) {
+					await api.dogs({ id: newId }).images.post({ file: pendingImage, isProfile: 'true' });
+				}
+				navigate(`/admin/dogs/${newId}`);
 			}
 		}
 		setSaving(false);
+	};
+
+	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		setPendingImage(file);
+		setPreviewUrl(URL.createObjectURL(file));
 	};
 
 	const set = (key: keyof Dog, value: unknown) => setForm((f) => ({ ...f, [key]: value }));
@@ -217,7 +278,7 @@ export function AdminDogDetail() {
 	return (
 		<div className="p-8 max-w-3xl">
 			<Link to="/admin/dogs" className="text-sm text-stone-400 hover:text-stone-600 mb-6 inline-block">← Dogs</Link>
-			<PageHeader title={dog?.name ?? 'New Dog'} />
+			<PageHeader title={(!id || id === 'new') ? (form.name?.trim() || 'New Dog') : (dog?.name ?? 'New Dog')} />
 
 			<Card className="overflow-hidden">
 				{/* Public facing section */}
@@ -226,6 +287,40 @@ export function AdminDogDetail() {
 					<p className="text-xs text-stone-500 mt-0.5">Visible to clients and on the public site</p>
 				</div>
 				<div className="p-6 flex flex-col gap-4">
+					{/* Profile image */}
+					<div>
+						<label className="block text-xs font-medium text-stone-500 mb-2">Profile Image</label>
+						<div className="flex items-center gap-4">
+							<div className="w-20 h-20 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden flex items-center justify-center flex-shrink-0">
+								{previewUrl || form.profileImageUrl ? (
+									<img src={previewUrl ?? form.profileImageUrl!} alt="Profile" className="w-full h-full object-cover" />
+								) : (
+									<span className="text-2xl">🐕</span>
+								)}
+							</div>
+							<div className="flex flex-col gap-1.5">
+								<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
+									<span>Choose image</span>
+									<input
+										type="file"
+										accept="image/jpeg,image/jpg,image/png,image/svg+xml,.heic,image/heic"
+										onChange={handleImageChange}
+										className="hidden"
+									/>
+								</label>
+								{(previewUrl || form.profileImageUrl) && (
+									<button
+										type="button"
+										onClick={() => { setPendingImage(null); setPreviewUrl(null); set('profileImageUrl', null); }}
+										className="text-xs text-stone-400 hover:text-red-500 text-left transition-colors"
+									>
+										Remove image
+									</button>
+								)}
+								<p className="text-xs text-stone-400">JPEG, PNG, SVG or HEIC</p>
+							</div>
+						</div>
+					</div>
 					<div className="grid grid-cols-2 gap-4">
 						<div>
 							<label className="block text-xs font-medium text-stone-500 mb-1">Name<span className="text-red-400 ml-0.5">*</span></label>
@@ -233,11 +328,13 @@ export function AdminDogDetail() {
 						</div>
 						<div>
 							<label className="block text-xs font-medium text-stone-500 mb-1">Breed<span className="text-red-400 ml-0.5">*</span></label>
-							<input type="text" value={form.breed ?? ''} onChange={(e) => set('breed', e.target.value)} className={inputCls} />
+							<input type="text" list="breed-options" value={form.breed ?? ''} onChange={(e) => set('breed', e.target.value)} className={inputCls} />
+							<datalist id="breed-options">{knownBreeds.map((b) => <option key={b} value={b} />)}</datalist>
 						</div>
 						<div>
 							<label className="block text-xs font-medium text-stone-500 mb-1">Colour<span className="text-red-400 ml-0.5">*</span></label>
-							<input type="text" value={form.colour ?? ''} onChange={(e) => set('colour', e.target.value)} className={inputCls} />
+							<input type="text" list="colour-options" value={form.colour ?? ''} onChange={(e) => set('colour', e.target.value)} className={inputCls} />
+							<datalist id="colour-options">{knownColours.map((c) => <option key={c} value={c} />)}</datalist>
 						</div>
 						<div>
 							<label className="block text-xs font-medium text-stone-500 mb-1">Sex</label>
