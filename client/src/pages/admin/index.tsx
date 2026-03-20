@@ -484,8 +484,8 @@ export function AdminLitterDetail() {
 
 	// New-litter form state
 	const [dogs, setDogs] = useState<Dog[]>([]);
-	const [newForm, setNewForm] = useState<{ name: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string }>({
-		name: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '',
+	const [newForm, setNewForm] = useState<{ name: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
+		name: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
 	});
 
 	useEffect(() => {
@@ -520,6 +520,7 @@ export function AdminLitterDetail() {
 				status: newForm.status as 'planned' | 'confirmed' | 'born' | 'weaning' | 'ready' | 'completed',
 				...(newForm.expectedDate ? { expectedDate: newForm.expectedDate } : {}),
 				...(newForm.notes ? { notes: newForm.notes } : {}),
+				isPublic: newForm.isPublic,
 			});
 			if (error) { setFormError('Failed to save. Please try again.'); return; }
 			if (data) navigate('/admin/litters');
@@ -533,9 +534,16 @@ export function AdminLitterDetail() {
 	const updateStatus = async (status: string) => {
 		if (!id) return;
 		setSaving(true);
-		const { data } = await (api.litters as unknown as { [key: string]: (body: unknown) => Promise<{ data: unknown }> })[':id'].patch({ status });
+		const { data } = await api.litters({ id }).patch({ status } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
 		if (data) setLitter(data as typeof litter);
 		setSaving(false);
+	};
+
+	const togglePublic = async () => {
+		if (!id || !litter) return;
+		const next = !litter.isPublic;
+		await api.litters({ id }).patch({ isPublic: next });
+		setLitter((l) => l ? { ...l, isPublic: next } : l);
 	};
 
 	const addPuppy = async () => {
@@ -631,6 +639,15 @@ export function AdminLitterDetail() {
 							/>
 						</div>
 					</div>
+					<label className="flex items-center gap-3 cursor-pointer select-none">
+						<input
+							type="checkbox"
+							checked={newForm.isPublic}
+							onChange={(e) => setNewForm((f) => ({ ...f, isPublic: e.target.checked }))}
+							className="w-4 h-4 accent-brand-500"
+						/>
+						<span className="text-sm text-stone-700">Visible on public site</span>
+					</label>
 					{formError && <p className="text-sm text-red-600">{formError}</p>}
 					<button
 						onClick={createLitter}
@@ -645,6 +662,10 @@ export function AdminLitterDetail() {
 	}
 
 	if (!litter) return <div className="p-8 text-stone-500">Litter not found.</div>;
+
+	// Eden Treaty auto-deserialises ISO date strings to Date objects — convert back to readable strings
+	const fmtDate = (d: Date | string | null | undefined) =>
+		d ? new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
 	const statuses = ['planned', 'confirmed', 'born', 'weaning', 'ready', 'completed'];
 
@@ -679,6 +700,17 @@ export function AdminLitterDetail() {
 							</button>
 						))}
 					</div>
+					<div className="mt-4 pt-4 border-t border-stone-100">
+						<label className="flex items-center gap-3 cursor-pointer select-none">
+							<input
+								type="checkbox"
+								checked={litter.isPublic}
+								onChange={togglePublic}
+								className="w-4 h-4 accent-brand-500"
+							/>
+							<span className="text-sm text-stone-700">Visible on public site</span>
+						</label>
+					</div>
 				</Card>
 
 				<Card className="p-6">
@@ -686,11 +718,11 @@ export function AdminLitterDetail() {
 					<div className="space-y-2 text-sm">
 						<div className="flex justify-between">
 							<span className="text-stone-500">Whelp date</span>
-							<span>{litter.whelpDate ?? '—'}</span>
+							<span>{fmtDate(litter.whelpDate)}</span>
 						</div>
 						<div className="flex justify-between">
 							<span className="text-stone-500">Expected</span>
-							<span>{litter.expectedDate ?? '—'}</span>
+							<span>{fmtDate(litter.expectedDate)}</span>
 						</div>
 						<div className="flex justify-between">
 							<span className="text-stone-500">Puppies</span>
