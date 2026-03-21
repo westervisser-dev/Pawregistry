@@ -5,7 +5,7 @@ import {
 	LoadingPage, Card, PageHeader, StageBadge, LitterStatusBadge,
 	PuppyStatusBadge, Badge, EmptyState,
 } from '@/components/ui';
-import type { Dog, Litter, Client, Update } from '@paw-registry/shared';
+import type { Dog, Litter, LitterImage, Client, Update } from '@paw-registry/shared';
 
 // ─── Shared admin table wrapper ───────────────────────────────────────────────
 
@@ -476,7 +476,7 @@ export function AdminLitters() {
 export function AdminLitterDetail() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
-	const [litter, setLitter] = useState<Litter & { sire: Dog; dam: Dog; puppies: unknown[] } | null>(null);
+	const [litter, setLitter] = useState<Litter & { sire: Dog; dam: Dog; puppies: unknown[]; images: LitterImage[] } | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [formError, setFormError] = useState('');
@@ -489,6 +489,8 @@ export function AdminLitterDetail() {
 	});
 	const [pendingImage, setPendingImage] = useState<File | null>(null);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+	const [galleryImages, setGalleryImages] = useState<LitterImage[]>([]);
+	const [galleryError, setGalleryError] = useState('');
 
 	useEffect(() => {
 		if (!id) return;
@@ -502,7 +504,11 @@ export function AdminLitterDetail() {
 		setLoading(true);
 		setLitter(null);
 		api.litters({ id }).get().then(({ data }) => {
-			if (data) setLitter(data as typeof litter);
+			if (data) {
+				const d = data as typeof litter;
+				setLitter(d);
+				setGalleryImages(d?.images ?? []);
+			}
 			setLoading(false);
 		});
 	}, [id]);
@@ -767,6 +773,53 @@ export function AdminLitterDetail() {
 							<p className="text-xs text-stone-400">JPEG, PNG, WebP, SVG or HEIC</p>
 						</div>
 					</div>
+				</Card>
+
+				<Card className="p-6 md:col-span-2">
+					<h3 className="font-semibold text-stone-800 mb-4">Gallery</h3>
+					<div className="flex flex-wrap gap-3 mb-4">
+						{galleryImages.map((img) => (
+							<div key={img.id} className="relative w-20 h-20 flex-shrink-0">
+								<img src={img.url} alt="Gallery" className="w-full h-full object-cover rounded-lg border border-stone-200" />
+								<button
+									type="button"
+									onClick={async () => {
+										setGalleryError('');
+										const { error } = await api.litters({ id: id! }).gallery({ imageId: img.id }).delete();
+										if (error) { setGalleryError('Failed to delete image.'); return; }
+										setGalleryImages((prev) => prev.filter((i) => i.id !== img.id));
+									}}
+									className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs leading-none transition-colors"
+									aria-label="Remove image"
+								>
+									×
+								</button>
+							</div>
+						))}
+						{galleryImages.length === 0 && (
+							<p className="text-xs text-stone-400">No gallery images yet.</p>
+						)}
+					</div>
+					<div className="flex items-center gap-3">
+						<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
+							<span>Upload photo</span>
+							<input
+								type="file"
+								accept="image/jpeg,image/jpg,image/png,image/webp,image/heic"
+								onChange={async (e) => {
+									setGalleryError('');
+									const file = e.target.files?.[0];
+									if (!file || !id) return;
+									const { data, error } = await api.litters({ id }).gallery.post({ file });
+									if (error) { setGalleryError('Upload failed. Please try again.'); return; }
+									if (data) setGalleryImages((prev) => [...prev, data as LitterImage]);
+									e.target.value = '';
+								}}
+								className="hidden"
+							/>
+						</label>
+					</div>
+					{galleryError && <p className="text-xs text-red-500 mt-2">{galleryError}</p>}
 				</Card>
 
 				<Card className="p-6">
