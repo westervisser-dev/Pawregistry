@@ -105,17 +105,9 @@ export const templatesRoutes = new Elysia({ prefix: '/templates' })
 	.patch(
 		'/admin/:id',
 		async ({ params, body, error }) => {
-			const updates: Partial<typeof documentTemplates.$inferInsert> = {};
-			if (body.name !== undefined) updates.name = body.name;
-			if (body.description !== undefined) updates.description = body.description;
-			if (body.category !== undefined) updates.category = body.category;
-			if (body.sortOrder !== undefined) updates.sortOrder = body.sortOrder;
-			if (body.isActive !== undefined) updates.isActive = body.isActive;
-			updates.updatedAt = new Date();
-
 			const [updated] = await db
 				.update(documentTemplates)
-				.set(updates)
+				.set({ ...body, updatedAt: new Date() })
 				.where(eq(documentTemplates.id, params.id))
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Template not found' });

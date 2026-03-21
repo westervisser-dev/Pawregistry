@@ -104,13 +104,20 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		'/admin',
 		async ({ query }) => {
 			const rows = await db.query.clients.findMany({
-				where: query.stage ? eq(clients.stage, query.stage as 'enquiry' | 'reviewed' | 'waitlisted' | 'matched' | 'placed' | 'declined') : undefined,
+				where: query.stage ? eq(clients.stage, query.stage) : undefined,
 				orderBy: [asc(clients.priority), desc(clients.createdAt)],
 				with: { puppy: true, litter: true },
 			});
 			return rows;
 		},
-		{ query: t.Object({ stage: t.Optional(t.String()) }) }
+		{
+			query: t.Object({
+				stage: t.Optional(t.Union([
+					t.Literal('enquiry'), t.Literal('reviewed'), t.Literal('waitlisted'),
+					t.Literal('matched'), t.Literal('placed'), t.Literal('declined'),
+				])),
+			}),
+		}
 	)
 
 	.get('/admin/:id', async ({ params, error }) => {
@@ -159,7 +166,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		'/admin/waitlist/reorder',
 		async ({ body }) => {
 			await Promise.all(
-				body.order.map(({ id, priority }: { id: string; priority: number }) =>
+				body.order.map(({ id, priority }) =>
 					db.update(clients).set({ priority, updatedAt: new Date() }).where(eq(clients.id, id))
 				)
 			);

@@ -90,15 +90,15 @@ const litterStatusVariant: Record<string, BadgeVariant> = {
 };
 
 export function StageBadge({ stage }: { stage: string }) {
-	return <Badge variant={stageVariant[stage] ?? 'default'}>{stage.replace('_', ' ')}</Badge>;
+	return <Badge variant={stageVariant[stage] ?? 'default'}>{stage.replaceAll('_', ' ')}</Badge>;
 }
 
 export function PuppyStatusBadge({ status }: { status: string }) {
-	return <Badge variant={puppyStatusVariant[status] ?? 'default'}>{status.replace('_', ' ')}</Badge>;
+	return <Badge variant={puppyStatusVariant[status] ?? 'default'}>{status.replaceAll('_', ' ')}</Badge>;
 }
 
 export function LitterStatusBadge({ status }: { status: string }) {
-	return <Badge variant={litterStatusVariant[status] ?? 'default'}>{status}</Badge>;
+	return <Badge variant={litterStatusVariant[status] ?? 'default'}>{status.replaceAll('_', ' ')}</Badge>;
 }
 
 // ─── Loading spinner ─────────────────────────────────────────────────────────

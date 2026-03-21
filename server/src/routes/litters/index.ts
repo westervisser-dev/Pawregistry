@@ -71,7 +71,12 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			return updated;
 		},
 		{ body: t.Partial(t.Object({
-			name: t.String(), status: t.String(), whelpDate: t.Nullable(t.String()),
+			name: t.String(),
+			status: t.Union([
+				t.Literal('planned'), t.Literal('confirmed'), t.Literal('born'),
+				t.Literal('weaning'), t.Literal('ready'), t.Literal('completed'),
+			]),
+			whelpDate: t.Nullable(t.String()),
 			expectedDate: t.Nullable(t.String()), puppyCount: t.Nullable(t.Number()),
 			availableCount: t.Nullable(t.Number()), depositAmount: t.Nullable(t.Number()),
 			purchasePrice: t.Nullable(t.Number()), notes: t.Nullable(t.String()), isPublic: t.Boolean(),
@@ -164,12 +169,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		async ({ params, body, error }) => {
 			const [updated] = await db
 				.update(puppies)
-				.set({
-					...body,
-					sex: body.sex as 'male' | 'female' | undefined,
-					status: body.status as 'available' | 'reserved' | 'placed' | 'retained' | 'not_for_sale' | undefined,
-					updatedAt: new Date(),
-				})
+				.set({ ...body, updatedAt: new Date() })
 				.where(eq(puppies.id, params.puppyId))
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Puppy not found' });
@@ -177,7 +177,13 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		},
 		{
 			body: t.Partial(t.Object({
-				collarColour: t.String(), sex: t.String(), colour: t.String(), status: t.String(),
+				collarColour: t.String(),
+				sex: t.Union([t.Literal('male'), t.Literal('female')]),
+				colour: t.String(),
+				status: t.Union([
+					t.Literal('available'), t.Literal('reserved'), t.Literal('placed'),
+					t.Literal('retained'), t.Literal('not_for_sale'),
+				]),
 				birthWeight: t.Nullable(t.Number()), currentWeight: t.Nullable(t.Number()),
 				notes: t.Nullable(t.String()), profileImageUrl: t.Nullable(t.String()),
 			})),

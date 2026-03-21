@@ -229,6 +229,10 @@ export const updates = pgTable('updates', {
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const updatesRelations = relations(updates, ({ one }) => ({
+	litter: one(litters, { fields: [updates.targetId], references: [litters.id] }),
+}));
+
 // ─── Messages ────────────────────────────────────────────────────────────────
 
 export const messages = pgTable('messages', {
@@ -279,6 +283,11 @@ export const goHomeChecklists = pgTable('go_home_checklists', {
 	notes: text('notes'),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const goHomeChecklistsRelations = relations(goHomeChecklists, ({ one }) => ({
+	client: one(clients, { fields: [goHomeChecklists.clientId], references: [clients.id] }),
+	puppy: one(puppies, { fields: [goHomeChecklists.puppyId], references: [puppies.id] }),
+}));
 
 // ─── Document Templates ───────────────────────────────────────────────────────
 

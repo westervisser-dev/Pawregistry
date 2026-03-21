@@ -1,5 +1,5 @@
 import Elysia, { t } from 'elysia';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and, isNull } from 'drizzle-orm';
 import { db } from '../../db';
 import { messages, clients } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
@@ -20,7 +20,11 @@ export const messagesRoutes = new Elysia({ prefix: '/messages' })
 		await db
 			.update(messages)
 			.set({ readAt: new Date() })
-			.where(eq(messages.clientId, client.id));
+			.where(and(
+				eq(messages.clientId, client.id),
+				eq(messages.author, 'admin'),
+				isNull(messages.readAt),
+			));
 
 		return thread;
 	})

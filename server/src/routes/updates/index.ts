@@ -1,5 +1,5 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, inArray } from 'drizzle-orm';
 import { db } from '../../db';
 import { updates, clients } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
@@ -14,17 +14,14 @@ export const updatesRoutes = new Elysia({ prefix: '/updates' })
 		});
 		if (!client) return error(404, { error: 'Not found', message: 'Client record not found' });
 
-		// Fetch updates targeted at this client's puppy or litter
+		// Fetch updates targeted at this client, their puppy, or their litter
 		const targetIds = [client.id, client.puppyId, client.litterId].filter(Boolean) as string[];
-		const rows = await db.query.updates.findMany({
-			where: and(
-				eq(updates.isPublished, true),
-			),
+		if (targetIds.length === 0) return [];
+
+		return db.query.updates.findMany({
+			where: and(eq(updates.isPublished, true), inArray(updates.targetId, targetIds)),
 			orderBy: [desc(updates.publishedAt)],
 		});
-
-		// Filter in JS since targetIds is dynamic
-		return rows.filter((u) => targetIds.includes(u.targetId));
 	})
 
 	// ── Admin routes ──

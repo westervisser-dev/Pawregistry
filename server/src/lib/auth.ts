@@ -18,6 +18,10 @@ export const authPlugin = new Elysia({ name: 'auth' })
 		}
 	);
 
+const ADMIN_IDS = new Set(
+	(process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+);
+
 export const adminPlugin = new Elysia({ name: 'admin' })
 	.use(authPlugin)
 	.onBeforeHandle({ as: 'scoped' }, ({ user, set }) => {
@@ -25,8 +29,7 @@ export const adminPlugin = new Elysia({ name: 'admin' })
 			set.status = 401;
 			return { error: 'Unauthorized', message: 'Not authenticated' };
 		}
-		const adminIds = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim());
-		if (!adminIds.includes(user.id)) {
+		if (!ADMIN_IDS.has(user.id)) {
 			set.status = 403;
 			return { error: 'Forbidden', message: 'Admin access required' };
 		}

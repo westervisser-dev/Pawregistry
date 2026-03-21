@@ -31,7 +31,7 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
 			const [doc] = await db.insert(documents).values({
 				clientId: params.clientId,
 				puppyId: body.puppyId ?? null,
-				type: body.type as 'contract' | 'health_record' | 'go_home_pack' | 'invoice' | 'other',
+				type: body.type,
 				label: body.label,
 				fileUrl: url,
 			}).returning();
@@ -40,7 +40,10 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
 		{
 			body: t.Object({
 				file: t.File(),
-				type: t.String(),
+				type: t.Union([
+					t.Literal('contract'), t.Literal('health_record'), t.Literal('go_home_pack'),
+					t.Literal('invoice'), t.Literal('other'),
+				]),
 				label: t.String(),
 				puppyId: t.Optional(t.String()),
 			}),
