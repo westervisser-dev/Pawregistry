@@ -100,6 +100,19 @@ export function LitterPage() {
 				</div>
 			)}
 
+			{litter.images && litter.images.length > 0 && (
+				<div className="mb-12">
+					<h2 className="font-serif text-2xl font-bold text-stone-900 mb-6">Photos</h2>
+					<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+						{litter.images.map((img) => (
+							<div key={img.id} className="aspect-square overflow-hidden rounded-xl bg-stone-100">
+								<img src={img.url} alt="Litter photo" className="w-full h-full object-cover" />
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
 			{litter.notes && (
 				<div className="bg-brand-50 border border-brand-100 rounded-xl p-6 mb-12">
 					<p className="text-stone-700 leading-relaxed">{litter.notes}</p>
