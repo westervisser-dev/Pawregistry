@@ -811,9 +811,9 @@ export function AdminLitterDetail() {
 									const file = e.target.files?.[0];
 									if (!file || !id) return;
 									const { data, error } = await api.litters({ id }).gallery.post({ file });
+									e.target.value = '';
 									if (error) { setGalleryError('Upload failed. Please try again.'); return; }
 									if (data) setGalleryImages((prev) => [...prev, data as LitterImage]);
-									e.target.value = '';
 								}}
 								className="hidden"
 							/>
