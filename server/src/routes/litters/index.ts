@@ -1,4 +1,4 @@
-import Elysia, { t, error } from 'elysia';
+import Elysia, { t } from 'elysia';
 import { eq, desc, asc } from 'drizzle-orm';
 import { db } from '../../db';
 import { litters, puppies, litterImages } from '../../db/schema';
