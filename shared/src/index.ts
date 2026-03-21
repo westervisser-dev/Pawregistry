@@ -79,10 +79,20 @@ export interface Litter {
 	updatedAt: string;
 }
 
+export interface LitterImage {
+	id: string;
+	litterId: string;
+	url: string;
+	storagePath: string;
+	sortOrder: number;
+	createdAt: string;
+}
+
 export interface LitterWithDogs extends Litter {
 	sire: Dog;
 	dam: Dog;
 	puppies: Puppy[];
+	images: LitterImage[];
 }
 
 // ─── Puppy ───────────────────────────────────────────────────────────────────
