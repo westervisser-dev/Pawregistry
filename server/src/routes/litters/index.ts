@@ -164,7 +164,12 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		async ({ params, body }) => {
 			const [updated] = await db
 				.update(puppies)
-				.set({ ...body, sex: body.sex as 'male' | 'female' | undefined, updatedAt: new Date() })
+				.set({
+					...body,
+					sex: body.sex as 'male' | 'female' | undefined,
+					status: body.status as 'available' | 'reserved' | 'placed' | 'retained' | 'not_for_sale' | undefined,
+					updatedAt: new Date(),
+				})
 				.where(eq(puppies.id, params.puppyId))
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Puppy not found' });
