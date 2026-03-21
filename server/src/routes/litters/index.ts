@@ -103,7 +103,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	// ── Admin: upload gallery image ──
 	.post(
 		'/:id/gallery',
-		async ({ params, body }) => {
+		async ({ params, body, error }) => {
 			const litter = await db.query.litters.findFirst({ where: eq(litters.id, params.id) });
 			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
 
