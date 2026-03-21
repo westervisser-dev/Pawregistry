@@ -1,4 +1,4 @@
-import Elysia, { t } from 'elysia';
+import Elysia, { t, error } from 'elysia';
 import { eq, desc, asc } from 'drizzle-orm';
 import { db } from '../../db';
 import { litters, puppies, litterImages } from '../../db/schema';
@@ -103,7 +103,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	// ── Admin: upload gallery image ──
 	.post(
 		'/:id/gallery',
-		async ({ params, body, error }) => {
+		async ({ params, body }) => {
 			const litter = await db.query.litters.findFirst({ where: eq(litters.id, params.id) });
 			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
 
@@ -124,7 +124,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	// ── Admin: delete gallery image ──
 	.delete(
 		'/:id/gallery/:imageId',
-		async ({ params, error }) => {
+		async ({ params }) => {
 			const image = await db.query.litterImages.findFirst({
 				where: eq(litterImages.id, params.imageId),
 			});
@@ -161,10 +161,10 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 	.patch(
 		'/puppies/:puppyId',
-		async ({ params, body, error }) => {
+		async ({ params, body }) => {
 			const [updated] = await db
 				.update(puppies)
-				.set({ ...body, updatedAt: new Date() })
+				.set({ ...body, sex: body.sex as 'male' | 'female' | undefined, updatedAt: new Date() })
 				.where(eq(puppies.id, params.puppyId))
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Puppy not found' });
