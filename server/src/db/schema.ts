@@ -141,6 +141,7 @@ export const littersRelations = relations(litters, ({ one, many }) => ({
 	dam: one(dogs, { fields: [litters.damId], references: [dogs.id], relationName: 'dam' }),
 	puppies: many(puppies),
 	updates: many(updates),
+	images: many(litterImages),
 }));
 
 // ─── Puppies ─────────────────────────────────────────────────────────────────
@@ -165,6 +166,21 @@ export const puppiesRelations = relations(puppies, ({ one }) => ({
 	litter: one(litters, { fields: [puppies.litterId], references: [litters.id] }),
 	dog: one(dogs, { fields: [puppies.dogId], references: [dogs.id] }),
 	client: one(clients, { fields: [puppies.id], references: [clients.puppyId] }),
+}));
+
+// ─── Litter Images ────────────────────────────────────────────────────────────
+
+export const litterImages = pgTable('litter_images', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	litterId: text('litter_id').notNull().references(() => litters.id, { onDelete: 'cascade' }),
+	url: text('url').notNull(),
+	storagePath: text('storage_path').notNull(),
+	sortOrder: integer('sort_order').notNull().default(0),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const litterImagesRelations = relations(litterImages, ({ one }) => ({
+	litter: one(litters, { fields: [litterImages.litterId], references: [litters.id] }),
 }));
 
 // ─── Clients ─────────────────────────────────────────────────────────────────
