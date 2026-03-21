@@ -1,9 +1,9 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, asc } from 'drizzle-orm';
 import { db } from '../../db';
-import { litters, puppies } from '../../db/schema';
+import { litters, puppies, litterImages } from '../../db/schema';
 import { adminPlugin } from '../../lib/auth';
-import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
+import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 
 export const littersRoutes = new Elysia({ prefix: '/litters' })
 	// ── Public: active public litters ──
@@ -18,7 +18,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	.get('/:id', async ({ params, error }) => {
 		const litter = await db.query.litters.findFirst({
 			where: eq(litters.id, params.id),
-			with: { sire: true, dam: true, puppies: true },
+			with: { sire: true, dam: true, puppies: true, images: { orderBy: [asc(litterImages.createdAt)] } },
 		});
 		if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
 		return litter;
@@ -98,6 +98,43 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			return updated;
 		},
 		{ body: t.Object({ file: t.File() }) }
+	)
+
+	// ── Admin: upload gallery image ──
+	.post(
+		'/:id/gallery',
+		async ({ params, body, error }) => {
+			const litter = await db.query.litters.findFirst({ where: eq(litters.id, params.id) });
+			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
+
+			const file = body.file as File;
+			const storagePath = `${params.id}/gallery/${Date.now()}-${file.name}`;
+			const url = await uploadFile(STORAGE_BUCKETS.litters, storagePath, file, file.type);
+
+			const [image] = await db
+				.insert(litterImages)
+				.values({ litterId: params.id, url, storagePath })
+				.returning();
+
+			return image;
+		},
+		{ body: t.Object({ file: t.File() }) }
+	)
+
+	// ── Admin: delete gallery image ──
+	.delete(
+		'/:id/gallery/:imageId',
+		async ({ params, error }) => {
+			const image = await db.query.litterImages.findFirst({
+				where: eq(litterImages.id, params.imageId),
+			});
+			if (!image) return error(404, { error: 'Not found', message: 'Image not found' });
+
+			await db.delete(litterImages).where(eq(litterImages.id, params.imageId));
+			await supabase.storage.from(STORAGE_BUCKETS.litters).remove([image.storagePath]);
+
+			return { success: true };
+		}
 	)
 
 	// ── Puppy management within a litter ──
