@@ -124,7 +124,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	// ── Admin: delete gallery image ──
 	.delete(
 		'/:id/gallery/:imageId',
-		async ({ params }) => {
+		async ({ params, error }) => {
 			const image = await db.query.litterImages.findFirst({
 				where: eq(litterImages.id, params.imageId),
 			});
@@ -161,7 +161,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 	.patch(
 		'/puppies/:puppyId',
-		async ({ params, body }) => {
+		async ({ params, body, error }) => {
 			const [updated] = await db
 				.update(puppies)
 				.set({
