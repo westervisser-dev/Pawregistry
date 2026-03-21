@@ -41,6 +41,12 @@ pnpm dev            # starts client (:5173) + server (:3000) concurrently
 
 Server swagger: `http://localhost:3000/swagger`
 
+**DB scripts (run from `server/`):**
+```bash
+pnpm db:generate    # generate migration files from schema changes
+pnpm db:studio      # open Drizzle Studio to browse data locally
+```
+
 **Local setup is intentionally minimal.** Connect directly to the Supabase hosted Postgres instance during development — no local database containers required. Use the Supabase Dashboard and SQL Editor for schema inspection, data browsing, and ad-hoc queries.
 
 ---
@@ -79,14 +85,23 @@ api.templates.my({ templateId }).toggle.post({})
 - Schema: `server/src/db/schema.ts`
 - Migrations: `server/src/db/migrations/` (SQL files tracked by Drizzle)
 - New routes go in `server/src/routes/<feature>/index.ts`, registered in `server/src/index.ts`
+- Active route dirs: `auth`, `clients`, `documents`, `dogs`, `litters`, `messages`, `templates`, `updates`, `waitlist`
 
 ### Shared types
 Add new shared interfaces to `shared/src/index.ts`.
 
+### Auth state (client-side)
+- `client/src/stores/authStore.ts` — Zustand store, source of truth for current user/session
+- `client/src/lib/supabase.ts` — raw Supabase JS client, used only for auth operations (sign-in, sign-out, session listeners)
+- `client/src/lib/api.ts` — Eden treaty client for all API calls; do not call Supabase directly for data
+
 ### Adding a new page/route
 1. Create `client/src/pages/<section>/MyPage.tsx`
 2. Import and add `<Route>` in `client/src/main.tsx`
-3. Add nav link to the relevant layout (`AdminLayout.tsx` or `PortalLayout.tsx`)
+3. Add nav link to the relevant layout:
+   - Admin pages → `AdminLayout.tsx` (routes under `/admin`)
+   - Portal pages → `PortalLayout.tsx` (routes under `/portal`, require client auth)
+   - Public pages → no layout wrapper needed (routes at root level)
 
 ---
 
