@@ -120,6 +120,7 @@ export const healthCertsRelations = relations(healthCerts, ({ one }) => ({
 export const litters = pgTable('litters', {
 	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
 	name: text('name').notNull(),
+	breed: text('breed'),
 	sireId: text('sire_id').notNull().references(() => dogs.id),
 	damId: text('dam_id').notNull().references(() => dogs.id),
 	status: litterStatusEnum('status').notNull().default('planned'),

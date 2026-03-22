@@ -63,6 +63,7 @@ export type LitterStatus = 'planned' | 'confirmed' | 'born' | 'weaning' | 'ready
 export interface Litter {
 	id: string;
 	name: string; // e.g. "Spring 2025 Litter"
+	breed: string | null;
 	sireId: string;
 	damId: string;
 	status: LitterStatus;

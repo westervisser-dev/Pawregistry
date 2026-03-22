@@ -18,7 +18,7 @@ export function Card({ children, className = '' }: CardProps) {
 // ─── Page Header ─────────────────────────────────────────────────────────────
 
 interface PageHeaderProps {
-	title: string;
+	title: ReactNode;
 	subtitle?: string;
 	action?: ReactNode;
 }

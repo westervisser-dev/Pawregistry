@@ -51,7 +51,10 @@ export function LittersPage() {
 							<div className="h-48 bg-stone-100 flex items-center justify-center text-4xl">🐶</div>
 							<div className="p-6">
 								<div className="flex items-start justify-between mb-3">
-									<h2 className="font-serif text-xl font-bold text-stone-900">{litter.name}</h2>
+									<div className="flex items-center gap-2">
+										<h2 className="font-serif text-xl font-bold text-stone-900">{litter.name}</h2>
+										{litter.breed && <Badge variant="default">{litter.breed}</Badge>}
+									</div>
 									<LitterStatusBadge status={litter.status} />
 								</div>
 								<div className="text-sm text-stone-600 mb-3">
@@ -105,7 +108,10 @@ export function LitterPage() {
 
 			<div className="flex items-start justify-between mb-8">
 				<div>
-					<h1 className="font-serif text-4xl font-bold text-stone-900 mb-2">{litter.name}</h1>
+					<div className="flex items-center gap-3 mb-2">
+						<h1 className="font-serif text-4xl font-bold text-stone-900">{litter.name}</h1>
+						{litter.breed && <Badge variant="default">{litter.breed}</Badge>}
+					</div>
 					<p className="text-stone-500">{litter.sire?.name} × {litter.dam?.name}</p>
 				</div>
 				<LitterStatusBadge status={litter.status} />

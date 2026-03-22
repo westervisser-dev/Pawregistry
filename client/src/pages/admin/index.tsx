@@ -484,8 +484,8 @@ export function AdminLitterDetail() {
 
 	// New-litter form state
 	const [dogs, setDogs] = useState<Dog[]>([]);
-	const [newForm, setNewForm] = useState<{ name: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
-		name: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
+	const [newForm, setNewForm] = useState<{ name: string; breed: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
+		name: '', breed: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
 	});
 	const [pendingImage, setPendingImage] = useState<File | null>(null);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -523,6 +523,7 @@ export function AdminLitterDetail() {
 		try {
 			const { data, error } = await api.litters.post({
 				name: newForm.name,
+				...(newForm.breed ? { breed: newForm.breed } : {}),
 				sireId: newForm.sireId,
 				damId: newForm.damId,
 				status: newForm.status as 'planned' | 'confirmed' | 'born' | 'weaning' | 'ready' | 'completed',
@@ -619,7 +620,7 @@ export function AdminLitterDetail() {
 						</div>
 					</div>
 					<div className="grid grid-cols-2 gap-4">
-						<div className="col-span-2">
+						<div>
 							<label className="block text-xs font-medium text-stone-500 mb-1">
 								Litter Name<span className="text-red-400 ml-0.5">*</span>
 							</label>
@@ -628,6 +629,16 @@ export function AdminLitterDetail() {
 								value={newForm.name}
 								onChange={(e) => setF('name', e.target.value)}
 								placeholder="e.g. Autumn 2025 Litter"
+								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-stone-500 mb-1">Breed</label>
+							<input
+								type="text"
+								value={newForm.breed}
+								onChange={(e) => setF('breed', e.target.value)}
+								placeholder="e.g. Golden Retriever"
 								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 						</div>
@@ -725,7 +736,7 @@ export function AdminLitterDetail() {
 	return (
 		<div className="p-8 max-w-4xl">
 			<PageHeader
-				title={litter.name}
+				title={<span className="flex items-center gap-3">{litter.name}{litter.breed && <Badge variant="default">{litter.breed}</Badge>}</span>}
 				subtitle={`${(litter as typeof litter & { sire: Dog }).sire?.name ?? '—'} × ${(litter as typeof litter & { dam: Dog }).dam?.name ?? '—'}`}
 				action={
 					<button onClick={() => navigate('/admin/litters')} className="text-sm text-stone-500 hover:text-stone-700">

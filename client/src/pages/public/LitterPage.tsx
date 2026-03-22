@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { LitterWithDogs } from '@paw-registry/shared';
-import { LoadingPage, LitterStatusBadge, PuppyStatusBadge } from '@/components/ui';
+import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
 
 export function LitterPage() {
 	const { id } = useParams<{ id: string }>();
@@ -36,7 +36,10 @@ export function LitterPage() {
 
 		<div className="flex items-start justify-between mb-8">
 				<div>
-					<h1 className="font-serif text-4xl font-bold text-stone-900 mb-2">{litter.name}</h1>
+					<div className="flex items-center gap-3 mb-2">
+						<h1 className="font-serif text-4xl font-bold text-stone-900">{litter.name}</h1>
+						{litter.breed && <Badge variant="default">{litter.breed}</Badge>}
+					</div>
 					<div className="flex items-center gap-3 text-sm text-stone-500">
 						<LitterStatusBadge status={litter.status} />
 						{litter.whelpDate && (

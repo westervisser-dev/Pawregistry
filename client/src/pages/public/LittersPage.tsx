@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { LitterWithDogs } from '@paw-registry/shared';
-import { LoadingPage, LitterStatusBadge, EmptyState } from '@/components/ui';
+import { LoadingPage, LitterStatusBadge, EmptyState, Badge } from '@/components/ui';
 
 export function LittersPage() {
 	const [litters, setLitters] = useState<LitterWithDogs[]>([]);
@@ -45,9 +45,12 @@ export function LittersPage() {
 						</div>
 							<div className="p-6">
 								<div className="flex items-start justify-between mb-2">
-									<h2 className="font-serif text-xl font-bold text-stone-900 group-hover:text-brand-600 transition-colors">
-										{litter.name}
-									</h2>
+									<div className="flex items-center gap-2">
+										<h2 className="font-serif text-xl font-bold text-stone-900 group-hover:text-brand-600 transition-colors">
+											{litter.name}
+										</h2>
+										{litter.breed && <Badge variant="default">{litter.breed}</Badge>}
+									</div>
 									<LitterStatusBadge status={litter.status} />
 								</div>
 								<p className="text-sm text-stone-500">

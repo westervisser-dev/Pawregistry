@@ -43,6 +43,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		{
 			body: t.Object({
 				name: t.String(),
+				breed: t.Optional(t.Nullable(t.String())),
 				sireId: t.String(),
 				damId: t.String(),
 				status: t.Optional(t.Union([
@@ -72,6 +73,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		},
 		{ body: t.Partial(t.Object({
 			name: t.String(),
+			breed: t.Nullable(t.String()),
 			status: t.Union([
 				t.Literal('planned'), t.Literal('confirmed'), t.Literal('born'),
 				t.Literal('weaning'), t.Literal('ready'), t.Literal('completed'),
