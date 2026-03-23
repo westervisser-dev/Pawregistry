@@ -173,4 +173,15 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			return { success: true };
 		},
 		{ body: t.Object({ order: t.Array(t.Object({ id: t.String(), priority: t.Number() })) }) }
+	)
+
+	// ── Admin: delete client ──
+	.delete(
+		'/admin/:id',
+		async ({ params, error }) => {
+			const existing = await db.query.clients.findFirst({ where: eq(clients.id, params.id) });
+			if (!existing) return error(404, { error: 'Not found', message: 'Client not found' });
+			await db.delete(clients).where(eq(clients.id, params.id));
+			return new Response(null, { status: 204 });
+		}
 	);

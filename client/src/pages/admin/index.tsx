@@ -28,6 +28,69 @@ function AdminTable({ headers, children }: { headers: string[]; children: React.
 	);
 }
 
+// ─── Delete confirmation modal ────────────────────────────────────────────────
+
+function DeleteModal({
+	open,
+	entityLabel,
+	onClose,
+	onConfirm,
+	deleting,
+	blockingRecords,
+}: {
+	open: boolean;
+	entityLabel: string;
+	onClose: () => void;
+	onConfirm: () => void;
+	deleting: boolean;
+	blockingRecords: string[] | null;
+}) {
+	if (!open) return null;
+	return (
+		<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+			<div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+			<div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+				{blockingRecords ? (
+					<>
+						<h2 className="font-serif text-lg font-bold text-stone-900 mb-2">Cannot delete</h2>
+						<p className="text-sm text-stone-600 mb-3">
+							<strong>{entityLabel}</strong> is still assigned to the following record{blockingRecords.length !== 1 ? 's' : ''}.
+							Reassign or remove them first:
+						</p>
+						<ul className="mb-5 space-y-1">
+							{blockingRecords.map((r) => (
+								<li key={r} className="text-sm font-medium text-stone-800 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2">
+									{r}
+								</li>
+							))}
+						</ul>
+						<button onClick={onClose} className="w-full px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-lg transition-colors">
+							Got it
+						</button>
+					</>
+				) : (
+					<>
+						<h2 className="font-serif text-lg font-bold text-stone-900 mb-2">Delete {entityLabel}?</h2>
+						<p className="text-sm text-stone-500 mb-6">This action cannot be undone.</p>
+						<div className="flex gap-3">
+							<button onClick={onClose} className="flex-1 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-lg transition-colors">
+								Cancel
+							</button>
+							<button
+								onClick={onConfirm}
+								disabled={deleting}
+								className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+							>
+								{deleting ? 'Deleting…' : 'Delete'}
+							</button>
+						</div>
+					</>
+				)}
+			</div>
+		</div>
+	);
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export function AdminDashboard() {
@@ -195,6 +258,9 @@ export function AdminDogDetail() {
 	const [knownColours, setKnownColours] = useState<string[]>([]);
 	const [pendingImage, setPendingImage] = useState<File | null>(null);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [deleting, setDeleting] = useState(false);
+	const [deleteBlocking, setDeleteBlocking] = useState<string[] | null>(null);
 
 	useEffect(() => {
 		api.dogs.get().then(({ data }) => {
@@ -270,6 +336,20 @@ export function AdminDogDetail() {
 			}
 		}
 		setSaving(false);
+	};
+
+	const deleteDog = async () => {
+		if (!id) return;
+		setDeleting(true);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { error } = await (api.dogs({ id }) as any).delete();
+		if (error) {
+			const body = error.value as { blockingRecords?: string[] };
+			setDeleteBlocking(body.blockingRecords ?? ['Unknown error']);
+		} else {
+			navigate('/admin/dogs', { state: { toast: `${dog?.name ?? 'Dog'} deleted.` } });
+		}
+		setDeleting(false);
 	};
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -414,7 +494,7 @@ export function AdminDogDetail() {
 				{formError && (
 					<p className="text-sm text-red-600">{formError}</p>
 				)}
-				<div>
+				<div className="flex items-center justify-between">
 					<button
 						onClick={save}
 						disabled={saving}
@@ -422,7 +502,23 @@ export function AdminDogDetail() {
 					>
 						{saving ? 'Saving…' : 'Save Changes'}
 					</button>
+					{id && id !== 'new' && (
+						<button
+							onClick={() => { setDeleteBlocking(null); setDeleteOpen(true); }}
+							className="text-sm text-red-500 hover:text-red-700 transition-colors"
+						>
+							Delete dog
+						</button>
+					)}
 				</div>
+			<DeleteModal
+				open={deleteOpen}
+				entityLabel={dog?.name ?? 'this dog'}
+				onClose={() => setDeleteOpen(false)}
+				onConfirm={deleteDog}
+				deleting={deleting}
+				blockingRecords={deleteBlocking}
+			/>
 		</div>
 	);
 }
@@ -481,6 +577,9 @@ export function AdminLitterDetail() {
 	const [saving, setSaving] = useState(false);
 	const [formError, setFormError] = useState('');
 	const [newPuppy, setNewPuppy] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
+	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [deleting, setDeleting] = useState(false);
+	const [deleteBlocking, setDeleteBlocking] = useState<string[] | null>(null);
 
 	// New-litter form state
 	const [dogs, setDogs] = useState<Dog[]>([]);
@@ -572,6 +671,20 @@ export function AdminLitterDetail() {
 			setLitter({ ...litter, puppies: [...litter.puppies, data as unknown] });
 			setNewPuppy({ collarColour: '', sex: 'male', colour: '' });
 		}
+	};
+
+	const deleteLitter = async () => {
+		if (!id) return;
+		setDeleting(true);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { error } = await (api.litters({ id }) as any).delete();
+		if (error) {
+			const body = error.value as { blockingRecords?: string[] };
+			setDeleteBlocking(body.blockingRecords ?? ['Unknown error']);
+		} else {
+			navigate('/admin/litters', { state: { toast: `${litter?.name ?? 'Litter'} deleted.` } });
+		}
+		setDeleting(false);
 	};
 
 	if (loading) return <LoadingPage />;
@@ -967,6 +1080,23 @@ export function AdminLitterDetail() {
 					</div>
 				</div>
 			</Card>
+
+			<div className="flex justify-end mt-2">
+				<button
+					onClick={() => { setDeleteBlocking(null); setDeleteOpen(true); }}
+					className="text-sm text-red-500 hover:text-red-700 transition-colors"
+				>
+					Delete litter
+				</button>
+			</div>
+			<DeleteModal
+				open={deleteOpen}
+				entityLabel={litter?.name ?? 'this litter'}
+				onClose={() => setDeleteOpen(false)}
+				onConfirm={deleteLitter}
+				deleting={deleting}
+				blockingRecords={deleteBlocking}
+			/>
 		</div>
 	);
 }
@@ -1126,10 +1256,13 @@ function AppSection({ title, fields }: { title: string; fields: { label: string;
 
 export function AdminClientDetail() {
 	const { id } = useParams<{ id: string }>();
+	const navigate = useNavigate();
 	const [client, setClient] = useState<Client | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [newMsg, setNewMsg] = useState('');
 	const [sending, setSending] = useState(false);
+	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [deleting, setDeleting] = useState(false);
 
 	const load = () => {
 		if (!id) return;
@@ -1153,6 +1286,17 @@ export function AdminClientDetail() {
 		await api.messages.admin({ clientId: id }).post({ body: newMsg });
 		setNewMsg('');
 		setSending(false);
+	};
+
+	const deleteClient = async () => {
+		if (!id) return;
+		setDeleting(true);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { error } = await (api.clients.admin({ id }) as any).delete();
+		if (!error) {
+			navigate('/admin/clients', { state: { toast: `${client?.firstName ?? 'Client'} deleted.` } });
+		}
+		setDeleting(false);
 	};
 
 	if (loading) return <LoadingPage />;
@@ -1315,6 +1459,23 @@ export function AdminClientDetail() {
 					</button>
 				</div>
 			</Card>
+
+			<div className="flex justify-end mt-2">
+				<button
+					onClick={() => setDeleteOpen(true)}
+					className="text-sm text-red-500 hover:text-red-700 transition-colors"
+				>
+					Delete client
+				</button>
+			</div>
+			<DeleteModal
+				open={deleteOpen}
+				entityLabel={`${client.firstName} ${client.lastName}`}
+				onClose={() => setDeleteOpen(false)}
+				onConfirm={deleteClient}
+				deleting={deleting}
+				blockingRecords={null}
+			/>
 		</div>
 	);
 }

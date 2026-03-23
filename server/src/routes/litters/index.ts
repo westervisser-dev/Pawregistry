@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
 import { eq, desc, asc } from 'drizzle-orm';
 import { db } from '../../db';
-import { litters, puppies, litterImages } from '../../db/schema';
+import { litters, puppies, litterImages, clients, updates } from '../../db/schema';
 import { adminPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 
@@ -170,5 +170,27 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				birthWeight: t.Nullable(t.Number()), currentWeight: t.Nullable(t.Number()),
 				notes: t.Nullable(t.String()), profileImageUrl: t.Nullable(t.String()),
 			})),
+		}
+	)
+
+	// ── Admin: delete litter (blocked if clients are assigned) ──
+	.delete(
+		'/:id',
+		async ({ params, error }) => {
+			const blocking = await db.query.clients.findMany({
+				where: eq(clients.litterId, params.id),
+				columns: { firstName: true, lastName: true },
+			});
+			if (blocking.length > 0) {
+				return error(409, {
+					error: 'Blocked',
+					blockingRecords: blocking.map((c) => `${c.firstName} ${c.lastName}`),
+				});
+			}
+			// Delete orphaned updates (no FK cascade on targetId)
+			await db.delete(updates).where(eq(updates.targetId, params.id));
+			// Delete litter (puppies + images cascade via FK)
+			await db.delete(litters).where(eq(litters.id, params.id));
+			return new Response(null, { status: 204 });
 		}
 	);

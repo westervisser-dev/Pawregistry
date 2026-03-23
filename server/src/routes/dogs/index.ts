@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, or } from 'drizzle-orm';
 import { db } from '../../db';
-import { dogs, healthCerts } from '../../db/schema';
+import { dogs, healthCerts, litters } from '../../db/schema';
 import { adminPlugin } from '../../lib/auth';
 import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 
@@ -171,5 +171,24 @@ export const dogsRoutes = new Elysia({ prefix: '/dogs' })
 				expiresAt: t.Optional(t.Nullable(t.String())),
 				notes: t.Optional(t.Nullable(t.String())),
 			}),
+		}
+	)
+
+	// ── Admin: delete dog (blocked if assigned as sire/dam to any litter) ──
+	.delete(
+		'/:id',
+		async ({ params, error }) => {
+			const blocking = await db.query.litters.findMany({
+				where: or(eq(litters.sireId, params.id), eq(litters.damId, params.id)),
+				columns: { name: true },
+			});
+			if (blocking.length > 0) {
+				return error(409, {
+					error: 'Blocked',
+					blockingRecords: blocking.map((l) => l.name),
+				});
+			}
+			await db.delete(dogs).where(eq(dogs.id, params.id));
+			return new Response(null, { status: 204 });
 		}
 	);
