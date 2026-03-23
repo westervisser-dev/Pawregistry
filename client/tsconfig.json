@@ -19,5 +19,5 @@
 			"@paw-registry/shared": ["../shared/src/index.ts"]
 		}
 	},
-	"include": ["src"]
+	"include": ["src", "../server/src"]
 }

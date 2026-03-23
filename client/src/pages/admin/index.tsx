@@ -487,10 +487,11 @@ export function AdminLitterDetail() {
 	const [newForm, setNewForm] = useState<{ name: string; breed: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
 		name: '', breed: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
 	});
-	const [pendingImage, setPendingImage] = useState<File | null>(null);
-	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 	const [galleryImages, setGalleryImages] = useState<LitterImage[]>([]);
 	const [galleryError, setGalleryError] = useState('');
+	const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
+	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string }>>([]);
+	const [newPuppyDraft, setNewPuppyDraft] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
 
 	useEffect(() => {
 		if (!id) return;
@@ -534,8 +535,11 @@ export function AdminLitterDetail() {
 			if (error) { setFormError('Failed to save. Please try again.'); return; }
 			if (data) {
 				const newId = (data as Litter).id;
-				if (pendingImage) {
-					await api.litters({ id: newId }).images.post({ file: pendingImage });
+				for (const file of pendingPhotos.slice(0, 30)) {
+					await api.litters({ id: newId }).gallery.post({ file });
+				}
+				for (const puppy of pendingPuppies) {
+					await api.litters({ id: newId }).puppies.post(puppy);
 				}
 				navigate('/admin/litters');
 			}
@@ -580,45 +584,6 @@ export function AdminLitterDetail() {
 				<Link to="/admin/litters" className="text-sm text-stone-400 hover:text-stone-600 mb-6 inline-block">← Litters</Link>
 				<PageHeader title="New Litter" />
 				<Card className="p-6 flex flex-col gap-4">
-					{/* Cover image */}
-					<div>
-						<label className="block text-xs font-medium text-stone-500 mb-2">Cover Image</label>
-						<div className="flex items-center gap-4">
-							<div className="w-20 h-20 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden flex items-center justify-center flex-shrink-0">
-								{previewUrl ? (
-									<img src={previewUrl} alt="Cover" className="w-full h-full object-cover" />
-								) : (
-									<span className="text-2xl">🐾</span>
-								)}
-							</div>
-							<div className="flex flex-col gap-1.5">
-								<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
-									<span>Choose image</span>
-									<input
-										type="file"
-										accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,.heic,image/heic"
-										onChange={(e) => {
-											const file = e.target.files?.[0];
-											if (!file) return;
-											setPendingImage(file);
-											setPreviewUrl(URL.createObjectURL(file));
-										}}
-										className="hidden"
-									/>
-								</label>
-								{previewUrl && (
-									<button
-										type="button"
-										onClick={() => { setPendingImage(null); setPreviewUrl(null); }}
-										className="text-xs text-stone-400 hover:text-red-500 text-left transition-colors"
-									>
-										Remove image
-									</button>
-								)}
-								<p className="text-xs text-stone-400">JPEG, PNG, WebP, SVG or HEIC</p>
-							</div>
-						</div>
-					</div>
 					<div className="grid grid-cols-2 gap-4">
 						<div>
 							<label className="block text-xs font-medium text-stone-500 mb-1">
@@ -712,6 +677,95 @@ export function AdminLitterDetail() {
 						/>
 						<span className="text-sm text-stone-700">Visible on public site</span>
 					</label>
+					{/* Photos */}
+					<div>
+						<label className="block text-xs font-medium text-stone-500 mb-2">Photos</label>
+						{pendingPhotos.length > 0 && (
+							<div className="flex flex-wrap gap-2 mb-3">
+								{pendingPhotos.map((file, i) => (
+									<div key={i} className="relative w-16 h-16 flex-shrink-0">
+										<img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover rounded-lg border border-stone-200" />
+										<button
+											type="button"
+											onClick={() => setPendingPhotos((p) => p.filter((_, j) => j !== i))}
+											className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs leading-none"
+										>×</button>
+									</div>
+								))}
+							</div>
+						)}
+						{pendingPhotos.length < 30 && (
+							<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
+								<span>Add photos</span>
+								<input
+									type="file"
+									accept="image/jpeg,image/jpg,image/png,image/webp,image/heic"
+									multiple
+									onChange={(e) => {
+										const files = Array.from(e.target.files ?? []);
+										setPendingPhotos((p) => [...p, ...files].slice(0, 30));
+										e.target.value = '';
+									}}
+									className="hidden"
+								/>
+							</label>
+						)}
+						{pendingPhotos.length > 0 && (
+							<p className="text-xs text-stone-400 mt-1">{pendingPhotos.length} photo{pendingPhotos.length !== 1 ? 's' : ''} selected — uploaded after creation</p>
+						)}
+					</div>
+
+					{/* Puppies */}
+					<div>
+						<label className="block text-xs font-medium text-stone-500 mb-2">Puppies</label>
+						{pendingPuppies.length > 0 && (
+							<div className="space-y-1 mb-3">
+								{pendingPuppies.map((p, i) => (
+									<div key={i} className="flex items-center gap-3 py-1.5 px-3 bg-stone-50 rounded-lg text-sm">
+										<span className="w-3 h-3 rounded-full border border-stone-300 flex-shrink-0" style={{ background: p.collarColour }} />
+										<span className="text-stone-700">{p.colour} {p.sex}</span>
+										<button
+											type="button"
+											onClick={() => setPendingPuppies((list) => list.filter((_, j) => j !== i))}
+											className="ml-auto text-stone-400 hover:text-red-500 text-xs"
+										>Remove</button>
+									</div>
+								))}
+							</div>
+						)}
+						<div className="flex gap-2">
+							<input
+								placeholder="Collar colour"
+								value={newPuppyDraft.collarColour}
+								onChange={(e) => setNewPuppyDraft((p) => ({ ...p, collarColour: e.target.value }))}
+								className="flex-1 px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+							<input
+								placeholder="Coat colour"
+								value={newPuppyDraft.colour}
+								onChange={(e) => setNewPuppyDraft((p) => ({ ...p, colour: e.target.value }))}
+								className="flex-1 px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+							<select
+								value={newPuppyDraft.sex}
+								onChange={(e) => setNewPuppyDraft((p) => ({ ...p, sex: e.target.value as 'male' | 'female' }))}
+								className="px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+							>
+								<option value="male">M</option>
+								<option value="female">F</option>
+							</select>
+							<button
+								type="button"
+								onClick={() => {
+									if (!newPuppyDraft.collarColour || !newPuppyDraft.colour) return;
+									setPendingPuppies((p) => [...p, newPuppyDraft]);
+									setNewPuppyDraft({ collarColour: '', sex: 'male', colour: '' });
+								}}
+								className="px-4 py-2 bg-stone-100 text-stone-700 text-sm rounded-lg hover:bg-stone-200 transition-colors"
+							>Add</button>
+						</div>
+					</div>
+
 					{formError && <p className="text-sm text-red-600">{formError}</p>}
 					<button
 						onClick={createLitter}
@@ -746,51 +800,15 @@ export function AdminLitterDetail() {
 			/>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-				<Card className="p-6 md:col-span-2">
-					<h3 className="font-semibold text-stone-800 mb-4">Cover Image</h3>
-					<div className="flex items-center gap-4">
-						<div className="w-20 h-20 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden flex items-center justify-center flex-shrink-0">
-							{previewUrl || litter.coverImageUrl ? (
-								<img src={previewUrl ?? litter.coverImageUrl!} alt="Cover" className="w-full h-full object-cover" />
-							) : (
-								<span className="text-2xl">🐾</span>
-							)}
-						</div>
-						<div className="flex flex-col gap-1.5">
-							<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
-								<span>Choose image</span>
-								<input
-									type="file"
-									accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,.heic,image/heic"
-									onChange={async (e) => {
-										const file = e.target.files?.[0];
-										if (!file || !id) return;
-										setPreviewUrl(URL.createObjectURL(file));
-										const { data } = await api.litters({ id }).images.post({ file });
-										if (data) setLitter(data as typeof litter);
-									}}
-									className="hidden"
-								/>
-							</label>
-							{(previewUrl || litter.coverImageUrl) && (
-								<button
-									type="button"
-									onClick={() => { setPreviewUrl(null); setLitter((l) => l ? { ...l, coverImageUrl: null } : l); }}
-									className="text-xs text-stone-400 hover:text-red-500 text-left transition-colors"
-								>
-									Remove image
-								</button>
-							)}
-							<p className="text-xs text-stone-400">JPEG, PNG, WebP, SVG or HEIC</p>
-						</div>
-					</div>
-				</Card>
 
 				<Card className="p-6 md:col-span-2">
-					<h3 className="font-semibold text-stone-800 mb-4">Gallery</h3>
-					<div className="flex flex-wrap gap-3 mb-4">
+					<div className="flex items-center justify-between mb-4">
+						<h3 className="font-semibold text-stone-800">Gallery</h3>
+						<span className="text-xs text-stone-400">{galleryImages.length}/30 photos</span>
+					</div>
+					<div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
 						{galleryImages.map((img) => (
-							<div key={img.id} className="relative w-20 h-20 flex-shrink-0">
+							<div key={img.id} className="relative aspect-square">
 								<img src={img.url} alt="Gallery" className="w-full h-full object-cover rounded-lg border border-stone-200" />
 								<button
 									type="button"
@@ -808,27 +826,35 @@ export function AdminLitterDetail() {
 							</div>
 						))}
 						{galleryImages.length === 0 && (
-							<p className="text-xs text-stone-400">No gallery images yet.</p>
+							<p className="text-xs text-stone-400 col-span-full">No photos yet.</p>
 						)}
 					</div>
 					<div className="flex items-center gap-3">
-						<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
-							<span>Upload photo</span>
-							<input
-								type="file"
-								accept="image/jpeg,image/jpg,image/png,image/webp,image/heic"
-								onChange={async (e) => {
-									setGalleryError('');
-									const file = e.target.files?.[0];
-									if (!file || !id) return;
-									const { data, error } = await api.litters({ id }).gallery.post({ file });
-									e.target.value = '';
-									if (error) { setGalleryError('Upload failed. Please try again.'); return; }
-									if (data) setGalleryImages((prev) => [...prev, data as LitterImage]);
-								}}
-								className="hidden"
-							/>
-						</label>
+						{galleryImages.length < 30 ? (
+							<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
+								<span>Upload photos</span>
+								<input
+									type="file"
+									accept="image/jpeg,image/jpg,image/png,image/webp,image/heic"
+									multiple
+									onChange={async (e) => {
+										setGalleryError('');
+										const files = Array.from(e.target.files ?? []);
+										e.target.value = '';
+										if (!files.length || !id) return;
+										const remaining = 30 - galleryImages.length;
+										for (const file of files.slice(0, remaining)) {
+											const { data, error } = await api.litters({ id }).gallery.post({ file });
+											if (error) { setGalleryError('One or more uploads failed.'); break; }
+											if (data) setGalleryImages((prev) => [...prev, data as LitterImage]);
+										}
+									}}
+									className="hidden"
+								/>
+							</label>
+						) : (
+							<p className="text-xs text-stone-400">Maximum of 30 photos reached.</p>
+						)}
 					</div>
 					{galleryError && <p className="text-xs text-red-500 mt-2">{galleryError}</p>}
 				</Card>

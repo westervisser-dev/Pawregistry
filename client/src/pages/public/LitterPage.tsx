@@ -28,12 +28,6 @@ export function LitterPage() {
 				← Back to litters
 			</Link>
 
-			{litter.coverImageUrl && (
-			<div className="h-64 md:h-80 rounded-2xl overflow-hidden mb-8 bg-stone-100">
-				<img src={litter.coverImageUrl} alt={litter.name} className="w-full h-full object-cover" />
-			</div>
-		)}
-
 		<div className="flex items-start justify-between mb-8">
 				<div>
 					<div className="flex items-center gap-3 mb-2">

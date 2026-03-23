@@ -11,7 +11,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		return db.query.litters.findMany({
 			where: eq(litters.isPublic, true),
 			orderBy: [desc(litters.createdAt)],
-			with: { sire: true, dam: true, puppies: true },
+			with: { sire: true, dam: true, puppies: true, images: { orderBy: [asc(litterImages.createdAt)], limit: 1 } },
 		});
 	})
 
@@ -85,34 +85,15 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		})) }
 	)
 
-	// ── Admin: upload litter cover image ──
-	.post(
-		'/:id/images',
-		async ({ params, body, error }) => {
-			const litter = await db.query.litters.findFirst({ where: eq(litters.id, params.id) });
-			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
-
-			const file = body.file as File;
-			const path = `${params.id}/${Date.now()}-${file.name}`;
-			const url = await uploadFile(STORAGE_BUCKETS.litters, path, file, file.type);
-
-			const [updated] = await db
-				.update(litters)
-				.set({ coverImageUrl: url, updatedAt: new Date() })
-				.where(eq(litters.id, params.id))
-				.returning();
-
-			return updated;
-		},
-		{ body: t.Object({ file: t.File() }) }
-	)
-
-	// ── Admin: upload gallery image ──
+	// ── Admin: upload gallery image (max 30) ──
 	.post(
 		'/:id/gallery',
 		async ({ params, body, error }) => {
 			const litter = await db.query.litters.findFirst({ where: eq(litters.id, params.id) });
 			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
+
+			const existing = await db.query.litterImages.findMany({ where: eq(litterImages.litterId, params.id) });
+			if (existing.length >= 30) return error(400, { error: 'Limit reached', message: 'Maximum 30 photos per litter.' });
 
 			const file = body.file as File;
 			const storagePath = `${params.id}/gallery/${Date.now()}-${file.name}`;

@@ -37,12 +37,6 @@ export function LittersPage() {
 							to={`/litters/${litter.id}`}
 							className="group bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-lg transition-shadow"
 						>
-							<div className="h-48 bg-stone-100 flex items-center justify-center text-6xl overflow-hidden">
-							{litter.coverImageUrl
-								? <img src={litter.coverImageUrl} alt={litter.name} className="w-full h-full object-cover" />
-								: '🐶'
-							}
-						</div>
 							<div className="p-6">
 								<div className="flex items-start justify-between mb-2">
 									<div className="flex items-center gap-2">
