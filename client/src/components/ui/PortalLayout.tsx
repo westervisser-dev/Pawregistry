@@ -7,19 +7,22 @@ const portalNav = [
 	{ to: '/portal/updates', label: 'Updates', icon: '📷' },
 	{ to: '/portal/messages', label: 'Messages', icon: '💬' },
 	{ to: '/portal/documents', label: 'Documents', icon: '📄' },
-	{ to: '/portal/checklist', label: 'Go-Home Checklist', icon: '✅' },
+	{ to: '/portal/checklist', label: 'Checklist', icon: '✅' },
 ];
 
-export function PortalLayout() {
-	const { user, signOut } = useAuthStore();
-	const [sidebarOpen, setSidebarOpen] = useState(false);
+// ─── Sidebar content extracted so it never remounts on parent re-renders ──────
 
-	const closeSidebar = () => setSidebarOpen(false);
+interface SidebarProps {
+	email?: string;
+	signOut: () => void;
+	onLinkClick: () => void;
+}
 
-	const SidebarContent = () => (
+function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
+	return (
 		<>
 			<div className="p-6 border-b border-stone-200">
-				<Link to="/" className="flex items-center gap-2" onClick={closeSidebar}>
+				<Link to="/" className="flex items-center gap-2" onClick={onLinkClick}>
 					<span className="text-xl">🐾</span>
 					<span className="font-serif font-bold text-stone-900">Paw Registry</span>
 				</Link>
@@ -32,7 +35,7 @@ export function PortalLayout() {
 						key={to}
 						to={to}
 						end={end}
-						onClick={closeSidebar}
+						onClick={onLinkClick}
 						className={({ isActive }) =>
 							`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
 								isActive
@@ -49,7 +52,7 @@ export function PortalLayout() {
 
 			<div className="p-4 border-t border-stone-200">
 				<div className="px-3 py-2 mb-2">
-					<p className="text-xs font-medium text-stone-900 truncate">{user?.email}</p>
+					<p className="text-xs font-medium text-stone-900 truncate">{email}</p>
 				</div>
 				<button
 					onClick={signOut}
@@ -60,6 +63,15 @@ export function PortalLayout() {
 			</div>
 		</>
 	);
+}
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
+export function PortalLayout() {
+	const { user, signOut } = useAuthStore();
+	const [sidebarOpen, setSidebarOpen] = useState(false);
+
+	const closeSidebar = () => setSidebarOpen(false);
 
 	return (
 		<div className="min-h-screen bg-stone-50 flex">
@@ -71,14 +83,14 @@ export function PortalLayout() {
 				/>
 			)}
 
-			{/* Sidebar — off-canvas on mobile, always visible on desktop */}
+			{/* Sidebar — off-canvas on mobile, always visible on md+ */}
 			<aside className={`
 				fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-stone-200 flex flex-col
 				transform transition-transform duration-200
 				${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
 				md:translate-x-0 md:static md:z-auto
 			`}>
-				<SidebarContent />
+				<PortalSidebar email={user?.email} signOut={signOut} onLinkClick={closeSidebar} />
 			</aside>
 
 			{/* Main */}
@@ -101,10 +113,32 @@ export function PortalLayout() {
 					<span className="text-xs text-stone-500">Client Portal</span>
 				</div>
 
-				<main className="flex-1 p-4 md:p-8">
+				{/* Page content — extra bottom padding on mobile for the bottom nav */}
+				<main className="flex-1 p-4 md:p-8 pb-24 md:pb-8">
 					<Outlet />
 				</main>
 			</div>
+
+			{/* Mobile bottom navigation — thumb-first for clients on the go */}
+			<nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-stone-200">
+				<div className="grid grid-cols-5 h-16">
+					{portalNav.map(({ to, label, icon, end }) => (
+						<NavLink
+							key={to}
+							to={to}
+							end={end}
+							className={({ isActive }) =>
+								`flex flex-col items-center justify-center gap-0.5 text-center transition-colors ${
+									isActive ? 'text-brand-600' : 'text-stone-400'
+								}`
+							}
+						>
+							<span className="text-xl leading-none">{icon}</span>
+							<span className="text-[10px] font-medium leading-tight">{label}</span>
+						</NavLink>
+					))}
+				</div>
+			</nav>
 		</div>
 	);
 }

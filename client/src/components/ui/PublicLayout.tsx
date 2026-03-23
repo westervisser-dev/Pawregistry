@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, Link, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, Link, NavLink } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 
 const navLinks = [
@@ -12,9 +12,7 @@ const navLinks = [
 export function PublicLayout() {
 	const { user, isAdmin } = useAuthStore();
 	const [menuOpen, setMenuOpen] = useState(false);
-	const location = useLocation();
 
-	// Close menu on route change
 	const closeMenu = () => setMenuOpen(false);
 
 	return (
@@ -80,63 +78,69 @@ export function PublicLayout() {
 							onClick={() => setMenuOpen((o) => !o)}
 							className="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-stone-100 transition-colors"
 							aria-label="Toggle menu"
+							aria-expanded={menuOpen}
 						>
-							<span className={`block h-0.5 w-5 bg-stone-700 transition-all duration-200 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-							<span className={`block h-0.5 w-5 bg-stone-700 transition-all duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
-							<span className={`block h-0.5 w-5 bg-stone-700 transition-all duration-200 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+							<span className={`block h-0.5 w-5 bg-stone-700 transition-transform duration-200 origin-center ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+							<span className={`block h-0.5 w-5 bg-stone-700 transition-opacity duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
+							<span className={`block h-0.5 w-5 bg-stone-700 transition-transform duration-200 origin-center ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
 						</button>
 					</div>
 				</div>
 
-				{/* Mobile menu dropdown */}
-				{menuOpen && (
-					<div className="md:hidden border-t border-stone-100 bg-white px-6 py-4 flex flex-col gap-1">
-						{navLinks.map(({ to, label }) => (
-							<NavLink
-								key={to}
-								to={to}
-								onClick={closeMenu}
-								className={({ isActive }) =>
-									`py-3 text-sm font-medium border-b border-stone-50 last:border-0 transition-colors ${
-										isActive ? 'text-brand-600' : 'text-stone-700'
-									}`
-								}
-							>
-								{label}
-							</NavLink>
-						))}
-						<div className="pt-3">
-							{user ? (
-								<div className="flex flex-col gap-2">
-									{isAdmin && (
-										<Link
-											to="/admin"
-											onClick={closeMenu}
-											className="text-sm font-medium text-brand-600"
-										>
-											Admin Panel
-										</Link>
-									)}
-									<Link
-										to="/portal"
-										onClick={closeMenu}
-										className="text-sm px-4 py-2.5 bg-brand-500 text-white rounded-lg text-center font-medium hover:bg-brand-600 transition-colors"
-									>
-										My Portal
-									</Link>
-								</div>
-							) : (
-								<Link
-									to="/login"
+				{/* Mobile menu — CSS grid transition for smooth open/close */}
+				<div
+					className="md:hidden overflow-hidden transition-[grid-template-rows] duration-200 ease-out"
+					style={{ display: 'grid', gridTemplateRows: menuOpen ? '1fr' : '0fr' }}
+				>
+					<div className="min-h-0 border-t border-stone-100 bg-white">
+						<div className="px-6 py-4 flex flex-col gap-1">
+							{navLinks.map(({ to, label }) => (
+								<NavLink
+									key={to}
+									to={to}
 									onClick={closeMenu}
-									className="block text-sm px-4 py-2.5 bg-brand-500 text-white rounded-lg text-center font-medium hover:bg-brand-600 transition-colors"
+									className={({ isActive }) =>
+										`py-3 text-sm font-medium border-b border-stone-50 last:border-0 transition-colors ${
+											isActive ? 'text-brand-600' : 'text-stone-700'
+										}`
+									}
 								>
-									Client Login
-								</Link>
-							)}
+									{label}
+								</NavLink>
+							))}
+							<div className="pt-3">
+								{user ? (
+									<div className="flex flex-col gap-2">
+										{isAdmin && (
+											<Link
+												to="/admin"
+												onClick={closeMenu}
+												className="text-sm font-medium text-brand-600"
+											>
+												Admin Panel
+											</Link>
+										)}
+										<Link
+											to="/portal"
+											onClick={closeMenu}
+											className="text-sm px-4 py-2.5 bg-brand-500 text-white rounded-lg text-center font-medium hover:bg-brand-600 transition-colors"
+										>
+											My Portal
+										</Link>
+									</div>
+								) : (
+									<Link
+										to="/login"
+										onClick={closeMenu}
+										className="block text-sm px-4 py-2.5 bg-brand-500 text-white rounded-lg text-center font-medium hover:bg-brand-600 transition-colors"
+									>
+										Client Login
+									</Link>
+								)}
+							</div>
 						</div>
 					</div>
-				)}
+				</div>
 			</header>
 
 			<main className="flex-1">
@@ -144,7 +148,7 @@ export function PublicLayout() {
 			</main>
 
 			<footer className="bg-stone-900 text-stone-400 py-12 mt-20">
-				<div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+				<div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
 					<div>
 						<div className="flex items-center gap-2 mb-4">
 							<span className="text-xl">🐾</span>

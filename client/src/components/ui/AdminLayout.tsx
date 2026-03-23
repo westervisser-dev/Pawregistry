@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 
 const adminNav = [
@@ -12,16 +12,19 @@ const adminNav = [
 	{ to: '/admin/documents', label: 'Documents', icon: '📁' },
 ];
 
-export function AdminLayout() {
-	const { user, signOut } = useAuthStore();
-	const [sidebarOpen, setSidebarOpen] = useState(false);
+// ─── Sidebar content extracted so it never remounts on parent re-renders ──────
 
-	const closeSidebar = () => setSidebarOpen(false);
+interface AdminSidebarProps {
+	email?: string;
+	signOut: () => void;
+	onLinkClick: () => void;
+}
 
-	const SidebarContent = () => (
+function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
+	return (
 		<>
 			<div className="p-5 border-b border-stone-700">
-				<Link to="/" className="flex items-center gap-2" onClick={closeSidebar}>
+				<Link to="/" className="flex items-center gap-2" onClick={onLinkClick}>
 					<span className="text-xl">🐾</span>
 					<span className="font-serif font-bold text-white">Paw Registry</span>
 				</Link>
@@ -36,7 +39,7 @@ export function AdminLayout() {
 						key={to}
 						to={to}
 						end={end}
-						onClick={closeSidebar}
+						onClick={onLinkClick}
 						className={({ isActive }) =>
 							`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
 								isActive
@@ -52,7 +55,7 @@ export function AdminLayout() {
 			</nav>
 
 			<div className="p-4 border-t border-stone-700">
-				<p className="text-xs text-stone-500 px-3 mb-2 truncate">{user?.email}</p>
+				<p className="text-xs text-stone-500 px-3 mb-2 truncate">{email}</p>
 				<button
 					onClick={signOut}
 					className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-stone-400 hover:bg-white/5 hover:text-stone-200 transition-colors"
@@ -62,6 +65,15 @@ export function AdminLayout() {
 			</div>
 		</>
 	);
+}
+
+// ─── Layout ───────────────────────────────────────────────────────────────────
+
+export function AdminLayout() {
+	const { user, signOut } = useAuthStore();
+	const [sidebarOpen, setSidebarOpen] = useState(false);
+
+	const closeSidebar = () => setSidebarOpen(false);
 
 	return (
 		<div className="min-h-screen bg-stone-100 flex">
@@ -73,14 +85,14 @@ export function AdminLayout() {
 				/>
 			)}
 
-			{/* Sidebar — off-canvas on mobile, always visible on desktop */}
+			{/* Sidebar — off-canvas on mobile, always visible on md+ */}
 			<aside className={`
 				fixed inset-y-0 left-0 z-50 w-60 bg-stone-900 flex flex-col
 				transform transition-transform duration-200
 				${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
 				md:translate-x-0 md:static md:z-auto
 			`}>
-				<SidebarContent />
+				<AdminSidebar email={user?.email} signOut={signOut} onLinkClick={closeSidebar} />
 			</aside>
 
 			{/* Main */}

@@ -28,10 +28,10 @@ export function LitterPage() {
 				← Back to litters
 			</Link>
 
-		<div className="flex items-start justify-between mb-8">
+		<div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-8">
 				<div>
 					<div className="flex items-center gap-3 mb-2">
-						<h1 className="font-serif text-4xl font-bold text-stone-900">{litter.name}</h1>
+						<h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900">{litter.name}</h1>
 						{litter.breed && <Badge variant="default">{litter.breed}</Badge>}
 					</div>
 					<div className="flex items-center gap-3 text-sm text-stone-500">

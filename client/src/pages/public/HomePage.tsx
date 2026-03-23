@@ -19,8 +19,11 @@ export function HomePage() {
 			<section className="relative bg-stone-900 text-white overflow-hidden">
 				<img
 					src="https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1600&q=85&auto=format&fit=crop"
+					srcSet="https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=768&q=80&auto=format&fit=crop 768w, https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1200&q=85&auto=format&fit=crop 1200w, https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1600&q=85&auto=format&fit=crop 1600w"
+					sizes="100vw"
 					alt=""
 					aria-hidden="true"
+					decoding="sync"
 					className="absolute inset-0 w-full h-full object-cover object-center scale-105"
 				/>
 				<div className="absolute inset-0 bg-gradient-to-br from-stone-900/90 via-stone-800/80 to-brand-900/75" />
@@ -58,7 +61,7 @@ export function HomePage() {
 				<h2 className="font-serif text-3xl font-bold text-stone-900 text-center mb-12">
 					Our Commitment
 				</h2>
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
 					{[
 						{
 							icon: '🔬',
