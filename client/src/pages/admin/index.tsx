@@ -553,7 +553,7 @@ export function AdminLitters() {
 							<tr key={litter.id} className="border-b border-stone-100 hover:bg-stone-50">
 								<td className="py-3 px-4 font-medium text-stone-900">{litter.name}</td>
 								<td className="py-3 px-4"><LitterStatusBadge status={litter.status} /></td>
-								<td className="py-3 px-4 text-stone-500 text-xs">{litter.sireId} × {litter.damId}</td>
+								<td className="py-3 px-4 text-stone-500 text-xs">{(litter as unknown as { sire: Dog; dam: Dog }).sire?.name ?? litter.sireId} × {(litter as unknown as { sire: Dog; dam: Dog }).dam?.name ?? litter.damId}</td>
 								<td className="py-3 px-4 text-stone-600">{litter.whelpDate ? new Date(litter.whelpDate).toLocaleDateString('en-ZA') : '—'}</td>
 								<td className="py-3 px-4 text-stone-600">{litter.availableCount ?? '—'}</td>
 								<td className="py-3 px-4">
