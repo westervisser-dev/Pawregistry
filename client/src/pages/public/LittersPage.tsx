@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { LitterWithDogs } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, EmptyState, BreedBadge } from '@/components/ui';
-import { getBreedIllustration } from '@/lib/breedIllustrations';
 
 export function LittersPage() {
 	const [litters, setLitters] = useState<LitterWithDogs[]>([]);
@@ -35,24 +34,15 @@ export function LittersPage() {
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 					{litters.map((litter) => {
 						const hasAvailable = (litter.availableCount ?? 0) > 0;
-						const illustration = getBreedIllustration(litter.breed);
 
 						return (
-							<div key={litter.id} className={`relative${illustration ? ' mt-[60px]' : ''}`}>
-								{illustration && (
-									<img
-										src={illustration}
-										alt={litter.breed ?? ''}
-										className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[120px] w-auto z-10 pointer-events-none select-none"
-										draggable={false}
-									/>
-								)}
-								<Link
-									to={`/litters/${litter.id}`}
-									className="group bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 flex flex-col"
-								>
+							<Link
+								key={litter.id}
+								to={`/litters/${litter.id}`}
+								className="group bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 flex flex-col"
+							>
 								{/* Card body */}
-								<div className={`p-5 flex flex-col flex-1 relative${illustration ? ' pt-[72px]' : ''}`}>
+								<div className="p-5 flex flex-col flex-1 relative">
 									<div className="flex items-start justify-between gap-3 mb-2">
 										<h2 className="font-serif text-lg font-bold text-stone-900 group-hover:text-brand-600 transition-colors leading-snug">
 											{litter.name}
@@ -94,7 +84,6 @@ export function LittersPage() {
 									</span>
 								</div>
 							</Link>
-							</div>
 						);
 					})}
 				</div>
