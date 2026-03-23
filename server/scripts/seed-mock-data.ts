@@ -320,6 +320,21 @@ const LITTERS = [
 
 // ─── Client data ──────────────────────────────────────────────────────────────
 
+const BREED_SIZE_COMBOS = [
+	'f1_goldendoodle - standard',
+	'f1_goldendoodle - miniature',
+	'f1_goldendoodle - dwarf',
+	'f1b_goldendoodle - standard',
+	'f1b_goldendoodle - miniature',
+	'f1b_goldendoodle - dwarf',
+	'f1_border_doodle - border_doodle',
+	'f1_mini_biewer_doodle - biewer_doodle',
+];
+
+function randomBreedSize(): string {
+	return BREED_SIZE_COMBOS[Math.floor(Math.random() * BREED_SIZE_COMBOS.length)];
+}
+
 function mockAppData(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
 	return {
 		livingType: 'house',
@@ -360,8 +375,8 @@ function mockAppData(overrides: Partial<Record<string, unknown>> = {}): Record<s
 		activityLevel: 'Active — daily walks and outdoor activities',
 		willingForObedienceClasses: true,
 		readyTimeframe: 'asap',
-		preferredBreedSize: 'Medium',
-		secondChoiceBreedSize: 'Large',
+		preferredBreedSize: randomBreedSize(),
+		secondChoiceBreedSize: randomBreedSize(),
 		considerOppositeSex: true,
 		considerOtherColour: true,
 		considerOtherBreedSize: false,
@@ -377,7 +392,7 @@ const CLIENTS = [
 	{ id: 'client-004', firstName: 'Liam', lastName: 'Botha', email: 'liam.botha@gmail.com', phone: '+27841234004', city: 'Stellenbosch', country: 'ZA', stage: 'matched', priority: 15, adminNotes: 'Matched to litter-f1bgd-001. Wine farmer — large property. Dog will have lots of space.', appOverrides: { livingType: 'farm', yardSize: 'Large farm property', hasGarden: true } },
 	{ id: 'client-005', firstName: 'Olivia', lastName: 'Coetzee', email: 'olivia.coetzee@icloud.com', phone: '+27851234005', city: 'Durban', country: 'ZA', stage: 'waitlisted', priority: 20, adminNotes: 'Strong application, waiting on F1b litter. Very patient and communicative.', appOverrides: { allergiesToDogs: true, preferredSex: 'female' } },
 	{ id: 'client-006', firstName: 'Noah', lastName: 'Fourie', email: 'noah.fourie@gmail.com', phone: '+27861234006', city: 'Port Elizabeth', country: 'ZA', stage: 'waitlisted', priority: 22, adminNotes: null, appOverrides: { livingType: 'townhouse', hasChildren: false, childrenAges: [] } },
-	{ id: 'client-007', firstName: 'Ava', lastName: 'Swanepoel', email: 'ava.swanepoel@yahoo.com', phone: '+27871234007', city: 'Bloemfontein', country: 'ZA', stage: 'waitlisted', priority: 25, adminNotes: 'Waiting on Biewer Doodle litter. Very excited, has done extensive research on the breed.', appOverrides: { preferredBreedSize: 'Small', livingType: 'house' } },
+	{ id: 'client-007', firstName: 'Ava', lastName: 'Swanepoel', email: 'ava.swanepoel@yahoo.com', phone: '+27871234007', city: 'Bloemfontein', country: 'ZA', stage: 'waitlisted', priority: 25, adminNotes: 'Waiting on Biewer Doodle litter. Very excited, has done extensive research on the breed.', appOverrides: { preferredBreedSize: 'f1_mini_biewer_doodle - biewer_doodle', livingType: 'house' } },
 	{ id: 'client-008', firstName: 'Ethan', lastName: 'du Plessis', email: 'ethan.duplessis@gmail.com', phone: '+27881234008', city: 'Cape Town', country: 'ZA', stage: 'waitlisted', priority: 28, adminNotes: null, appOverrides: { hasChildren: true, childrenAges: [3, 6, 10] } },
 	{ id: 'client-009', firstName: 'Isabella', lastName: 'Kruger', email: 'isabella.kruger@hotmail.com', phone: '+27891234009', city: 'Johannesburg', country: 'ZA', stage: 'waitlisted', priority: 30, adminNotes: 'Allergic to shedding breeds. Very keen on F1b. Follow up regarding timeline.', appOverrides: { allergiesToDogs: true, readyTimeframe: '6_months' } },
 	{ id: 'client-010', firstName: 'Mason', lastName: 'van Wyk', email: 'mason.vanwyk@gmail.com', phone: '+27821234010', city: 'Centurion', country: 'ZA', stage: 'waitlisted', priority: 32, adminNotes: null, appOverrides: { livingType: 'house', hasGarden: true } },
@@ -388,7 +403,7 @@ const CLIENTS = [
 	{ id: 'client-015', firstName: 'Mia', lastName: 'Harmse', email: 'mia.harmse@gmail.com', phone: '+27861234015', city: 'Bellville', country: 'ZA', stage: 'reviewed', priority: 45, adminNotes: null, appOverrides: { preferredColour: 'Apricot' } },
 	{ id: 'client-016', firstName: 'Elijah', lastName: 'van Rensburg', email: 'elijah.vanrensburg@gmail.com', phone: '+27871234016', city: 'Midrand', country: 'ZA', stage: 'enquiry', priority: 50, adminNotes: null, appOverrides: { readyTimeframe: '6_months' } },
 	{ id: 'client-017', firstName: 'Harper', lastName: 'Smit', email: 'harper.smit@hotmail.com', phone: '+27881234017', city: 'Somerset West', country: 'ZA', stage: 'enquiry', priority: 52, adminNotes: null, appOverrides: { hasOtherPets: true, otherPetsDescription: 'One cat, very dog-friendly' } },
-	{ id: 'client-018', firstName: 'Benjamin', lastName: 'Loots', email: 'benjamin.loots@gmail.com', phone: '+27891234018', city: 'Paarl', country: 'ZA', stage: 'enquiry', priority: 55, adminNotes: 'Reached out about Biewer Doodle. Send info pack.', appOverrides: { livingType: 'townhouse', preferredBreedSize: 'Small' } },
+	{ id: 'client-018', firstName: 'Benjamin', lastName: 'Loots', email: 'benjamin.loots@gmail.com', phone: '+27891234018', city: 'Paarl', country: 'ZA', stage: 'enquiry', priority: 55, adminNotes: 'Reached out about Biewer Doodle. Send info pack.', appOverrides: { livingType: 'townhouse', preferredBreedSize: 'f1_mini_biewer_doodle - biewer_doodle' } },
 	{ id: 'client-019', firstName: 'Evelyn', lastName: 'Bezuidenhout', email: 'evelyn.bez@yahoo.com', phone: '+27821234019', city: 'Randburg', country: 'ZA', stage: 'enquiry', priority: 58, adminNotes: null, appOverrides: { preferredSex: 'female', considerOppositeSex: false } },
 	{ id: 'client-020', firstName: 'Alexander', lastName: 'Pietersen', email: 'alex.pietersen@outlook.com', phone: '+27831234020', city: 'East London', country: 'ZA', stage: 'enquiry', priority: 60, adminNotes: null, appOverrides: {} },
 	{ id: 'client-021', firstName: 'Abigail', lastName: 'de Villiers', email: 'abigail.devilliers@gmail.com', phone: '+27711234021', city: 'Cape Town', country: 'ZA', stage: 'waitlisted', priority: 33, adminNotes: 'Added to F1b waitlist. Very thorough application.', appOverrides: { allergiesToDogs: true, livingType: 'house' } },
