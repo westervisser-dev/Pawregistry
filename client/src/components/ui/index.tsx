@@ -37,7 +37,7 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
 
 // ─── Badge ───────────────────────────────────────────────────────────────────
 
-type BadgeVariant = 'default' | 'green' | 'amber' | 'red' | 'blue' | 'purple';
+type BadgeVariant = 'default' | 'green' | 'amber' | 'red' | 'blue' | 'purple' | 'teal' | 'rose';
 
 const badgeClasses: Record<BadgeVariant, string> = {
 	default: 'bg-stone-100 text-stone-700',
@@ -46,6 +46,8 @@ const badgeClasses: Record<BadgeVariant, string> = {
 	red: 'bg-red-50 text-red-700',
 	blue: 'bg-blue-50 text-blue-700',
 	purple: 'bg-purple-50 text-purple-700',
+	teal: 'bg-teal-50 text-teal-700',
+	rose: 'bg-rose-50 text-rose-700',
 };
 
 interface BadgeProps {
@@ -99,6 +101,20 @@ export function PuppyStatusBadge({ status }: { status: string }) {
 
 export function LitterStatusBadge({ status }: { status: string }) {
 	return <Badge variant={litterStatusVariant[status] ?? 'default'}>{status.replaceAll('_', ' ')}</Badge>;
+}
+
+// Deterministically map a breed name to a consistent colour
+const breedColours: BadgeVariant[] = ['blue', 'green', 'purple', 'teal', 'rose', 'amber'];
+
+function hashBreed(breed: string): number {
+	let h = 0;
+	for (let i = 0; i < breed.length; i++) h = (Math.imul(31, h) + breed.charCodeAt(i)) | 0;
+	return Math.abs(h);
+}
+
+export function BreedBadge({ breed }: { breed: string }) {
+	const variant = breedColours[hashBreed(breed) % breedColours.length];
+	return <Badge variant={variant}>{breed}</Badge>;
 }
 
 // ─── Loading spinner ─────────────────────────────────────────────────────────
