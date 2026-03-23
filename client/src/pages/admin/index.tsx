@@ -554,7 +554,7 @@ export function AdminLitters() {
 								<td className="py-3 px-4 font-medium text-stone-900">{litter.name}</td>
 								<td className="py-3 px-4"><LitterStatusBadge status={litter.status} /></td>
 								<td className="py-3 px-4 text-stone-500 text-xs">{litter.sireId} × {litter.damId}</td>
-								<td className="py-3 px-4 text-stone-600">{litter.whelpDate ?? '—'}</td>
+								<td className="py-3 px-4 text-stone-600">{litter.whelpDate ? new Date(litter.whelpDate).toLocaleDateString('en-ZA') : '—'}</td>
 								<td className="py-3 px-4 text-stone-600">{litter.availableCount ?? '—'}</td>
 								<td className="py-3 px-4">
 									<Link to={`/admin/litters/${litter.id}`} className="text-sm text-brand-600 hover:underline">Edit →</Link>
