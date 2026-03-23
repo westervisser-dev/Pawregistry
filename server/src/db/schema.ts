@@ -54,6 +54,7 @@ export const clientStageEnum = pgEnum('client_stage', [
 	'placed',
 	'declined',
 ]);
+export const depositStatusEnum = pgEnum('deposit_status', ['none', 'pending', 'paid']);
 export const updateTargetTypeEnum = pgEnum('update_target_type', ['litter', 'puppy', 'client']);
 export const messageAuthorEnum = pgEnum('message_author', ['admin', 'client']);
 export const documentTypeEnum = pgEnum('document_type', [
@@ -197,6 +198,7 @@ export const clients = pgTable('clients', {
 	country: text('country').notNull().default('ZA'),
 	stage: clientStageEnum('stage').notNull().default('enquiry'),
 	priority: integer('priority').notNull().default(100),
+	depositStatus: depositStatusEnum('deposit_status').notNull().default('none'),
 	puppyId: text('puppy_id').references(() => puppies.id),
 	litterId: text('litter_id').references(() => litters.id),
 	applicationData: jsonb('application_data').notNull().$type<Record<string, unknown>>(),

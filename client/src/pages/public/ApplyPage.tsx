@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
 
-type Step = 'personal' | 'home' | 'experience' | 'preferences' | 'done';
+type Step = 'personal' | 'home' | 'experience' | 'preferences' | 'deposit' | 'done';
 
 interface FormData {
 	// Personal
@@ -60,6 +60,8 @@ interface FormData {
 	considerOtherColour: boolean;
 	considerRehome: boolean;
 	agreedToContract: boolean;
+	// Deposit
+	depositIntent: boolean;
 }
 
 const initial: FormData = {
@@ -91,9 +93,10 @@ const initial: FormData = {
 	preferredColour: '', considerOtherColour: false,
 	considerRehome: false,
 	agreedToContract: false,
+	depositIntent: false,
 };
 
-const steps: Step[] = ['personal', 'home', 'experience', 'preferences', 'done'];
+const steps: Step[] = ['personal', 'home', 'experience', 'preferences', 'deposit', 'done'];
 
 const BREEDS = [
 	{ value: 'f1_goldendoodle', label: 'F1 Goldendoodle', detail: 'Golden Retriever × Poodle' },
@@ -127,7 +130,7 @@ const BREED_SIZES: Record<string, { value: string; label: string; detail: string
 };
 
 function StepIndicator({ current }: { current: Step }) {
-	const labels = ['Personal', 'Home & Life', 'Experience', 'Preferences'];
+	const labels = ['Personal', 'Home & Life', 'Experience', 'Preferences', 'Deposit'];
 	const currentIdx = steps.indexOf(current);
 	return (
 		<div className="flex items-center gap-0 mb-10">
@@ -269,6 +272,7 @@ export function ApplyPage() {
 	const submit = async () => {
 		if (!form.agreedToContract) { setError('You must agree to the terms.'); return; }
 		setSubmitting(true);
+		const depositStatus = form.depositIntent ? 'pending' : 'none';
 		const preferredBreedSize = form.preferredSize
 			? `${form.preferredBreed} - ${form.preferredSize}`
 			: form.preferredBreed;
@@ -280,13 +284,15 @@ export function ApplyPage() {
 		} else if (!form.hasSecondChoiceBreed && form.hasSecondChoiceSize && form.secondChoiceSize) {
 			secondChoiceBreedSize = `${form.preferredBreed} - ${form.secondChoiceSize}`;
 		}
-		const { error: apiError } = await api.clients.apply.post({
+		try {
+	const { error: apiError } = await api.clients.apply.post({
 			firstName: form.firstName,
 			lastName: form.lastName,
 			email: form.email,
 			phone: form.phone || undefined,
 			city: form.city || undefined,
 			country: form.country,
+			depositStatus,
 			applicationData: {
 				// Existing
 				livingType: form.livingType,
@@ -342,6 +348,10 @@ export function ApplyPage() {
 		setSubmitting(false);
 		if (apiError) { setError('Submission failed. Please try again.'); return; }
 		setStep('done');
+	} catch {
+		setSubmitting(false);
+		setError('Submission failed. Please try again.');
+	}
 	};
 
 	if (step === 'done') {
@@ -352,6 +362,15 @@ export function ApplyPage() {
 				<p className="text-stone-600 leading-relaxed">
 					Thank you for applying. We'll review your application and be in touch within a few days.
 				</p>
+				{form.depositIntent ? (
+					<div className="mt-6 p-4 bg-brand-50 border border-brand-200 rounded-lg text-sm text-brand-800">
+						<span className="font-semibold">Deposit requested —</span> Once your application is approved, we'll reach out with deposit payment details to secure your priority spot.
+					</div>
+				) : (
+					<div className="mt-6 p-4 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-600">
+						You can pay a deposit at any time after your application is reviewed to move to priority placement.
+					</div>
+				)}
 			</div>
 		);
 	}
@@ -831,6 +850,76 @@ export function ApplyPage() {
 					</div>
 				)}
 
+
+				{/* ── Deposit ── */}
+				{step === 'deposit' && (
+					<div className="flex flex-col gap-6">
+						<div>
+							<h2 className="font-serif text-xl font-bold text-stone-900 mb-1">Deposit & Waiting List</h2>
+							<p className="text-sm text-stone-500">Securing a deposit is optional — but it does make a difference to your position.</p>
+						</div>
+
+						<div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 leading-relaxed">
+							<span className="font-semibold">How the waiting list works:</span> Once approved, clients are placed on our waiting list in order of application. Clients who have paid a deposit are given priority over those who haven’t — they move to the top of the list and are matched first when a litter becomes available.
+						</div>
+
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							{/* Pay Deposit option */}
+							<button
+								type="button"
+								onClick={() => set('depositIntent', true)}
+								className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${
+									form.depositIntent
+										? 'border-brand-400 bg-brand-50'
+										: 'border-stone-200 bg-white hover:border-stone-300'
+									}`}
+							>
+								<div className="flex items-center justify-between">
+									<span className="text-2xl">⭐</span>
+									{form.depositIntent && (
+										<span className="text-xs font-semibold text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">Selected</span>
+									)}
+								</div>
+								<div>
+									<p className="font-semibold text-stone-900 text-sm">Yes, I’d like to pay a deposit</p>
+									<p className="text-xs text-stone-500 mt-1">Secure priority placement on the waiting list. We’ll be in touch with payment details after your application is reviewed.</p>
+								</div>
+								<ul className="text-xs text-stone-600 space-y-1">
+									<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Priority position on the waitlist</li>
+									<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Matched before non-deposit clients</li>
+									<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Payment arranged outside the app</li>
+								</ul>
+							</button>
+
+							{/* Skip Deposit option */}
+							<button
+								type="button"
+								onClick={() => set('depositIntent', false)}
+								className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${
+									!form.depositIntent
+										? 'border-stone-400 bg-stone-50'
+										: 'border-stone-200 bg-white hover:border-stone-300'
+									}`}
+							>
+								<div className="flex items-center justify-between">
+									<span className="text-2xl">🕐</span>
+									{!form.depositIntent && (
+										<span className="text-xs font-semibold text-stone-600 bg-stone-200 px-2 py-0.5 rounded-full">Selected</span>
+									)}
+								</div>
+								<div>
+									<p className="font-semibold text-stone-900 text-sm">Not right now — I’ll decide later</p>
+									<p className="text-xs text-stone-500 mt-1">You can pay a deposit at any time after your application is reviewed. You’ll still be on the list — just in the standard queue.</p>
+								</div>
+								<ul className="text-xs text-stone-600 space-y-1">
+									<li className="flex items-center gap-1.5"><span className="text-stone-400">○</span> Standard position on the waitlist</li>
+									<li className="flex items-center gap-1.5"><span className="text-stone-400">○</span> Can upgrade to priority at any time</li>
+								</ul>
+							</button>
+						</div>
+					</div>
+				)}
+
 				{/* Navigation */}
 				<div className="flex justify-between mt-8 pt-6 border-t border-stone-100">
 					{step !== 'personal' ? (
@@ -839,7 +928,7 @@ export function ApplyPage() {
 						</button>
 					) : <div />}
 
-					{step !== 'preferences' ? (
+					{step !== 'deposit' ? (
 						<button
 							onClick={next}
 							className="px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"

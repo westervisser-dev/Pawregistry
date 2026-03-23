@@ -1609,50 +1609,99 @@ export function AdminWaitlist() {
 		});
 	}, []);
 
-	const move = async (index: number, direction: -1 | 1) => {
-		const next = [...clients];
+	const depositClients = clients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
+	const standardClients = clients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
+
+	const move = async (list: Client[], index: number, direction: -1 | 1) => {
+		const allOther = clients.filter((c) => !list.includes(c));
+		const next = [...list];
 		const swapIdx = index + direction;
 		if (swapIdx < 0 || swapIdx >= next.length) return;
 		[next[index], next[swapIdx]] = [next[swapIdx], next[index]];
-		const order = next.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 }));
-		setClients(next);
+		// Deposit clients take slots 10..N*10, standard clients continue from there
+		const combined = list === depositClients
+			? [...next, ...allOther]
+			: [...allOther, ...next];
+		const order = combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 }));
+		setClients(combined);
 		await api.clients.admin.waitlist.reorder.patch({ order });
 	};
 
+	const depositBadge = (c: Client) => {
+		if (c.depositStatus === 'paid') return <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Paid</span>;
+		if (c.depositStatus === 'pending') return <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Pending</span>;
+		return null;
+	};
+
+	const ClientRow = ({ client, index, list }: { client: Client; index: number; list: Client[] }) => (
+		<div key={client.id} className="flex items-center gap-4 px-5 py-4">
+			<span className="text-stone-300 font-mono text-sm w-6 text-center">{index + 1}</span>
+			<div className="flex-1 min-w-0">
+				<div className="flex items-center gap-2">
+					<p className="font-medium text-stone-900 text-sm truncate">{client.firstName} {client.lastName}</p>
+					{depositBadge(client)}
+				</div>
+				<p className="text-xs text-stone-400">{client.email}</p>
+			</div>
+			<div className="text-xs text-stone-400">
+				{(client.applicationData as Record<string, unknown>)?.preferredSex as string ?? '—'}
+			</div>
+			<div className="flex flex-col gap-0.5">
+				<button onClick={() => move(list, index, -1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▲</button>
+				<button onClick={() => move(list, index, 1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▼</button>
+			</div>
+			<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
+				View
+			</Link>
+		</div>
+	);
+
 	return (
 		<div className="p-8 max-w-2xl">
-			<PageHeader title="Waitlist" subtitle="Drag to reorder priority. Lower position = higher priority." />
+			<PageHeader title="Waitlist" subtitle="Clients with a deposit are matched first. Reorder within each section using the arrows." />
 
-			{loading ? <LoadingPage /> : (
-				<Card>
-					{clients.length === 0 ? (
-						<EmptyState icon="📋" title="Waitlist is empty" />
-					) : (
-						<div className="divide-y divide-stone-100">
-							{clients.map((client, i) => (
-								<div key={client.id} className="flex items-center gap-4 px-5 py-4">
-									<span className="text-stone-300 font-mono text-sm w-6 text-center">{i + 1}</span>
-									<div className="flex-1">
-										<p className="font-medium text-stone-900 text-sm">
-											{client.firstName} {client.lastName}
-										</p>
-										<p className="text-xs text-stone-400">{client.email}</p>
-									</div>
-									<div className="text-xs text-stone-400">
-										{(client.applicationData as Record<string, unknown>)?.preferredSex as string ?? '—'}
-									</div>
-									<div className="flex flex-col gap-0.5">
-										<button onClick={() => move(i, -1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▲</button>
-										<button onClick={() => move(i, 1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▼</button>
-									</div>
-									<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
-										View
-									</Link>
-								</div>
-							))}
+			{loading ? <LoadingPage /> : clients.length === 0 ? (
+				<Card><EmptyState icon="📋" title="Waitlist is empty" /></Card>
+			) : (
+				<div className="flex flex-col gap-6">
+					{/* Priority section */}
+					<div>
+						<div className="flex items-center gap-2 mb-3">
+							<span className="text-sm font-semibold text-stone-700">Priority — Deposit</span>
+							<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{depositClients.length}</span>
 						</div>
-					)}
-				</Card>
+						<Card>
+							{depositClients.length === 0 ? (
+								<div className="px-5 py-4 text-sm text-stone-400">No clients with a deposit yet.</div>
+							) : (
+								<div className="divide-y divide-stone-100">
+									{depositClients.map((client, i) => (
+										<ClientRow key={client.id} client={client} index={i} list={depositClients} />
+									))}
+								</div>
+							)}
+						</Card>
+					</div>
+
+					{/* Standard section */}
+					<div>
+						<div className="flex items-center gap-2 mb-3">
+							<span className="text-sm font-semibold text-stone-700">Standard — No Deposit</span>
+							<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{standardClients.length}</span>
+						</div>
+						<Card>
+							{standardClients.length === 0 ? (
+								<div className="px-5 py-4 text-sm text-stone-400">No clients without a deposit.</div>
+							) : (
+								<div className="divide-y divide-stone-100">
+									{standardClients.map((client, i) => (
+										<ClientRow key={client.id} client={client} index={i} list={standardClients} />
+									))}
+								</div>
+							)}
+						</Card>
+					</div>
+				</div>
 			)}
 		</div>
 	);

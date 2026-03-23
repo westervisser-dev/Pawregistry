@@ -69,6 +69,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				city: body.city ?? null,
 				country: body.country ?? 'ZA',
 				applicationData: body.applicationData,
+				depositStatus: body.depositStatus ?? 'none',
 				stage: 'enquiry',
 			}).returning();
 			return { id: client.id, message: 'Application received. We will be in touch soon.' };
@@ -81,6 +82,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				phone: t.Optional(t.String()),
 				city: t.Optional(t.String()),
 				country: t.Optional(t.String()),
+				depositStatus: t.Optional(t.Union([t.Literal('none'), t.Literal('pending'), t.Literal('paid')])),
 				applicationData: applicationDataSchema,
 			}),
 		}
@@ -157,6 +159,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				litterId: t.Nullable(t.String()),
 				adminNotes: t.Nullable(t.String()),
 				userId: t.Nullable(t.String()),
+				depositStatus: t.Union([t.Literal('none'), t.Literal('pending'), t.Literal('paid')]),
 			})),
 		}
 	)

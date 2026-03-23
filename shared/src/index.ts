@@ -126,6 +126,8 @@ export type ClientStage =
 	| 'placed'
 	| 'declined';
 
+export type DepositStatus = 'none' | 'pending' | 'paid';
+
 export interface Client {
 	id: string;
 	userId: string | null; // Supabase auth user id once account created
@@ -137,6 +139,7 @@ export interface Client {
 	country: string;
 	stage: ClientStage;
 	priority: number; // lower = higher priority on waitlist
+	depositStatus: DepositStatus; // 'none' | 'pending' (expressed intent) | 'paid' (confirmed by admin)
 	puppyId: string | null;
 	litterId: string | null;
 	applicationData: ClientApplication;
