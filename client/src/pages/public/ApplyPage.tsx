@@ -185,9 +185,15 @@ function Textarea({ label, ...props }: { label: string } & React.TextareaHTMLAtt
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
 	return (
 		<label className="flex items-center gap-3 cursor-pointer">
+			<input
+				type="checkbox"
+				checked={checked}
+				onChange={(e) => onChange(e.target.checked)}
+				className="sr-only peer"
+			/>
 			<div
-				onClick={() => onChange(!checked)}
-				className={`w-10 h-6 rounded-full transition-colors flex items-center ${checked ? 'bg-brand-500' : 'bg-stone-200'}`}
+				aria-hidden="true"
+				className={`w-10 h-6 rounded-full transition-colors flex items-center peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 peer-focus-visible:ring-offset-1 ${checked ? 'bg-brand-500' : 'bg-stone-200'}`}
 			>
 				<div className={`w-4 h-4 rounded-full bg-white shadow mx-1 transition-transform ${checked ? 'translate-x-4' : ''}`} />
 			</div>
@@ -370,13 +376,13 @@ export function ApplyPage() {
 				{step === 'personal' && (
 					<div className="flex flex-col gap-4">
 						<h2 className="font-serif text-xl font-bold text-stone-900 mb-2">Personal Details</h2>
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<Input label="First name" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
 							<Input label="Last name" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
 						</div>
 						<Input label="Email" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
 						<Input label="Phone" type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<Input label="City" value={form.city} onChange={(e) => set('city', e.target.value)} />
 							<Input label="Country" value={form.country} onChange={(e) => set('country', e.target.value)} />
 						</div>

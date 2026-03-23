@@ -102,7 +102,7 @@ export function PortalUpdates() {
 								<div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
 									{update.mediaUrls.slice(0, 3).map((url, i) => (
 										<div key={i} className="aspect-square bg-stone-100 overflow-hidden">
-											<img src={url} alt="" className="w-full h-full object-cover" />
+											<img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
 										</div>
 									))}
 								</div>
@@ -187,6 +187,7 @@ export function PortalMessages() {
 						onChange={(e) => setNewMsg(e.target.value)}
 						onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
 						placeholder="Type a message…"
+					aria-label="Message"
 						className="flex-1 px-4 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 					/>
 					<button

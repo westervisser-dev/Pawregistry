@@ -50,7 +50,7 @@ export function DogsPage() {
 					<button
 						key={f}
 						onClick={() => setFilter(f)}
-						className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-1 ${
 							filter === f
 								? 'bg-brand-500 text-white'
 								: 'bg-stone-100 text-stone-600 hover:bg-stone-200'
@@ -76,7 +76,7 @@ export function DogsPage() {
 						return (
 							<div
 								key={dog.id}
-								className={`group bg-white rounded-xl border border-stone-200 overflow-hidden flex flex-col transition-all duration-200 ${
+								className={`group bg-white rounded-xl border border-stone-200 overflow-hidden flex flex-col transition-[transform,box-shadow] duration-200 ${
 									isExpanded
 										? 'relative z-50 shadow-2xl -translate-y-1'
 										: 'hover:shadow-md'
@@ -87,6 +87,8 @@ export function DogsPage() {
 										<img
 											src={dog.profileImageUrl}
 											alt={dog.name}
+											loading="lazy"
+											decoding="async"
 											className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 										/>
 									) : (
@@ -106,17 +108,17 @@ export function DogsPage() {
 									<p className="text-sm text-stone-500 capitalize">{dog.sex} · {dog.colour}</p>
 									<div className="mt-2 flex-1">
 										{notes && (
-											<p className="text-xs text-stone-400 leading-relaxed">
-												{displayNotes}
+											<div className="text-xs text-stone-400 leading-relaxed">
+												<span>{displayNotes}</span>
 												{isTruncated && !isExpanded && (
 													<button
 														onClick={() => setExpandedId(dog.id)}
-														className="ml-1 text-brand-500 hover:underline font-medium"
+														className="ml-1 text-brand-500 hover:underline font-medium focus-visible:outline-none focus-visible:underline"
 													>
 														Read more
 													</button>
 												)}
-											</p>
+											</div>
 										)}
 									</div>
 									{dog.status !== 'active' && (

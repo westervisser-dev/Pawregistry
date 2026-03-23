@@ -80,14 +80,20 @@ export function LitterPage() {
 					<h2 className="font-serif text-2xl font-bold text-stone-900 mb-6">
 						The puppies ({litter.puppies.length})
 					</h2>
-					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
 						{litter.puppies.map((puppy) => (
 							<div key={puppy.id} className="bg-white rounded-xl border border-stone-200 p-4 text-center">
 								<div className="text-3xl mb-2">{puppy.sex === 'male' ? '🐶' : '🐕'}</div>
-								<div
-									className="w-4 h-4 rounded-full mx-auto mb-2 border border-stone-300"
-									style={{ backgroundColor: puppy.collarColour }}
-								/>
+								{puppy.collarColour && (
+									<div className="flex items-center justify-center gap-1.5 mb-2">
+										<div
+											aria-hidden="true"
+											className="w-3 h-3 rounded-full border border-stone-300 flex-shrink-0"
+											style={{ backgroundColor: puppy.collarColour }}
+										/>
+										<span className="text-xs text-stone-500 capitalize">{puppy.collarColour}</span>
+									</div>
+								)}
 								<p className="text-xs font-medium text-stone-700 capitalize">{puppy.sex}</p>
 								<p className="text-xs text-stone-500 mb-2">{puppy.colour}</p>
 								<PuppyStatusBadge status={puppy.status} />
@@ -103,7 +109,7 @@ export function LitterPage() {
 					<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 						{litter.images.map((img) => (
 							<div key={img.id} className="aspect-square overflow-hidden rounded-xl bg-stone-100">
-								<img src={img.url} alt="Litter photo" className="w-full h-full object-cover" />
+								<img src={img.url} alt="Litter photo" loading="lazy" decoding="async" className="w-full h-full object-cover" />
 							</div>
 						))}
 					</div>
