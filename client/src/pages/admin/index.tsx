@@ -494,7 +494,7 @@ export function AdminDogDetail() {
 				{formError && (
 					<p className="text-sm text-red-600">{formError}</p>
 				)}
-				<div>
+				<div className="mt-8">
 					<button
 						onClick={save}
 						disabled={saving}
