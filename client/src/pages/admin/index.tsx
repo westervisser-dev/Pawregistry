@@ -1114,10 +1114,9 @@ interface WaitlistClientRowProps {
 	index: number;
 	list: Client[];
 	move: (list: Client[], index: number, direction: -1 | 1) => void;
-	depositBadge: (c: Client) => React.ReactNode;
 }
 
-function WaitlistClientRow({ client, index, list, move, depositBadge }: WaitlistClientRowProps) {
+function WaitlistClientRow({ client, index, list, move }: WaitlistClientRowProps) {
 	return (
 		<div className="flex items-center gap-4 px-5 py-4">
 			<span className="text-stone-300 font-mono text-sm w-6 text-center">{index + 1}</span>
@@ -1195,7 +1194,7 @@ export function AdminClients() {
 					) : (
 						<div className="divide-y divide-stone-100">
 							{depositClients.map((client, i) => (
-								<WaitlistClientRow key={client.id} client={client} index={i} list={depositClients} move={move} depositBadge={depositBadge} />
+								<WaitlistClientRow key={client.id} client={client} index={i} list={depositClients} move={move} />
 							))}
 						</div>
 					)}
@@ -1213,7 +1212,7 @@ export function AdminClients() {
 					) : (
 						<div className="divide-y divide-stone-100">
 							{standardClients.map((client, i) => (
-								<WaitlistClientRow key={client.id} client={client} index={i} list={standardClients} move={move} depositBadge={depositBadge} />
+								<WaitlistClientRow key={client.id} client={client} index={i} list={standardClients} move={move} />
 							))}
 						</div>
 					)}
