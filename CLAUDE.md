@@ -1,33 +1,27 @@
 # Paw Registry — Claude Guidelines
 
-## Role & Objective
-
-You are an expert full-stack developer and infrastructure architect. Your goal is to help "vibe code" a modern, high-performance web application. You must prioritize generating high-quality, production-ready code with strict adherence to the project's architecture, type safety, and minimalistic setup principles. Always favor simplicity and native integrations over heavy abstractions.
+Expert full-stack developer. High-quality, production-ready code. Favour simplicity and native integrations over abstractions.
 
 ---
 
-## Project Overview
+## Stack
 
-Full-stack web app for dog breeders. Public marketing site, authenticated client portal, and admin back-office — all on a single typed API.
+| Layer | Tech |
+|---|---|
+| Frontend | React 18, Vite, Tailwind CSS v4, Eden treaty |
+| Backend | ElysiaJS, Bun, TypeScript |
+| Database | Supabase Postgres via Drizzle ORM |
+| Auth | Supabase Auth (magic link for clients, email/password for admin) |
+| Storage | Supabase Storage |
+| Deploy | Railway (frontend + backend), Supabase (DB + Storage) |
+| Tooling | pnpm, Prettier, ESLint, Sentry (optional) |
 
-**Stack:**
-- **Frontend:** React 18, Vite, Tailwind CSS v4, Eden treaty (type-safe API client)
-- **Backend:** ElysiaJS, Bun, TypeScript
-- **Database:** Supabase Postgres via Drizzle ORM
-- **Auth:** Supabase Auth — magic link OTP for clients, email/password for admin
-- **Storage:** Supabase Storage (public buckets)
-- **Deploy:** Railway (frontend + backend), Supabase (DB + Storage)
-- **Package Manager:** pnpm
-- **Version Control:** GitHub
-- **Observability:** Sentry (optional — configure conditionally based on env vars)
-- **Formatting / Linting:** Prettier & ESLint
-
-**Monorepo layout (pnpm workspaces):**
+**Monorepo (pnpm workspaces):**
 ```
 paw-registry/
-├── client/       # React SPA
-├── server/       # ElysiaJS API
-└── shared/       # Shared TypeScript types
+├── client/   # React SPA
+├── server/   # ElysiaJS API
+└── shared/   # Shared TypeScript types
 ```
 
 ---
@@ -35,99 +29,127 @@ paw-registry/
 ## Development
 
 ```bash
-pnpm install        # from repo root
-pnpm dev            # starts client (:5173) + server (:3000) concurrently
+pnpm install          # repo root
+pnpm dev              # client :5173 + server :3000 concurrently
 ```
 
 Server swagger: `http://localhost:3000/swagger`
 
-**DB scripts (run from `server/`):**
 ```bash
-pnpm db:generate    # generate migration files from schema changes
-pnpm db:studio      # open Drizzle Studio to browse data locally
+# Run from server/
+pnpm db:generate      # generate migration files
+pnpm db:studio        # Drizzle Studio
 ```
 
-**Local setup is intentionally minimal.** Connect directly to the Supabase hosted Postgres instance during development — no local database containers required. Use the Supabase Dashboard and SQL Editor for schema inspection, data browsing, and ad-hoc queries.
+No local DB container — connect directly to hosted Supabase instance.
 
 ---
 
 ## Coding Conventions
 
-- **Indentation:** Tabs, not spaces (width 4)
-- **TypeScript:** Strict typing is mandatory. Never use `any`. Rely on Elysia's `t` schema for runtime and static type inference.
-- **Functions:** Keep functions small, pure where possible, and highly readable
-- **State management:** Use Zustand for global state only if required. Prefer local component state for UI toggles and simple data. When Zustand is needed, keep stores small, focused, and modular.
-- **Error handling:** Fail gracefully. If using Sentry, capture exceptions at the outermost boundary.
+- **Indent:** Tabs (width 4)
+- **Types:** Strict — never `any`. Use Elysia `t` schema for runtime + static inference.
+- **Functions:** Small, pure where possible
+- **State:** Local component state by default. Zustand only for true global state — keep stores small and focused.
+- **Errors:** Fail gracefully. Capture via Sentry at outermost boundary.
 
 ---
 
 ## Key Patterns
 
 ### API client (Eden treaty)
-All API calls go through `client/src/lib/api.ts`. The client is fully typed from the server `App` export.
+All calls go through `client/src/lib/api.ts`, fully typed from server `App` export.
 
 ```ts
-// Static routes
 api.templates.admin.get()
-api.templates.admin.post({ file, name, ... })
-
-// Dynamic path params
 api.templates.admin({ id }).patch({ ... })
 api.templates.admin({ id }).delete()
-api.templates.my({ templateId }).toggle.post({})
 ```
 
 ### Auth middleware
-- `authPlugin` — validates Supabase JWT, for client-facing routes
-- `adminPlugin` — checks `ADMIN_USER_IDS` env var, for admin routes
+- `authPlugin` — validates Supabase JWT (client routes)
+- `adminPlugin` — checks `ADMIN_USER_IDS` env var (admin routes)
+
+### Auth state (client)
+- `client/src/stores/authStore.ts` — Zustand store, source of truth
+- `client/src/lib/supabase.ts` — raw Supabase client, auth operations only
+- `client/src/lib/auth.ts` — shared `ADMIN_EMAILS` constant (client-side hint only)
+- **Never call Supabase directly for data — use Eden**
 
 ### Database
 - Schema: `server/src/db/schema.ts`
-- Migrations: `server/src/db/migrations/` (SQL files tracked by Drizzle)
-- New routes go in `server/src/routes/<feature>/index.ts`, registered in `server/src/index.ts`
+- Migrations: `server/src/db/migrations/`
+- Routes: `server/src/routes/<feature>/index.ts`, registered in `server/src/index.ts`
 - Active route dirs: `auth`, `clients`, `documents`, `dogs`, `litters`, `messages`, `templates`, `updates`, `waitlist`
+- Shared types: `shared/src/index.ts`
 
-### Shared types
-Add new shared interfaces to `shared/src/index.ts`.
-
-### Auth state (client-side)
-- `client/src/stores/authStore.ts` — Zustand store, source of truth for current user/session
-- `client/src/lib/supabase.ts` — raw Supabase JS client, used only for auth operations (sign-in, sign-out, session listeners)
-- `client/src/lib/api.ts` — Eden treaty client for all API calls; do not call Supabase directly for data
-
-### Adding a new page/route
+### Adding a page/route
 1. Create `client/src/pages/<section>/MyPage.tsx`
-2. Import and add `<Route>` in `client/src/main.tsx`
-3. Add nav link to the relevant layout:
-   - Admin pages → `AdminLayout.tsx` (routes under `/admin`)
-   - Portal pages → `PortalLayout.tsx` (routes under `/portal`, require client auth)
-   - Public pages → no layout wrapper needed (routes at root level)
+2. Add `<Route>` in `client/src/main.tsx`
+3. Add nav link to layout:
+   - `/admin/*` → `AdminLayout.tsx`
+   - `/portal/*` → `PortalLayout.tsx` (requires client auth)
+   - Public → no layout wrapper
+
+### Admin page structure
+Pages are individual files — **not** a monolith `index.tsx`:
+```
+client/src/pages/admin/
+├── _shared.tsx          # Shared: DeleteModal, AdminTable, ClientDndTable, etc.
+├── index.tsx            # Re-exports only
+├── AdminDashboard.tsx
+├── AdminDogs.tsx / AdminDogDetail.tsx
+├── AdminLitters.tsx / AdminLitterDetail.tsx
+├── AdminClients.tsx / AdminClientDetail.tsx
+├── AdminDocuments.tsx
+└── AdminUpdates.tsx
+```
+Same pattern for `client/src/pages/portal/` (individual files + re-export `index.tsx`).
 
 ---
 
 ## Frontend
 
-- **Styling:** Tailwind CSS v4 — use `@import "tailwindcss";` in `index.css` and the `@tailwindcss/vite` plugin in `vite.config.ts`. Do not generate a `tailwind.config.js`.
-- **Fonts:** Open-source fonts via `@fontsource`. Sans-serif for UI, serif for headings.
-- **API client:** Strictly use `@elysiajs/eden` (Eden treaty). The `App` type is imported from the server workspace for end-to-end type safety.
+- **Tailwind v4:** `@import "tailwindcss";` in `index.css`, `@tailwindcss/vite` plugin in `vite.config.ts`. No `tailwind.config.js`.
+- **Fonts:** `@fontsource` — sans-serif for UI, serif for headings.
+- **Page titles:** Every page sets `document.title` in a `useEffect` with cleanup:
+  ```ts
+  useEffect(() => {
+    document.title = 'Page Name — Paw Registry';
+    return () => { document.title = 'Paw Registry'; };
+  }, []);
+  ```
+
+### Accessibility conventions
+- Skip nav link before `<header>`, `id="main-content"` on `<main>` — all layouts
+- `role="status" aria-label="Loading…"` on `<Spinner>`
+- `role="alert"` on inline error messages
+- `role="dialog" aria-modal="true" aria-labelledby="modal-title"` on modals
+- `aria-hidden="true"` on decorative emoji/icons
 
 ---
 
 ## Backend
 
-- **Validation:** Heavily use Elysia's built-in schema validation (TypeBox) for all incoming requests and outgoing responses.
-- **App type export:** Always export `export type App = typeof app;` at the end of `server/src/index.ts` so the client workspace can consume it via Eden.
-- **Supabase services used:**
-  - **Storage:** File uploads via `@supabase/supabase-js`
-  - **Auth:** JWT validation on the Elysia server side
+- Heavy Elysia schema validation (TypeBox) on all requests + responses
+- Always export `export type App = typeof app;` at end of `server/src/index.ts`
+- **Storage:** file uploads via `@supabase/supabase-js`
+- **Auth:** JWT validation server-side via Elysia plugin
+
+---
+
+## TypeScript Gotchas
+
+- **`unknown &&` in JSX:** Use `!!value && <Component />` not `value && <Component />` when value is typed `unknown` (e.g. fields from `applicationData`).
+- **`applicationData` cast:** `client.applicationData as unknown as Record<string, unknown>` — direct cast fails because `ClientApplication` doesn't overlap with `Record<string, unknown>`.
+- **Eden tsc noise:** Standalone `tsc` (without server compiled) shows `'Please install Elysia before using Eden'` errors on all API types — these are expected non-errors. Build uses `vite build` (skips `tsc -b`).
+- **`fetchPriority` prop:** Not supported in React 18 (`<img>`). Remove it or it throws a console warning.
 
 ---
 
 ## Important Rules
 
-### 1. After every feature request implemented — provide a commit + push command to the user
-
-Once a feature is completed, always end with the commands to commit and push for the users perusal:
+### 1. Always end features with commit + push commands
 
 ```bash
 git add -A
@@ -135,11 +157,10 @@ git commit -m "feat: <description>"
 git push origin <branch-name>
 ```
 
-### 2. New database tables — provide raw SQL, not migration commands
+### 2. New tables — raw SQL only, no migration tooling
 
-Never run `drizzle-kit migrate`, `pnpm db:migrate`, or any migration tooling. Instead, provide the raw `CREATE TABLE` SQL directly so the user can run it in Supabase's SQL editor or via a Bun script.
+Never run `drizzle-kit migrate` or `pnpm db:migrate`. Provide raw SQL for the Supabase SQL editor:
 
-Example pattern:
 ```sql
 CREATE TABLE IF NOT EXISTS "my_table" (
   "id" text PRIMARY KEY NOT NULL,
@@ -148,7 +169,7 @@ CREATE TABLE IF NOT EXISTS "my_table" (
 );
 ```
 
-Also update `server/src/db/schema.ts` and `shared/src/index.ts` with the corresponding Drizzle table definition and TypeScript types.
+Also update `server/src/db/schema.ts` and `shared/src/index.ts`.
 
 ---
 
@@ -169,53 +190,52 @@ Also update `server/src/db/schema.ts` and `shared/src/index.ts` with the corresp
 
 ### Client Stages
 
-| Stage | Value | Set By | Description |
-|---|---|---|---|
-| Enquired | `enquired` | System | Client completed the onboarding flow |
-| Approved | `approved` | Admin | Admin reviewed profile and approved |
-| Rejected | `rejected` | Admin | Admin reviewed profile and rejected |
-| Waitlisted | `waitlisted` | System | Client has all required docs checked off |
-| Placed | `placed` | Admin | Admin assigned a possible litter to the client |
-| Match Requested | `match_requested` | Admin | Admin waiting on client to select a born puppy from litter |
-| Matched | `matched` | System | Client has selected a puppy |
-| Matched & Paid | `matched_paid` | System/Admin | Client selected a puppy and paid in full |
+| Stage | Value | Set By |
+|---|---|---|
+| Enquired | `enquired` | System — onboarding complete |
+| Approved | `approved` | Admin |
+| Rejected | `rejected` | Admin |
+| Waitlisted | `waitlisted` | System — all docs checked off |
+| Placed | `placed` | Admin — litter assigned |
+| Match Requested | `match_requested` | Admin — awaiting puppy selection |
+| Matched | `matched` | System — puppy selected |
+| Matched & Paid | `matched_paid` | System/Admin |
 
 ### Deposit Status
 
-| Display Label | DB Value | Description |
-|---|---|---|
-| No Deposit | `none` | Client did not indicate deposit intent in onboarding |
-| Deposit — Selected | `deposit_selected` | Client expressed deposit intent in onboarding (step 5) |
-| Deposit — Paid | `deposit_paid` | Deposit payment confirmed by admin |
+| Label | DB Value |
+|---|---|
+| No Deposit | `none` |
+| Deposit — Pending | `pending` |
+| Deposit — Paid | `paid` |
 
 ### Admin Clients View — Three Tables
 
-| Table | Filter | DnD Ordering |
+| Table | Filter | DnD |
 |---|---|---|
-| **Waitlisted — Deposit** | `stage === 'waitlisted'` AND `depositStatus !== 'none'` | Yes — priority queue |
-| **Waitlisted — No Deposit** | `stage === 'waitlisted'` AND `depositStatus === 'none'` | Yes — priority queue |
-| **Not Yet Waitlisted** | `stage` in `['enquired', 'approved', 'rejected']` | No |
+| Waitlisted — Deposit | `stage = 'waitlisted'` AND `depositStatus != 'none'` | ✓ |
+| Waitlisted — No Deposit | `stage = 'waitlisted'` AND `depositStatus = 'none'` | ✓ |
+| Not Yet Waitlisted | `stage` in `['enquired','approved','rejected']` | ✗ |
 
-Clients with stages `placed`, `match_requested`, `matched`, `matched_paid` are managed elsewhere (litter/matching flow) and do not appear in these tables.
+Stages `placed`, `match_requested`, `matched`, `matched_paid` are managed in the litter/matching flow.
 
 ---
 
 ## Auth Model
 
-- **Clients** sign in via magic link. Email must already exist in the `clients` table (applied first, then invited).
-- **Admins** are identified by Supabase user UUID in `ADMIN_USER_IDS` env var. Server always re-validates — `VITE_ADMIN_EMAILS` is a client-side hint only.
+- **Clients:** magic link sign-in. Email must pre-exist in `clients` table.
+- **Admins:** identified by Supabase UUID in `ADMIN_USER_IDS` env var. Server always re-validates — `VITE_ADMIN_EMAILS` is a client-side UI hint only.
 
 ---
 
 ## Deployment (Railway + Supabase)
 
-Both services deploy from the **repo root** — do not set a subdirectory. Railway needs access to the full monorepo so `shared/` is available during builds.
+Deploy from **repo root** — Railway needs the full monorepo for `shared/`.
 
-- `workspace:*` deps don't work on Railway — use `file:../shared` in package.json
-- Client build command must be `vite build` (skip `tsc -b` to avoid type errors blocking deploy)
-- Use Supabase Transaction pooler URL (port 6543) for `DATABASE_URL`
-- After deploying, add the client Railway URL to Supabase → Authentication → Redirect URLs
-- Health checks should be configured against the `/health` endpoint
-- Manage secrets in Railway's environment variable UI — never hardcode credentials
-- Do not use Railway's database plugins — Supabase is the only database
-- No AWS, no Terraform — all infrastructure is managed through Railway and Supabase dashboards
+- Use `file:../shared` (not `workspace:*`) in package.json — workspace refs break on Railway
+- Client build: `vite build` (not `tsc -b`)
+- `DATABASE_URL`: Supabase Transaction pooler URL (port 6543)
+- After deploy: add Railway client URL to Supabase → Auth → Redirect URLs
+- Health check endpoint: `/health`
+- Secrets via Railway env UI — never hardcode
+- No Railway DB plugins — Supabase only
