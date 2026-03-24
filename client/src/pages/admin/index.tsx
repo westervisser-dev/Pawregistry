@@ -1297,7 +1297,13 @@ function ClientReadTable({ title, clients, onDepositUpdate }: {
 								</td>
 								<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
 								<td className="py-3 px-4">
-									<DepositStatusSelect client={client} onUpdate={onDepositUpdate} />
+									{client.depositStatus === 'paid' ? (
+										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Deposit — Paid</span>
+									) : client.depositStatus === 'pending' ? (
+										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Deposit — Selected</span>
+									) : (
+										<span className="text-stone-400 text-xs">No Deposit</span>
+									)}
 								</td>
 								<td className="py-3 px-4 text-stone-400 text-xs whitespace-nowrap">
 									{new Date(client.createdAt).toLocaleDateString()}
