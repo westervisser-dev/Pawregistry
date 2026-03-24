@@ -70,7 +70,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				country: body.country ?? 'ZA',
 				applicationData: body.applicationData,
 				depositStatus: body.depositStatus ?? 'none',
-				stage: 'enquiry',
+				stage: 'enquired',
 			}).returning();
 			return { id: client.id, message: 'Application received. We will be in touch soon.' };
 		},
@@ -115,8 +115,9 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		{
 			query: t.Object({
 				stage: t.Optional(t.Union([
-					t.Literal('enquiry'), t.Literal('reviewed'), t.Literal('waitlisted'),
-					t.Literal('matched'), t.Literal('placed'), t.Literal('declined'),
+					t.Literal('enquired'), t.Literal('approved'), t.Literal('rejected'),
+					t.Literal('waitlisted'), t.Literal('placed'), t.Literal('match_requested'),
+					t.Literal('matched'), t.Literal('matched_paid'),
 				])),
 			}),
 		}
@@ -151,8 +152,9 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		{
 			body: t.Partial(t.Object({
 				stage: t.Union([
-					t.Literal('enquiry'), t.Literal('reviewed'), t.Literal('waitlisted'),
-					t.Literal('matched'), t.Literal('placed'), t.Literal('declined'),
+					t.Literal('enquired'), t.Literal('approved'), t.Literal('rejected'),
+					t.Literal('waitlisted'), t.Literal('placed'), t.Literal('match_requested'),
+					t.Literal('matched'), t.Literal('matched_paid'),
 				]),
 				priority: t.Number(),
 				puppyId: t.Nullable(t.String()),

@@ -47,12 +47,14 @@ export const puppyStatusEnum = pgEnum('puppy_status', [
 	'not_for_sale',
 ]);
 export const clientStageEnum = pgEnum('client_stage', [
-	'enquiry',
-	'reviewed',
+	'enquired',
+	'approved',
+	'rejected',
 	'waitlisted',
-	'matched',
 	'placed',
-	'declined',
+	'match_requested',
+	'matched',
+	'matched_paid',
 ]);
 export const depositStatusEnum = pgEnum('deposit_status', ['none', 'pending', 'paid']);
 export const updateTargetTypeEnum = pgEnum('update_target_type', ['litter', 'puppy', 'client']);

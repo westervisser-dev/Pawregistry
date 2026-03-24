@@ -5,7 +5,7 @@ import {
 	LoadingPage, Card, PageHeader, StageBadge, LitterStatusBadge,
 	PuppyStatusBadge, Badge, EmptyState,
 } from '@/components/ui';
-import type { Dog, Litter, LitterImage, Client, Update } from '@paw-registry/shared';
+import type { Dog, Litter, LitterImage, Client, Update, ClientStage } from '@paw-registry/shared';
 import {
 	DndContext,
 	closestCenter,
@@ -124,7 +124,7 @@ export function AdminDashboard() {
 				dogs: dogs.length,
 				litters: litters.length,
 				clients: clients.length,
-				enquiries: clients.filter((c) => c.stage === 'enquiry').length,
+				enquiries: clients.filter((c) => c.stage === 'enquired').length,
 			});
 		});
 	}, []);
@@ -133,7 +133,7 @@ export function AdminDashboard() {
 		{ label: 'Active Dogs', value: counts.dogs, icon: '🐕', to: '/admin/dogs' },
 		{ label: 'Litters', value: counts.litters, icon: '🐶', to: '/admin/litters' },
 		{ label: 'Total Clients', value: counts.clients, icon: '👥', to: '/admin/clients' },
-		{ label: 'New Enquiries', value: counts.enquiries, icon: '📥', to: '/admin/clients?stage=enquiry' },
+		{ label: 'New Enquiries', value: counts.enquiries, icon: '📥', to: '/admin/clients?stage=enquired' },
 	];
 
 	return (
@@ -1262,7 +1262,64 @@ function ClientDndTable({ title, clients, onReorder, onDepositUpdate }: {
 	);
 }
 
+// ─── Plain read-only client table (no DnD) ───────────────────────────────────
+
+function ClientReadTable({ title, clients, onDepositUpdate }: {
+	title: string;
+	clients: Client[];
+	onDepositUpdate: (c: Client) => void;
+}) {
+	const pbs = (c: Client) =>
+		(c.applicationData as Record<string, unknown>)?.preferredBreedSize as string | undefined;
+
+	return (
+		<div>
+			<div className="flex items-center gap-2 mb-3">
+				<span className="text-sm font-semibold text-stone-700">{title}</span>
+				<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{clients.length}</span>
+			</div>
+			<Card>
+				<AdminTable headers={['Name', 'Preference', 'Stage', 'Deposit', 'Applied', '']}>
+					{clients.map((client) => {
+						const parsed = formatBreedSize(pbs(client));
+						return (
+							<tr key={client.id} className="border-b border-stone-100 hover:bg-stone-50 bg-white">
+								<td className="py-3 px-4">
+									<p className="font-medium text-stone-900">{client.firstName} {client.lastName}</p>
+									<p className="text-xs text-stone-400">{client.email}</p>
+								</td>
+								<td className="py-3 px-4">
+									{parsed ? (
+										<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
+											🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
+										</span>
+									) : <span className="text-stone-300 text-xs">—</span>}
+								</td>
+								<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
+								<td className="py-3 px-4">
+									<DepositStatusSelect client={client} onUpdate={onDepositUpdate} />
+								</td>
+								<td className="py-3 px-4 text-stone-400 text-xs whitespace-nowrap">
+									{new Date(client.createdAt).toLocaleDateString()}
+								</td>
+								<td className="py-3 px-4">
+									<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
+										View →
+									</Link>
+								</td>
+							</tr>
+						);
+					})}
+				</AdminTable>
+				{clients.length === 0 && <EmptyState icon="👥" title="No clients" />}
+			</Card>
+		</div>
+	);
+}
+
 // ─── Clients list ─────────────────────────────────────────────────────────────
+
+const PRE_WAITLIST_STAGES: ClientStage[] = ['enquired', 'approved', 'rejected'];
 
 export function AdminClients() {
 	const [clients, setClients] = useState<Client[]>([]);
@@ -1271,7 +1328,7 @@ export function AdminClients() {
 
 	const load = (s: string) => {
 		setLoading(true);
-		api.clients.admin.get({ query: s ? { stage: s } : {} }).then(({ data }) => {
+		api.clients.admin.get({ query: s ? { stage: s as Client['stage'] } : {} }).then(({ data }) => {
 			if (data) setClients((data as Client[]).sort((a, b) => a.priority - b.priority));
 			setLoading(false);
 		});
@@ -1279,13 +1336,31 @@ export function AdminClients() {
 
 	useEffect(() => { load(''); }, []);
 
-	const stages = ['', 'enquiry', 'reviewed', 'matched', 'placed', 'declined'];
+	const stages: Array<Client['stage'] | ''> = [
+		'', 'enquired', 'approved', 'rejected',
+		'waitlisted', 'placed', 'match_requested', 'matched', 'matched_paid',
+	];
 
-	const depositClients = clients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
-	const noDepositClients = clients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
+	const stageLabels: Record<string, string> = {
+		'': 'All',
+		enquired: 'Enquired',
+		approved: 'Approved',
+		rejected: 'Rejected',
+		waitlisted: 'Waitlisted',
+		placed: 'Placed',
+		match_requested: 'Match Requested',
+		matched: 'Matched',
+		matched_paid: 'Matched & Paid',
+	};
+
+	// Clients past the pre-waitlist stages live in the priority queues
+	const queueClients = clients.filter((c) => !(PRE_WAITLIST_STAGES as string[]).includes(c.stage));
+	const depositQueueClients = queueClients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
+	const noDepositQueueClients = queueClients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
+	const notYetWaitlistedClients = clients.filter((c) => (PRE_WAITLIST_STAGES as string[]).includes(c.stage));
 
 	const handleDepositReorder = async (newOrder: Client[]) => {
-		const combined = [...newOrder, ...noDepositClients];
+		const combined = [...newOrder, ...noDepositQueueClients, ...notYetWaitlistedClients];
 		setClients(combined);
 		await api.clients.admin.waitlist.reorder.patch({
 			order: combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
@@ -1293,7 +1368,7 @@ export function AdminClients() {
 	};
 
 	const handleNoDepositReorder = async (newOrder: Client[]) => {
-		const combined = [...depositClients, ...newOrder];
+		const combined = [...depositQueueClients, ...newOrder, ...notYetWaitlistedClients];
 		setClients(combined);
 		await api.clients.admin.waitlist.reorder.patch({
 			order: combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
@@ -1311,13 +1386,13 @@ export function AdminClients() {
 			<div className="flex gap-2 mb-6 flex-wrap">
 				{stages.map((s) => (
 					<button
-						key={s}
+						key={s || 'all'}
 						onClick={() => { setStage(s); load(s); }}
 						className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
 							stage === s ? 'bg-brand-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
 						}`}
 					>
-						{s || 'All'}
+						{stageLabels[s]}
 					</button>
 				))}
 			</div>
@@ -1325,15 +1400,20 @@ export function AdminClients() {
 			{loading ? <LoadingPage /> : (
 				<div className="flex flex-col gap-8">
 					<ClientDndTable
-						title="Deposit"
-						clients={depositClients}
+						title="Waitlisted — Deposit"
+						clients={depositQueueClients}
 						onReorder={handleDepositReorder}
 						onDepositUpdate={handleDepositUpdate}
 					/>
 					<ClientDndTable
-						title="No Deposit"
-						clients={noDepositClients}
+						title="Waitlisted — No Deposit"
+						clients={noDepositQueueClients}
 						onReorder={handleNoDepositReorder}
+						onDepositUpdate={handleDepositUpdate}
+					/>
+					<ClientReadTable
+						title="Not Yet Waitlisted"
+						clients={notYetWaitlistedClients}
 						onDepositUpdate={handleDepositUpdate}
 					/>
 				</div>
@@ -1521,7 +1601,16 @@ export function AdminClientDetail() {
 			<Card className="p-5 mb-6">
 				<h3 className="font-medium text-stone-900 mb-3">Move Stage</h3>
 				<div className="flex flex-wrap gap-2">
-					{(['enquiry', 'reviewed', 'waitlisted', 'matched', 'placed', 'declined'] as const).map((s) => (
+					{([
+						['enquired', 'Enquired'],
+						['approved', 'Approved'],
+						['rejected', 'Rejected'],
+						['waitlisted', 'Waitlisted'],
+						['placed', 'Placed'],
+						['match_requested', 'Match Requested'],
+						['matched', 'Matched'],
+						['matched_paid', 'Matched & Paid'],
+					] as [ClientStage, string][]).map(([s, label]) => (
 						<button
 							key={s}
 							onClick={() => updateStage(s)}
@@ -1531,7 +1620,7 @@ export function AdminClientDetail() {
 									: 'bg-stone-100 text-stone-600 hover:bg-stone-200'
 							}`}
 						>
-							{s}
+							{label}
 						</button>
 					))}
 				</div>

@@ -66,12 +66,14 @@ export function Badge({ children, variant = 'default' }: BadgeProps) {
 // ─── Status badges for domain enums ─────────────────────────────────────────
 
 const stageVariant: Record<string, BadgeVariant> = {
-	enquiry: 'default',
-	reviewed: 'blue',
-	waitlisted: 'amber',
-	matched: 'purple',
-	placed: 'green',
-	declined: 'red',
+	enquired:       'default',
+	approved:       'blue',
+	rejected:       'red',
+	waitlisted:     'amber',
+	placed:         'green',
+	match_requested:'purple',
+	matched:        'purple',
+	matched_paid:   'green',
 };
 
 const puppyStatusVariant: Record<string, BadgeVariant> = {

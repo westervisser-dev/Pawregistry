@@ -165,6 +165,41 @@ Also update `server/src/db/schema.ts` and `shared/src/index.ts` with the corresp
 
 ---
 
+## Domain Model — Client Lifecycle
+
+### Client Stages
+
+| Stage | Value | Set By | Description |
+|---|---|---|---|
+| Enquired | `enquired` | System | Client completed the onboarding flow |
+| Approved | `approved` | Admin | Admin reviewed profile and approved |
+| Rejected | `rejected` | Admin | Admin reviewed profile and rejected |
+| Waitlisted | `waitlisted` | System | Client has all required docs checked off |
+| Placed | `placed` | Admin | Admin assigned a possible litter to the client |
+| Match Requested | `match_requested` | Admin | Admin waiting on client to select a born puppy from litter |
+| Matched | `matched` | System | Client has selected a puppy |
+| Matched & Paid | `matched_paid` | System/Admin | Client selected a puppy and paid in full |
+
+### Deposit Status
+
+| Display Label | DB Value | Description |
+|---|---|---|
+| No Deposit | `none` | Client did not indicate deposit intent in onboarding |
+| Deposit — Selected | `deposit_selected` | Client expressed deposit intent in onboarding (step 5) |
+| Deposit — Paid | `deposit_paid` | Deposit payment confirmed by admin |
+
+### Admin Clients View — Three Tables
+
+| Table | Filter | DnD Ordering |
+|---|---|---|
+| **Waitlisted — Deposit** | `stage === 'waitlisted'` AND `depositStatus !== 'none'` | Yes — priority queue |
+| **Waitlisted — No Deposit** | `stage === 'waitlisted'` AND `depositStatus === 'none'` | Yes — priority queue |
+| **Not Yet Waitlisted** | `stage` in `['enquired', 'approved', 'rejected']` | No |
+
+Clients with stages `placed`, `match_requested`, `matched`, `matched_paid` are managed elsewhere (litter/matching flow) and do not appear in these tables.
+
+---
+
 ## Auth Model
 
 - **Clients** sign in via magic link. Email must already exist in the `clients` table (applied first, then invited).

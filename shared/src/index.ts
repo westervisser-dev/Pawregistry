@@ -119,13 +119,16 @@ export interface Puppy {
 // ─── Client ──────────────────────────────────────────────────────────────────
 
 export type ClientStage =
-	| 'enquiry'
-	| 'reviewed'
-	| 'waitlisted'
-	| 'matched'
-	| 'placed'
-	| 'declined';
+	| 'enquired'        // Client completed onboarding flow
+	| 'approved'        // Admin reviewed and approved
+	| 'rejected'        // Admin reviewed and rejected
+	| 'waitlisted'      // Client completed all required docs
+	| 'placed'          // Admin assigned a possible litter
+	| 'match_requested' // Admin waiting on client to select a born puppy
+	| 'matched'         // Client has selected a puppy
+	| 'matched_paid';   // Client selected and paid in full
 
+// DB values: 'none' | 'pending' (Deposit — Selected) | 'paid' (Deposit — Paid)
 export type DepositStatus = 'none' | 'pending' | 'paid';
 
 export interface Client {
