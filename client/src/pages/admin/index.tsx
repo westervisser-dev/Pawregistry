@@ -6,6 +6,21 @@ import {
 	PuppyStatusBadge, Badge, EmptyState,
 } from '@/components/ui';
 import type { Dog, Litter, LitterImage, Client, Update } from '@paw-registry/shared';
+import {
+	DndContext,
+	closestCenter,
+	PointerSensor,
+	useSensor,
+	useSensors,
+	type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+	SortableContext,
+	useSortable,
+	verticalListSortingStrategy,
+	arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // ─── Shared admin table wrapper ───────────────────────────────────────────────
 
@@ -145,7 +160,7 @@ export function AdminDashboard() {
 						{[
 							{ label: '+ Add a dog', to: '/admin/dogs' },
 							{ label: '+ Create a litter', to: '/admin/litters' },
-							{ label: '📋 View waitlist', to: '/admin/waitlist' },
+							{ label: '📋 View waiting list', to: '/admin/clients' },
 							{ label: '📷 Post an update', to: '/admin/updates' },
 						].map(({ label, to }) => (
 							<Link
@@ -1101,43 +1116,148 @@ export function AdminLitterDetail() {
 	);
 }
 
-// ─── Waitlist row ──────────────────────────────────────────────────────────────
+// ─── Deposit status inline select ────────────────────────────────────────────
 
-function depositBadge(c: Client): React.ReactNode {
-	if (c.depositStatus === 'paid') return <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Paid</span>;
-	if (c.depositStatus === 'pending') return <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Pending</span>;
-	return null;
+function DepositStatusSelect({ client, onUpdate }: { client: Client; onUpdate: (c: Client) => void }) {
+	const [saving, setSaving] = useState(false);
+
+	const handleChange = async (value: string) => {
+		setSaving(true);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { data } = await (api.clients.admin({ id: client.id }) as any).patch({ depositStatus: value });
+		if (data) onUpdate(data as Client);
+		setSaving(false);
+	};
+
+	const cls =
+		client.depositStatus === 'paid'
+			? 'bg-green-50 text-green-700 border-green-200'
+			: client.depositStatus === 'pending'
+			? 'bg-amber-50 text-amber-700 border-amber-200'
+			: 'bg-stone-50 text-stone-500 border-stone-200';
+
+	return (
+		<select
+			value={client.depositStatus}
+			onChange={(e) => handleChange(e.target.value)}
+			disabled={saving}
+			className={`text-xs font-medium px-2 py-1 rounded-full border appearance-none cursor-pointer disabled:opacity-50 ${cls}`}
+		>
+			<option value="none">No Deposit</option>
+			<option value="pending">Deposit — Selected</option>
+			<option value="paid">Deposit — Paid</option>
+		</select>
+	);
 }
 
-interface WaitlistClientRowProps {
+// ─── Sortable client row ──────────────────────────────────────────────────────
+
+function SortableClientRow({ client, index, onDepositUpdate }: {
 	client: Client;
 	index: number;
-	list: Client[];
-	isDeposit: boolean;
-	move: (list: Client[], index: number, direction: -1 | 1, isDeposit: boolean) => void;
+	onDepositUpdate: (c: Client) => void;
+}) {
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: client.id });
+	const style = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+		opacity: isDragging ? 0.4 : 1,
+		zIndex: isDragging ? 1 : undefined,
+	};
+
+	const pbs = (client.applicationData as Record<string, unknown>)?.preferredBreedSize as string | undefined;
+	const parsed = formatBreedSize(pbs);
+
+	return (
+		<tr ref={setNodeRef} style={style} className="border-b border-stone-100 hover:bg-stone-50 bg-white">
+			<td className="py-3 px-4 text-stone-400 text-xs font-mono w-8 tabular-nums">{index + 1}</td>
+			<td className="py-2 px-3 w-8">
+				<button
+					{...attributes}
+					{...listeners}
+					className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 flex items-center justify-center py-1"
+					tabIndex={-1}
+				>
+					<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+						<circle cx="2.5" cy="2.5" r="1.5" />
+						<circle cx="7.5" cy="2.5" r="1.5" />
+						<circle cx="2.5" cy="7" r="1.5" />
+						<circle cx="7.5" cy="7" r="1.5" />
+						<circle cx="2.5" cy="11.5" r="1.5" />
+						<circle cx="7.5" cy="11.5" r="1.5" />
+					</svg>
+				</button>
+			</td>
+			<td className="py-3 px-4">
+				<p className="font-medium text-stone-900">{client.firstName} {client.lastName}</p>
+				<p className="text-xs text-stone-400">{client.email}</p>
+			</td>
+			<td className="py-3 px-4">
+				{parsed ? (
+					<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
+						🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
+					</span>
+				) : <span className="text-stone-300 text-xs">—</span>}
+			</td>
+			<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
+			<td className="py-3 px-4">
+				<DepositStatusSelect client={client} onUpdate={onDepositUpdate} />
+			</td>
+			<td className="py-3 px-4 text-stone-400 text-xs whitespace-nowrap">
+				{new Date(client.createdAt).toLocaleDateString()}
+			</td>
+			<td className="py-3 px-4">
+				<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
+					View →
+				</Link>
+			</td>
+		</tr>
+	);
 }
 
-function WaitlistClientRow({ client, index, list, isDeposit, move }: WaitlistClientRowProps) {
+// ─── Client DnD table ─────────────────────────────────────────────────────────
+
+function ClientDndTable({ title, clients, onReorder, onDepositUpdate }: {
+	title: string;
+	clients: Client[];
+	onReorder: (newOrder: Client[]) => void;
+	onDepositUpdate: (c: Client) => void;
+}) {
+	const sensors = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+	);
+
+	const handleDragEnd = (event: DragEndEvent) => {
+		const { active, over } = event;
+		if (!over || active.id === over.id) return;
+		const oldIdx = clients.findIndex((c) => c.id === active.id);
+		const newIdx = clients.findIndex((c) => c.id === over.id);
+		onReorder(arrayMove(clients, oldIdx, newIdx));
+	};
+
 	return (
-		<div className="flex items-center gap-4 px-5 py-4">
-			<span className="text-stone-300 font-mono text-sm w-6 text-center">{index + 1}</span>
-			<div className="flex-1 min-w-0">
-				<div className="flex items-center gap-2">
-					<p className="font-medium text-stone-900 text-sm truncate">{client.firstName} {client.lastName}</p>
-					{depositBadge(client)}
-				</div>
-				<p className="text-xs text-stone-400">{client.email}</p>
+		<div>
+			<div className="flex items-center gap-2 mb-3">
+				<span className="text-sm font-semibold text-stone-700">{title}</span>
+				<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{clients.length}</span>
 			</div>
-			<div className="text-xs text-stone-400">
-				{(client.applicationData as Record<string, unknown>)?.preferredSex as string ?? '—'}
-			</div>
-			<div className="flex flex-col gap-0.5">
-				<button onClick={() => move(list, index, -1, isDeposit)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▲</button>
-				<button onClick={() => move(list, index, 1, isDeposit)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▼</button>
-			</div>
-			<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
-				View
-			</Link>
+			<Card>
+				<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+					<AdminTable headers={['#', '', 'Name', 'Preference', 'Stage', 'Deposit Status', 'Applied', '']}>
+						<SortableContext items={clients.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+							{clients.map((client, i) => (
+								<SortableClientRow
+									key={client.id}
+									client={client}
+									index={i}
+									onDepositUpdate={onDepositUpdate}
+								/>
+							))}
+						</SortableContext>
+					</AdminTable>
+					{clients.length === 0 && <EmptyState icon="👥" title="No clients" />}
+				</DndContext>
+			</Card>
 		</div>
 	);
 }
@@ -1159,125 +1279,34 @@ export function AdminClients() {
 
 	useEffect(() => { load(''); }, []);
 
-	const stages = ['', 'enquiry', 'reviewed', 'waitlisted', 'matched', 'placed', 'declined'];
-
-	// ─── Waitlist helpers (only used when stage === 'waitlisted') ───────────────
+	const stages = ['', 'enquiry', 'reviewed', 'matched', 'placed', 'declined'];
 
 	const depositClients = clients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
-	const standardClients = clients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
+	const noDepositClients = clients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
 
-	const move = async (list: Client[], index: number, direction: -1 | 1, isDeposit: boolean) => {
-		const allOther = clients.filter((c) => !list.includes(c));
-		const next = [...list];
-		const swapIdx = index + direction;
-		if (swapIdx < 0 || swapIdx >= next.length) return;
-		[next[index], next[swapIdx]] = [next[swapIdx], next[index]];
-		const combined = isDeposit
-			? [...next, ...allOther]
-			: [...allOther, ...next];
-		const order = combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 }));
+	const handleDepositReorder = async (newOrder: Client[]) => {
+		const combined = [...newOrder, ...noDepositClients];
 		setClients(combined);
-		await api.clients.admin.waitlist.reorder.patch({ order });
+		await api.clients.admin.waitlist.reorder.patch({
+			order: combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
+		});
 	};
 
-	// ─── Waitlist view ──────────────────────────────────────────────────────────
+	const handleNoDepositReorder = async (newOrder: Client[]) => {
+		const combined = [...depositClients, ...newOrder];
+		setClients(combined);
+		await api.clients.admin.waitlist.reorder.patch({
+			order: combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
+		});
+	};
 
-	const waitlistView = (
-		<div className="flex flex-col gap-6 max-w-2xl">
-			<div>
-				<div className="flex items-center gap-2 mb-3">
-					<span className="text-sm font-semibold text-stone-700">Priority — Deposit</span>
-					<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{depositClients.length}</span>
-				</div>
-				<Card>
-					{depositClients.length === 0 ? (
-						<div className="px-5 py-4 text-sm text-stone-400">No clients with a deposit yet.</div>
-					) : (
-						<div className="divide-y divide-stone-100">
-							{depositClients.map((client, i) => (
-								<WaitlistClientRow key={client.id} client={client} index={i} list={depositClients} isDeposit={true} move={move} />
-							))}
-						</div>
-					)}
-				</Card>
-			</div>
-
-			<div>
-				<div className="flex items-center gap-2 mb-3">
-					<span className="text-sm font-semibold text-stone-700">Standard — No Deposit</span>
-					<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{standardClients.length}</span>
-				</div>
-				<Card>
-					{standardClients.length === 0 ? (
-						<div className="px-5 py-4 text-sm text-stone-400">No clients without a deposit.</div>
-					) : (
-						<div className="divide-y divide-stone-100">
-							{standardClients.map((client, i) => (
-								<WaitlistClientRow key={client.id} client={client} index={i} list={standardClients} isDeposit={false} move={move} />
-							))}
-						</div>
-					)}
-				</Card>
-			</div>
-		</div>
-	);
-
-	// ─── Table view ─────────────────────────────────────────────────────────────
-
-	const tableView = (
-		<Card>
-			<AdminTable headers={['Name', 'Preference', 'Stage', 'Deposit', 'Applied', '']}>
-				{clients.map((client) => {
-					const pbs = (client.applicationData as Record<string, unknown>)?.preferredBreedSize as string | undefined;
-					const parsed = formatBreedSize(pbs);
-					return (
-						<tr key={client.id} className="border-b border-stone-100 hover:bg-stone-50">
-							<td className="py-3 px-4">
-								<p className="font-medium text-stone-900">{client.firstName} {client.lastName}</p>
-								<p className="text-xs text-stone-400">{client.email}</p>
-							</td>
-							<td className="py-3 px-4">
-								{parsed ? (
-									<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
-										🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
-									</span>
-								) : <span className="text-stone-300 text-xs">—</span>}
-							</td>
-							<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
-							<td className="py-3 px-4">
-								{client.depositStatus === 'paid' ? (
-									<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Yes · Paid</span>
-								) : client.depositStatus === 'pending' ? (
-									<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Yes · Pending</span>
-								) : (
-									<span className="text-stone-400 text-xs">No</span>
-								)}
-							</td>
-							<td className="py-3 px-4 text-stone-400 text-xs">
-								{new Date(client.createdAt).toLocaleDateString()}
-							</td>
-							<td className="py-3 px-4">
-								<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
-									View →
-								</Link>
-							</td>
-						</tr>
-					);
-				})}
-			</AdminTable>
-			{clients.length === 0 && <EmptyState icon="👥" title="No clients" />}
-		</Card>
-	);
+	const handleDepositUpdate = (updated: Client) => {
+		setClients((prev) => prev.map((c) => c.id === updated.id ? updated : c));
+	};
 
 	return (
 		<div className="p-8">
-			<PageHeader
-				title="Clients"
-				subtitle={stage === 'waitlisted'
-					? 'Clients with a deposit are matched first. Reorder within each section using the arrows.'
-					: 'All applications and client relationships.'
-				}
-			/>
+			<PageHeader title="Clients" subtitle="All applications and client relationships." />
 
 			<div className="flex gap-2 mb-6 flex-wrap">
 				{stages.map((s) => (
@@ -1293,7 +1322,22 @@ export function AdminClients() {
 				))}
 			</div>
 
-			{loading ? <LoadingPage /> : stage === 'waitlisted' ? waitlistView : tableView}
+			{loading ? <LoadingPage /> : (
+				<div className="flex flex-col gap-8">
+					<ClientDndTable
+						title="Deposit"
+						clients={depositClients}
+						onReorder={handleDepositReorder}
+						onDepositUpdate={handleDepositUpdate}
+					/>
+					<ClientDndTable
+						title="No Deposit"
+						clients={noDepositClients}
+						onReorder={handleNoDepositReorder}
+						onDepositUpdate={handleDepositUpdate}
+					/>
+				</div>
+			)}
 		</div>
 	);
 }
