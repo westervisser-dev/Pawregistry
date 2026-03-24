@@ -177,16 +177,16 @@ export const dogsRoutes = new Elysia({ prefix: '/dogs' })
 	// ── Admin: delete dog (blocked if assigned as sire/dam to any litter) ──
 	.delete(
 		'/:id',
-		async ({ params, error }) => {
+		async ({ params }) => {
 			const blocking = await db.query.litters.findMany({
 				where: or(eq(litters.sireId, params.id), eq(litters.damId, params.id)),
 				columns: { name: true },
 			});
 			if (blocking.length > 0) {
-				return error(409, {
-					error: 'Blocked',
-					blockingRecords: blocking.map((l) => l.name),
-				});
+				return new Response(
+					JSON.stringify({ error: 'Blocked', blockingRecords: blocking.map((l) => l.name) }),
+					{ status: 409, headers: { 'Content-Type': 'application/json' } }
+				);
 			}
 			await db.delete(dogs).where(eq(dogs.id, params.id));
 			return new Response(null, { status: 204 });
