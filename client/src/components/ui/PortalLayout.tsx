@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/authStore';
 const portalNav = [
 	{ to: '/portal', label: 'Dashboard', icon: '🏠', end: true },
 	{ to: '/portal/updates', label: 'Updates', icon: '📷' },
-	{ to: '/portal/messages', label: 'Messages', icon: '💬' },
 	{ to: '/portal/documents', label: 'Documents', icon: '📄' },
 	{ to: '/portal/checklist', label: 'Checklist', icon: '✅' },
 ];

@@ -5,7 +5,6 @@ import { dogsRoutes } from './routes/dogs';
 import { littersRoutes } from './routes/litters';
 import { clientsRoutes } from './routes/clients';
 import { updatesRoutes } from './routes/updates';
-import { messagesRoutes } from './routes/messages';
 import { documentsRoutes } from './routes/documents';
 import { checklistRoutes } from './routes/documents/checklists';
 import { templatesRoutes } from './routes/templates';
@@ -38,7 +37,6 @@ const app = new Elysia()
 	.use(littersRoutes)
 	.use(clientsRoutes)
 	.use(updatesRoutes)
-	.use(messagesRoutes)
 	.use(documentsRoutes)
 	.use(checklistRoutes)
 	.use(templatesRoutes)

@@ -58,7 +58,6 @@ export const clientStageEnum = pgEnum('client_stage', [
 ]);
 export const depositStatusEnum = pgEnum('deposit_status', ['none', 'pending', 'paid']);
 export const updateTargetTypeEnum = pgEnum('update_target_type', ['litter', 'puppy', 'client']);
-export const messageAuthorEnum = pgEnum('message_author', ['admin', 'client']);
 export const documentTypeEnum = pgEnum('document_type', [
 	'contract',
 	'health_record',
@@ -212,7 +211,6 @@ export const clients = pgTable('clients', {
 export const clientsRelations = relations(clients, ({ one, many }) => ({
 	puppy: one(puppies, { fields: [clients.puppyId], references: [puppies.id] }),
 	litter: one(litters, { fields: [clients.litterId], references: [litters.id] }),
-	messages: many(messages),
 	documents: many(documents),
 	updates: many(updates),
 	checklist: one(goHomeChecklists, { fields: [clients.id], references: [goHomeChecklists.clientId] }),
@@ -236,22 +234,6 @@ export const updates = pgTable('updates', {
 
 export const updatesRelations = relations(updates, ({ one }) => ({
 	litter: one(litters, { fields: [updates.targetId], references: [litters.id] }),
-}));
-
-// ─── Messages ────────────────────────────────────────────────────────────────
-
-export const messages = pgTable('messages', {
-	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
-	author: messageAuthorEnum('author').notNull(),
-	body: text('body').notNull(),
-	attachmentUrls: jsonb('attachment_urls').$type<string[]>().notNull().default([]),
-	readAt: timestamp('read_at', { withTimezone: true }),
-	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const messagesRelations = relations(messages, ({ one }) => ({
-	client: one(clients, { fields: [messages.clientId], references: [clients.id] }),
 }));
 
 // ─── Documents ───────────────────────────────────────────────────────────────

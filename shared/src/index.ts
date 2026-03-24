@@ -221,20 +221,6 @@ export interface Update {
 	updatedAt: string;
 }
 
-// ─── Message ─────────────────────────────────────────────────────────────────
-
-export type MessageAuthor = 'admin' | 'client';
-
-export interface Message {
-	id: string;
-	clientId: string;
-	author: MessageAuthor;
-	body: string;
-	attachmentUrls: string[];
-	readAt: string | null;
-	createdAt: string;
-}
-
 // ─── Document ────────────────────────────────────────────────────────────────
 
 export type DocumentType = 'contract' | 'health_record' | 'go_home_pack' | 'invoice' | 'other';

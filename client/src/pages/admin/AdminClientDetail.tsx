@@ -87,8 +87,6 @@ export function AdminClientDetail() {
 	const navigate = useNavigate();
 	const [client, setClient] = useState<Client | null>(null);
 	const [loading, setLoading] = useState(true);
-	const [newMsg, setNewMsg] = useState('');
-	const [sending, setSending] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 
@@ -113,14 +111,6 @@ export function AdminClientDetail() {
 		if (!id) return;
 		await api.clients.admin({ id }).patch({ stage: stage as Client['stage'] });
 		load();
-	};
-
-	const sendMsg = async () => {
-		if (!id || !newMsg.trim()) return;
-		setSending(true);
-		await api.messages.admin({ clientId: id }).post({ body: newMsg });
-		setNewMsg('');
-		setSending(false);
 	};
 
 	const deleteClient = async () => {
@@ -302,27 +292,6 @@ export function AdminClientDetail() {
 							</div>
 						</dl>
 					</div>
-				</div>
-			</Card>
-
-			{/* Quick message */}
-			<Card className="p-5">
-				<h3 className="font-medium text-stone-900 mb-3">Send Message</h3>
-				<div className="flex gap-3">
-					<input
-						value={newMsg}
-						onChange={(e) => setNewMsg(e.target.value)}
-						placeholder="Message to client…"
-						aria-label="Message to client"
-						className="flex-1 px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-					/>
-					<button
-						onClick={sendMsg}
-						disabled={sending || !newMsg.trim()}
-						className="px-4 py-2 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 disabled:opacity-50"
-					>
-						{sending ? '…' : 'Send'}
-					</button>
 				</div>
 			</Card>
 

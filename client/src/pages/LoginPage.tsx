@@ -35,7 +35,7 @@ export function LoginPage() {
 					</Link>
 					<h1 className="font-serif text-2xl font-bold text-stone-900">Client Portal</h1>
 					<p className="text-stone-500 text-sm mt-2">
-						Sign in to view your puppy updates, documents, and messages.
+						Sign in to view your puppy updates and documents.
 					</p>
 				</div>
 
