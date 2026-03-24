@@ -51,6 +51,13 @@ h1, h2, h3 {
 	font-family: var(--font-serif);
 }
 
+@media (prefers-color-scheme: dark) {
+	body {
+		background-color: var(--color-stone-900);
+		color: var(--color-stone-100);
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*, *::before, *::after {
 		animation-duration: 0.01ms !important;

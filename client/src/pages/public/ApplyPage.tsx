@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 type Step = 'personal' | 'home' | 'experience' | 'preferences' | 'deposit' | 'done';
@@ -379,6 +379,11 @@ export function ApplyPage() {
 	const secondChoiceSizeOptions = form.secondChoiceBreed ? (BREED_SIZES[form.secondChoiceBreed] ?? []) : [];
 	// Same breed, different size options (excludes first choice size)
 	const sameBrandAltSizeOptions = sizeOptions.filter((s) => s.value !== form.preferredSize);
+
+	useEffect(() => {
+		document.title = 'Apply for a Puppy — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
 
 	return (
 		<div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 md:py-16">

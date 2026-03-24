@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Link } from 'react-router-dom';
 
@@ -20,6 +20,11 @@ export function LoginPage() {
 		}
 		setSent(true);
 	};
+
+	useEffect(() => {
+		document.title = 'Client Login — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
 
 	return (
 		<div className="min-h-screen bg-stone-50 flex items-center justify-center px-6">
@@ -47,19 +52,21 @@ export function LoginPage() {
 					) : (
 						<div className="flex flex-col gap-4">
 							<div>
-								<label className="block text-sm font-medium text-stone-700 mb-1">
+								<label htmlFor="login-email" className="block text-sm font-medium text-stone-700 mb-1">
 									Email address
 								</label>
 								<input
+									id="login-email"
 									type="email"
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
 									onKeyDown={(e) => e.key === 'Enter' && submit()}
 									placeholder="you@example.com"
+									autoComplete="email"
 									className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 								/>
 							</div>
-							{error && <p className="text-red-600 text-sm">{error}</p>}
+							{error && <p role="alert" className="text-red-600 text-sm">{error}</p>}
 							<button
 								onClick={submit}
 								disabled={loading || !email}

@@ -28,7 +28,7 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
 		<div className="flex items-start justify-between mb-8">
 			<div>
 				<h1 className="text-2xl font-bold text-stone-900">{title}</h1>
-				{subtitle && <p className="text-stone-500 mt-1 text-sm">{subtitle}</p>}
+				{subtitle && <p className="text-stone-600 mt-1 text-sm">{subtitle}</p>}
 			</div>
 			{action && <div>{action}</div>}
 		</div>
@@ -37,7 +37,7 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
 
 // ─── Badge ───────────────────────────────────────────────────────────────────
 
-type BadgeVariant = 'default' | 'green' | 'amber' | 'red' | 'blue' | 'purple' | 'teal' | 'rose';
+type BadgeVariant = 'default' | 'green' | 'amber' | 'red' | 'blue' | 'purple' | 'teal' | 'rose' | 'orange' | 'indigo';
 
 const badgeClasses: Record<BadgeVariant, string> = {
 	default: 'bg-stone-100 text-stone-700',
@@ -48,6 +48,8 @@ const badgeClasses: Record<BadgeVariant, string> = {
 	purple: 'bg-purple-50 text-purple-700',
 	teal: 'bg-teal-50 text-teal-700',
 	rose: 'bg-rose-50 text-rose-700',
+	orange: 'bg-orange-50 text-orange-700',
+	indigo: 'bg-indigo-50 text-indigo-700',
 };
 
 interface BadgeProps {
@@ -106,7 +108,7 @@ export function LitterStatusBadge({ status }: { status: string }) {
 }
 
 // Deterministically map a breed name to a consistent colour
-const breedColours: BadgeVariant[] = ['blue', 'green', 'purple', 'teal', 'rose', 'amber'];
+const breedColours: BadgeVariant[] = ['blue', 'green', 'purple', 'teal', 'rose', 'amber', 'orange', 'indigo'];
 
 function hashBreed(breed: string): number {
 	let h = 0;
@@ -123,8 +125,13 @@ export function BreedBadge({ breed }: { breed: string }) {
 
 export function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
 	const sizes = { sm: 'h-4 w-4', md: 'h-6 w-6', lg: 'h-10 w-10' };
+	const borders = { sm: 'border-2', md: 'border-2', lg: 'border-4' };
 	return (
-		<div className={`animate-spin rounded-full border-2 border-stone-200 border-t-brand-500 ${sizes[size]}`} />
+		<div
+			role="status"
+			aria-label="Loading…"
+			className={`animate-spin rounded-full border-stone-200 border-t-brand-500 ${sizes[size]} ${borders[size]}`}
+		/>
 	);
 }
 
@@ -141,7 +148,7 @@ export function LoadingPage() {
 export function EmptyState({ icon, title, description }: { icon?: string; title: string; description?: string }) {
 	return (
 		<div className="flex flex-col items-center justify-center py-16 text-center">
-			{icon && <div className="text-4xl mb-4">{icon}</div>}
+			{icon && <div className="text-4xl mb-4" aria-hidden="true">{icon}</div>}
 			<h3 className="text-stone-700 font-medium">{title}</h3>
 			{description && <p className="text-stone-500 text-sm mt-1 max-w-xs">{description}</p>}
 		</div>

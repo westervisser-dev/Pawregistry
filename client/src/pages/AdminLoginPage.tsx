@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -31,6 +31,11 @@ export function AdminLoginPage() {
 		navigate('/admin', { replace: true });
 	};
 
+	useEffect(() => {
+		document.title = 'Admin Login — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
+
 	return (
 		<div className="min-h-screen bg-stone-50 flex items-center justify-center px-6">
 			<div className="w-full max-w-sm">
@@ -45,8 +50,9 @@ export function AdminLoginPage() {
 				<div className="bg-white rounded-xl border border-stone-200 p-8">
 					<div className="flex flex-col gap-4">
 						<div>
-							<label className="block text-sm font-medium text-stone-700 mb-1">Email</label>
+							<label htmlFor="admin-email" className="block text-sm font-medium text-stone-700 mb-1">Email</label>
 							<input
+								id="admin-email"
 								type="email"
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
@@ -57,8 +63,9 @@ export function AdminLoginPage() {
 							/>
 						</div>
 						<div>
-							<label className="block text-sm font-medium text-stone-700 mb-1">Password</label>
+							<label htmlFor="admin-password" className="block text-sm font-medium text-stone-700 mb-1">Password</label>
 							<input
+								id="admin-password"
 								type="password"
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
@@ -68,7 +75,7 @@ export function AdminLoginPage() {
 								className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 						</div>
-						{error && <p className="text-red-600 text-sm">{error}</p>}
+						{error && <p role="alert" className="text-red-600 text-sm">{error}</p>}
 						<button
 							onClick={submit}
 							disabled={loading || !email || !password}

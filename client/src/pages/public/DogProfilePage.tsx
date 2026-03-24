@@ -91,6 +91,11 @@ export function DogProfilePage() {
 	if (loading) return <LoadingPage />;
 	if (!dog) return <div className="p-16 text-center text-stone-500">Dog not found.</div>;
 
+	useEffect(() => {
+		document.title = 'DogProfile — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
+
 	return (
 		<div className="max-w-5xl mx-auto px-6 py-16">
 			<Link to="/dogs" className="text-sm text-stone-500 hover:text-stone-700 mb-8 inline-block">

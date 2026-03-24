@@ -1,4 +1,10 @@
+import { useEffect } from 'react';
 export function AboutPage() {
+	useEffect(() => {
+		document.title = 'About Us — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
+
 	return (
 		<div className="max-w-3xl mx-auto px-6 py-20">
 			<h1 className="font-serif text-4xl font-bold text-stone-900 mb-6">About Us</h1>

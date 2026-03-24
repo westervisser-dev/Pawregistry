@@ -1,7 +1,38 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, Component, type ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
+
+// ─── Error boundary ───────────────────────────────────────────────────────────
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+	state = { error: null };
+
+	static getDerivedStateFromError(error: Error) {
+		return { error };
+	}
+
+	render() {
+		if (this.state.error) {
+			return (
+				<div className="min-h-screen bg-stone-50 flex items-center justify-center px-6">
+					<div className="w-full max-w-sm text-center">
+						<p className="text-4xl mb-4">🐾</p>
+						<h1 className="font-serif text-xl font-bold text-stone-900 mb-2">Something went wrong</h1>
+						<p className="text-stone-500 text-sm mb-6">An unexpected error occurred. Please refresh the page.</p>
+						<button
+							onClick={() => window.location.reload()}
+							className="px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"
+						>
+							Refresh page
+						</button>
+					</div>
+				</div>
+			);
+		}
+		return this.props.children;
+	}
+}
 
 // Layouts & guards — eager (always needed)
 import { PublicLayout } from '@/components/ui/PublicLayout';
@@ -118,6 +149,8 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
 	<React.StrictMode>
-		<App />
+		<ErrorBoundary>
+			<App />
+		</ErrorBoundary>
 	</React.StrictMode>
 );

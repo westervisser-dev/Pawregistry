@@ -17,6 +17,12 @@ export function PublicLayout() {
 
 	return (
 		<div className="min-h-screen flex flex-col">
+			<a
+				href="#main-content"
+				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-stone-900 focus:rounded-lg focus:shadow-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-medium"
+			>
+				Skip to content
+			</a>
 			<header className="bg-white border-b border-stone-200 sticky top-0 z-50">
 				<div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
 					<Link to="/" className="flex items-center gap-2" onClick={closeMenu}>
@@ -143,7 +149,7 @@ export function PublicLayout() {
 				</div>
 			</header>
 
-			<main className="flex-1">
+			<main id="main-content" className="flex-1">
 				<Outlet />
 			</main>
 

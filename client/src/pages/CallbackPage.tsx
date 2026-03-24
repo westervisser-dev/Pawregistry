@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/ui';
-
-const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? '').split(',').map((s: string) => s.trim());
+import { ADMIN_EMAILS } from '@/lib/auth';
 
 export function CallbackPage() {
 	const navigate = useNavigate();

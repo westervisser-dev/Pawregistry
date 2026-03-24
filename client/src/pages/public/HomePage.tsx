@@ -6,11 +6,18 @@ import type { LitterWithDogs } from '@paw-registry/shared';
 
 export function HomePage() {
 	const [litters, setLitters] = useState<LitterWithDogs[]>([]);
+	const [littersLoading, setLittersLoading] = useState(true);
 
 	useEffect(() => {
 		api.litters.get().then(({ data }) => {
 			if (data) setLitters(data as LitterWithDogs[]);
+			setLittersLoading(false);
 		});
+	}, []);
+
+	useEffect(() => {
+		document.title = 'Paw Registry — Thoughtful Dog Breeding';
+		return () => { document.title = 'Paw Registry'; };
 	}, []);
 
 	return (
@@ -23,7 +30,7 @@ export function HomePage() {
 					sizes="100vw"
 					alt=""
 					aria-hidden="true"
-					decoding="sync"
+					decoding="async"
 					className="absolute inset-0 w-full h-full object-cover object-center scale-105"
 				/>
 				<div className="absolute inset-0 bg-gradient-to-br from-stone-900/90 via-stone-800/80 to-brand-900/75" />
@@ -89,7 +96,7 @@ export function HomePage() {
 			</section>
 
 			{/* Current litters */}
-			{litters.length > 0 && (
+			{(littersLoading || litters.length > 0) && (
 				<section className="bg-brand-50 py-20">
 					<div className="max-w-6xl mx-auto px-6">
 						<div className="flex items-center justify-between mb-10">
@@ -98,6 +105,19 @@ export function HomePage() {
 								View all →
 							</Link>
 						</div>
+						{littersLoading ? (
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+								{[1, 2, 3].map((n) => (
+									<div key={n} className="bg-white rounded-xl border border-stone-200 overflow-hidden animate-pulse">
+										<div className="h-40 bg-stone-200" />
+										<div className="p-5 flex flex-col gap-3">
+											<div className="h-4 bg-stone-200 rounded w-3/4" />
+											<div className="h-3 bg-stone-100 rounded w-1/2" />
+										</div>
+									</div>
+								))}
+							</div>
+						) : (
 						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 							{litters.slice(0, 3).map((litter) => (
 								<Link
@@ -125,6 +145,7 @@ export function HomePage() {
 								</Link>
 							))}
 						</div>
+						)}
 					</div>
 				</section>
 			)}

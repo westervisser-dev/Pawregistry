@@ -17,6 +17,11 @@ export function LittersPage() {
 
 	if (loading) return <LoadingPage />;
 
+	useEffect(() => {
+		document.title = 'Available Litters — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
+
 	return (
 		<div className="max-w-6xl mx-auto px-6 py-16">
 

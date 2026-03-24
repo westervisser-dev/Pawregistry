@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { api } from '@/lib/api';
 import type { Session, User } from '@supabase/supabase-js';
+import { ADMIN_EMAILS } from '@/lib/auth';
 
 interface AuthState {
 	user: User | null;
@@ -12,9 +13,6 @@ interface AuthState {
 	init: () => Promise<void>;
 	signOut: () => Promise<void>;
 }
-
-// Admin emails configured via env — simple client-side hint (real gate is server-side)
-const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? '').split(',').map((s: string) => s.trim());
 
 export const useAuthStore = create<AuthState>((set) => {
 	const applySession = async (session: Session | null, isInit = false) => {

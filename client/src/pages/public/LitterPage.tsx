@@ -22,6 +22,11 @@ export function LitterPage() {
 
 	const availablePuppies = litter.puppies?.filter((p) => p.status === 'available') ?? [];
 
+	useEffect(() => {
+		document.title = 'Litter — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
+
 	return (
 		<div className="max-w-5xl mx-auto px-6 py-16">
 			<Link to="/litters" className="text-stone-500 hover:text-stone-700 text-sm mb-6 inline-block">

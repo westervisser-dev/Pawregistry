@@ -76,6 +76,12 @@ export function AdminLayout() {
 
 	return (
 		<div className="min-h-screen bg-stone-100 flex">
+			<a
+				href="#main-content"
+				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-stone-900 focus:text-white focus:rounded-lg focus:shadow-lg focus:ring-2 focus:ring-brand-400 focus:outline-none text-sm font-medium"
+			>
+				Skip to content
+			</a>
 			{/* Mobile backdrop */}
 			{sidebarOpen && (
 				<div
@@ -114,7 +120,7 @@ export function AdminLayout() {
 					<span className="text-xs px-2 py-0.5 bg-brand-600 text-white rounded-full">Admin</span>
 				</div>
 
-				<main className="flex-1">
+				<main id="main-content" className="flex-1">
 					<Outlet />
 				</main>
 			</div>

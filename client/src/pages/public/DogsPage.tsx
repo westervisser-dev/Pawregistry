@@ -26,6 +26,11 @@ export function DogsPage() {
 
 	const filtered = filter === 'all' ? dogs : dogs.filter((d) => d.sex === filter);
 
+	useEffect(() => {
+		document.title = 'Our Dogs — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
+
 	return (
 		<div className="max-w-6xl mx-auto px-6 py-16">
 			{/* Backdrop */}
