@@ -17,15 +17,15 @@ export function LitterPage() {
 		});
 	}, [id]);
 
-	if (loading) return <LoadingPage />;
-	if (!litter) return <div className="max-w-4xl mx-auto px-6 py-16 text-stone-500">Litter not found.</div>;
-
-	const availablePuppies = litter.puppies?.filter((p) => p.status === 'available') ?? [];
-
 	useEffect(() => {
 		document.title = 'Litter — Paw Registry';
 		return () => { document.title = 'Paw Registry'; };
 	}, []);
+
+	if (loading) return <LoadingPage />;
+	if (!litter) return <div className="max-w-4xl mx-auto px-6 py-16 text-stone-500">Litter not found.</div>;
+
+	const availablePuppies = litter.puppies?.filter((p) => p.status === 'available') ?? [];
 
 	return (
 		<div className="max-w-5xl mx-auto px-6 py-16">
