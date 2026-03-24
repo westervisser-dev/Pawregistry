@@ -1140,7 +1140,7 @@ export function AdminClients() {
 
 			{loading ? <LoadingPage /> : (
 				<Card>
-					<AdminTable headers={['Name', 'Preference', 'Stage', 'Applied', '']}>
+					<AdminTable headers={['Name', 'Preference', 'Stage', 'Deposit', 'Applied', '']}>
 						{clients.map((client) => {
 							const pbs = (client.applicationData as Record<string, unknown>)?.preferredBreedSize as string | undefined;
 							const parsed = formatBreedSize(pbs);
@@ -1158,6 +1158,15 @@ export function AdminClients() {
 										) : <span className="text-stone-300 text-xs">—</span>}
 									</td>
 									<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
+									<td className="py-3 px-4">
+										{client.depositStatus === 'paid' ? (
+											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Yes · Paid</span>
+										) : client.depositStatus === 'pending' ? (
+											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Yes · Pending</span>
+										) : (
+											<span className="text-stone-400 text-xs">No</span>
+										)}
+									</td>
 									<td className="py-3 px-4 text-stone-400 text-xs">
 										{new Date(client.createdAt).toLocaleDateString()}
 									</td>
@@ -1340,7 +1349,16 @@ export function AdminClientDetail() {
 						) : null;
 					})()}
 				</div>
-				<StageBadge stage={client.stage} />
+				<div className="flex flex-col items-end gap-2">
+					<StageBadge stage={client.stage} />
+					{client.depositStatus === 'paid' ? (
+						<span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Deposit · Paid</span>
+					) : client.depositStatus === 'pending' ? (
+						<span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Deposit · Pending</span>
+					) : (
+						<span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-500">No Deposit</span>
+					)}
+				</div>
 			</div>
 
 			{/* Stage management */}
@@ -1435,6 +1453,18 @@ export function AdminClientDetail() {
 							<AppField label="Open to other colour" value={a.considerOtherColour} />
 							<AppField label="Would consider rehome" value={a.considerRehome} />
 							<AppField label="Agreed to contract" value={a.agreedToContract} />
+							<div className="py-2.5 border-b border-stone-100 last:border-0 grid grid-cols-2 gap-4 items-start">
+								<dt className="text-xs text-stone-400 pt-0.5">Deposit intent</dt>
+								<dd className="text-sm">
+									{client.depositStatus === 'paid' ? (
+										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Paid</span>
+									) : client.depositStatus === 'pending' ? (
+										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Yes — pending payment</span>
+									) : (
+										<span className="text-stone-400">Not interested</span>
+									)}
+								</dd>
+							</div>
 						</dl>
 					</div>
 				</div>
