@@ -1101,6 +1101,47 @@ export function AdminLitterDetail() {
 	);
 }
 
+// ─── Waitlist row ──────────────────────────────────────────────────────────────
+
+function depositBadge(c: Client): React.ReactNode {
+	if (c.depositStatus === 'paid') return <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Paid</span>;
+	if (c.depositStatus === 'pending') return <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Pending</span>;
+	return null;
+}
+
+interface WaitlistClientRowProps {
+	client: Client;
+	index: number;
+	list: Client[];
+	move: (list: Client[], index: number, direction: -1 | 1) => void;
+	depositBadge: (c: Client) => React.ReactNode;
+}
+
+function WaitlistClientRow({ client, index, list, move, depositBadge }: WaitlistClientRowProps) {
+	return (
+		<div className="flex items-center gap-4 px-5 py-4">
+			<span className="text-stone-300 font-mono text-sm w-6 text-center">{index + 1}</span>
+			<div className="flex-1 min-w-0">
+				<div className="flex items-center gap-2">
+					<p className="font-medium text-stone-900 text-sm truncate">{client.firstName} {client.lastName}</p>
+					{depositBadge(client)}
+				</div>
+				<p className="text-xs text-stone-400">{client.email}</p>
+			</div>
+			<div className="text-xs text-stone-400">
+				{(client.applicationData as Record<string, unknown>)?.preferredSex as string ?? '—'}
+			</div>
+			<div className="flex flex-col gap-0.5">
+				<button onClick={() => move(list, index, -1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▲</button>
+				<button onClick={() => move(list, index, 1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▼</button>
+			</div>
+			<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
+				View
+			</Link>
+		</div>
+	);
+}
+
 // ─── Clients list ─────────────────────────────────────────────────────────────
 
 export function AdminClients() {
@@ -1139,35 +1180,6 @@ export function AdminClients() {
 		await api.clients.admin.waitlist.reorder.patch({ order });
 	};
 
-	const depositBadge = (c: Client) => {
-		if (c.depositStatus === 'paid') return <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Paid</span>;
-		if (c.depositStatus === 'pending') return <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Pending</span>;
-		return null;
-	};
-
-	const WaitlistClientRow = ({ client, index, list }: { client: Client; index: number; list: Client[] }) => (
-		<div className="flex items-center gap-4 px-5 py-4">
-			<span className="text-stone-300 font-mono text-sm w-6 text-center">{index + 1}</span>
-			<div className="flex-1 min-w-0">
-				<div className="flex items-center gap-2">
-					<p className="font-medium text-stone-900 text-sm truncate">{client.firstName} {client.lastName}</p>
-					{depositBadge(client)}
-				</div>
-				<p className="text-xs text-stone-400">{client.email}</p>
-			</div>
-			<div className="text-xs text-stone-400">
-				{(client.applicationData as Record<string, unknown>)?.preferredSex as string ?? '—'}
-			</div>
-			<div className="flex flex-col gap-0.5">
-				<button onClick={() => move(list, index, -1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▲</button>
-				<button onClick={() => move(list, index, 1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▼</button>
-			</div>
-			<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
-				View
-			</Link>
-		</div>
-	);
-
 	// ─── Waitlist view ──────────────────────────────────────────────────────────
 
 	const waitlistView = (
@@ -1183,7 +1195,7 @@ export function AdminClients() {
 					) : (
 						<div className="divide-y divide-stone-100">
 							{depositClients.map((client, i) => (
-								<WaitlistClientRow key={client.id} client={client} index={i} list={depositClients} />
+								<WaitlistClientRow key={client.id} client={client} index={i} list={depositClients} move={move} depositBadge={depositBadge} />
 							))}
 						</div>
 					)}
@@ -1201,7 +1213,7 @@ export function AdminClients() {
 					) : (
 						<div className="divide-y divide-stone-100">
 							{standardClients.map((client, i) => (
-								<WaitlistClientRow key={client.id} client={client} index={i} list={standardClients} />
+								<WaitlistClientRow key={client.id} client={client} index={i} list={standardClients} move={move} depositBadge={depositBadge} />
 							))}
 						</div>
 					)}
