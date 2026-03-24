@@ -52,7 +52,6 @@ const AdminLitterDetail = lazy$(() => import('@/pages/admin/AdminLitterDetail'),
 const AdminClients = lazy$(() => import('@/pages/admin/AdminClients'), 'AdminClients');
 const AdminClientDetail = lazy$(() => import('@/pages/admin/AdminClientDetail'), 'AdminClientDetail');
 const AdminUpdates = lazy$(() => import('@/pages/admin/AdminUpdates'), 'AdminUpdates');
-const AdminWaitlist = lazy$(() => import('@/pages/admin/AdminWaitlist'), 'AdminWaitlist');
 const AdminDocuments = lazy$(() => import('@/pages/admin/AdminDocuments'), 'AdminDocuments');
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -106,7 +105,6 @@ function App() {
 							<Route path="/admin/clients" element={<AdminClients />} />
 							<Route path="/admin/clients/:id" element={<AdminClientDetail />} />
 							<Route path="/admin/updates" element={<AdminUpdates />} />
-							<Route path="/admin/waitlist" element={<AdminWaitlist />} />
 							<Route path="/admin/documents" element={<AdminDocuments />} />
 						</Route>
 					</Route>
