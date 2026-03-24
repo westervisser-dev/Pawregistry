@@ -1113,10 +1113,11 @@ interface WaitlistClientRowProps {
 	client: Client;
 	index: number;
 	list: Client[];
-	move: (list: Client[], index: number, direction: -1 | 1) => void;
+	isDeposit: boolean;
+	move: (list: Client[], index: number, direction: -1 | 1, isDeposit: boolean) => void;
 }
 
-function WaitlistClientRow({ client, index, list, move }: WaitlistClientRowProps) {
+function WaitlistClientRow({ client, index, list, isDeposit, move }: WaitlistClientRowProps) {
 	return (
 		<div className="flex items-center gap-4 px-5 py-4">
 			<span className="text-stone-300 font-mono text-sm w-6 text-center">{index + 1}</span>
@@ -1131,8 +1132,8 @@ function WaitlistClientRow({ client, index, list, move }: WaitlistClientRowProps
 				{(client.applicationData as Record<string, unknown>)?.preferredSex as string ?? '—'}
 			</div>
 			<div className="flex flex-col gap-0.5">
-				<button onClick={() => move(list, index, -1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▲</button>
-				<button onClick={() => move(list, index, 1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▼</button>
+				<button onClick={() => move(list, index, -1, isDeposit)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▲</button>
+				<button onClick={() => move(list, index, 1, isDeposit)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▼</button>
 			</div>
 			<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
 				View
@@ -1165,13 +1166,13 @@ export function AdminClients() {
 	const depositClients = clients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
 	const standardClients = clients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
 
-	const move = async (list: Client[], index: number, direction: -1 | 1) => {
+	const move = async (list: Client[], index: number, direction: -1 | 1, isDeposit: boolean) => {
 		const allOther = clients.filter((c) => !list.includes(c));
 		const next = [...list];
 		const swapIdx = index + direction;
 		if (swapIdx < 0 || swapIdx >= next.length) return;
 		[next[index], next[swapIdx]] = [next[swapIdx], next[index]];
-		const combined = list === depositClients
+		const combined = isDeposit
 			? [...next, ...allOther]
 			: [...allOther, ...next];
 		const order = combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 }));
@@ -1194,7 +1195,7 @@ export function AdminClients() {
 					) : (
 						<div className="divide-y divide-stone-100">
 							{depositClients.map((client, i) => (
-								<WaitlistClientRow key={client.id} client={client} index={i} list={depositClients} move={move} />
+								<WaitlistClientRow key={client.id} client={client} index={i} list={depositClients} isDeposit={true} move={move} />
 							))}
 						</div>
 					)}
@@ -1212,7 +1213,7 @@ export function AdminClients() {
 					) : (
 						<div className="divide-y divide-stone-100">
 							{standardClients.map((client, i) => (
-								<WaitlistClientRow key={client.id} client={client} index={i} list={standardClients} move={move} />
+								<WaitlistClientRow key={client.id} client={client} index={i} list={standardClients} isDeposit={false} move={move} />
 							))}
 						</div>
 					)}
