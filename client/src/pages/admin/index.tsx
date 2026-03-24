@@ -1111,7 +1111,7 @@ export function AdminClients() {
 	const load = (s: string) => {
 		setLoading(true);
 		api.clients.admin.get({ query: s ? { stage: s } : {} }).then(({ data }) => {
-			if (data) setClients(data as Client[]);
+			if (data) setClients((data as Client[]).sort((a, b) => a.priority - b.priority));
 			setLoading(false);
 		});
 	};
@@ -1120,9 +1120,152 @@ export function AdminClients() {
 
 	const stages = ['', 'enquiry', 'reviewed', 'waitlisted', 'matched', 'placed', 'declined'];
 
+	// ─── Waitlist helpers (only used when stage === 'waitlisted') ───────────────
+
+	const depositClients = clients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
+	const standardClients = clients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
+
+	const move = async (list: Client[], index: number, direction: -1 | 1) => {
+		const allOther = clients.filter((c) => !list.includes(c));
+		const next = [...list];
+		const swapIdx = index + direction;
+		if (swapIdx < 0 || swapIdx >= next.length) return;
+		[next[index], next[swapIdx]] = [next[swapIdx], next[index]];
+		const combined = list === depositClients
+			? [...next, ...allOther]
+			: [...allOther, ...next];
+		const order = combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 }));
+		setClients(combined);
+		await api.clients.admin.waitlist.reorder.patch({ order });
+	};
+
+	const depositBadge = (c: Client) => {
+		if (c.depositStatus === 'paid') return <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Paid</span>;
+		if (c.depositStatus === 'pending') return <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Pending</span>;
+		return null;
+	};
+
+	const WaitlistClientRow = ({ client, index, list }: { client: Client; index: number; list: Client[] }) => (
+		<div className="flex items-center gap-4 px-5 py-4">
+			<span className="text-stone-300 font-mono text-sm w-6 text-center">{index + 1}</span>
+			<div className="flex-1 min-w-0">
+				<div className="flex items-center gap-2">
+					<p className="font-medium text-stone-900 text-sm truncate">{client.firstName} {client.lastName}</p>
+					{depositBadge(client)}
+				</div>
+				<p className="text-xs text-stone-400">{client.email}</p>
+			</div>
+			<div className="text-xs text-stone-400">
+				{(client.applicationData as Record<string, unknown>)?.preferredSex as string ?? '—'}
+			</div>
+			<div className="flex flex-col gap-0.5">
+				<button onClick={() => move(list, index, -1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▲</button>
+				<button onClick={() => move(list, index, 1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▼</button>
+			</div>
+			<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
+				View
+			</Link>
+		</div>
+	);
+
+	// ─── Waitlist view ──────────────────────────────────────────────────────────
+
+	const waitlistView = (
+		<div className="flex flex-col gap-6 max-w-2xl">
+			<div>
+				<div className="flex items-center gap-2 mb-3">
+					<span className="text-sm font-semibold text-stone-700">Priority — Deposit</span>
+					<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{depositClients.length}</span>
+				</div>
+				<Card>
+					{depositClients.length === 0 ? (
+						<div className="px-5 py-4 text-sm text-stone-400">No clients with a deposit yet.</div>
+					) : (
+						<div className="divide-y divide-stone-100">
+							{depositClients.map((client, i) => (
+								<WaitlistClientRow key={client.id} client={client} index={i} list={depositClients} />
+							))}
+						</div>
+					)}
+				</Card>
+			</div>
+
+			<div>
+				<div className="flex items-center gap-2 mb-3">
+					<span className="text-sm font-semibold text-stone-700">Standard — No Deposit</span>
+					<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{standardClients.length}</span>
+				</div>
+				<Card>
+					{standardClients.length === 0 ? (
+						<div className="px-5 py-4 text-sm text-stone-400">No clients without a deposit.</div>
+					) : (
+						<div className="divide-y divide-stone-100">
+							{standardClients.map((client, i) => (
+								<WaitlistClientRow key={client.id} client={client} index={i} list={standardClients} />
+							))}
+						</div>
+					)}
+				</Card>
+			</div>
+		</div>
+	);
+
+	// ─── Table view ─────────────────────────────────────────────────────────────
+
+	const tableView = (
+		<Card>
+			<AdminTable headers={['Name', 'Preference', 'Stage', 'Deposit', 'Applied', '']}>
+				{clients.map((client) => {
+					const pbs = (client.applicationData as Record<string, unknown>)?.preferredBreedSize as string | undefined;
+					const parsed = formatBreedSize(pbs);
+					return (
+						<tr key={client.id} className="border-b border-stone-100 hover:bg-stone-50">
+							<td className="py-3 px-4">
+								<p className="font-medium text-stone-900">{client.firstName} {client.lastName}</p>
+								<p className="text-xs text-stone-400">{client.email}</p>
+							</td>
+							<td className="py-3 px-4">
+								{parsed ? (
+									<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
+										🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
+									</span>
+								) : <span className="text-stone-300 text-xs">—</span>}
+							</td>
+							<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
+							<td className="py-3 px-4">
+								{client.depositStatus === 'paid' ? (
+									<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Yes · Paid</span>
+								) : client.depositStatus === 'pending' ? (
+									<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Yes · Pending</span>
+								) : (
+									<span className="text-stone-400 text-xs">No</span>
+								)}
+							</td>
+							<td className="py-3 px-4 text-stone-400 text-xs">
+								{new Date(client.createdAt).toLocaleDateString()}
+							</td>
+							<td className="py-3 px-4">
+								<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
+									View →
+								</Link>
+							</td>
+						</tr>
+					);
+				})}
+			</AdminTable>
+			{clients.length === 0 && <EmptyState icon="👥" title="No clients" />}
+		</Card>
+	);
+
 	return (
 		<div className="p-8">
-			<PageHeader title="Clients" subtitle="All applications and client relationships." />
+			<PageHeader
+				title="Clients"
+				subtitle={stage === 'waitlisted'
+					? 'Clients with a deposit are matched first. Reorder within each section using the arrows.'
+					: 'All applications and client relationships.'
+				}
+			/>
 
 			<div className="flex gap-2 mb-6 flex-wrap">
 				{stages.map((s) => (
@@ -1138,50 +1281,7 @@ export function AdminClients() {
 				))}
 			</div>
 
-			{loading ? <LoadingPage /> : (
-				<Card>
-					<AdminTable headers={['Name', 'Preference', 'Stage', 'Deposit', 'Applied', '']}>
-						{clients.map((client) => {
-							const pbs = (client.applicationData as Record<string, unknown>)?.preferredBreedSize as string | undefined;
-							const parsed = formatBreedSize(pbs);
-							return (
-								<tr key={client.id} className="border-b border-stone-100 hover:bg-stone-50">
-									<td className="py-3 px-4">
-										<p className="font-medium text-stone-900">{client.firstName} {client.lastName}</p>
-										<p className="text-xs text-stone-400">{client.email}</p>
-									</td>
-									<td className="py-3 px-4">
-										{parsed ? (
-											<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
-												🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
-											</span>
-										) : <span className="text-stone-300 text-xs">—</span>}
-									</td>
-									<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
-									<td className="py-3 px-4">
-										{client.depositStatus === 'paid' ? (
-											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Yes · Paid</span>
-										) : client.depositStatus === 'pending' ? (
-											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Yes · Pending</span>
-										) : (
-											<span className="text-stone-400 text-xs">No</span>
-										)}
-									</td>
-									<td className="py-3 px-4 text-stone-400 text-xs">
-										{new Date(client.createdAt).toLocaleDateString()}
-									</td>
-									<td className="py-3 px-4">
-										<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
-											View →
-										</Link>
-									</td>
-								</tr>
-							);
-						})}
-					</AdminTable>
-					{clients.length === 0 && <EmptyState icon="👥" title="No clients" />}
-				</Card>
-			)}
+			{loading ? <LoadingPage /> : stage === 'waitlisted' ? waitlistView : tableView}
 		</div>
 	);
 }
@@ -1626,113 +1726,3 @@ export function AdminUpdates() {
 	);
 }
 
-// ─── Waitlist ─────────────────────────────────────────────────────────────────
-
-export function AdminWaitlist() {
-	const [clients, setClients] = useState<Client[]>([]);
-	const [loading, setLoading] = useState(true);
-
-	useEffect(() => {
-		api.clients.admin.get({ query: { stage: 'waitlisted' } }).then(({ data }) => {
-			if (data) setClients((data as Client[]).sort((a, b) => a.priority - b.priority));
-			setLoading(false);
-		});
-	}, []);
-
-	const depositClients = clients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
-	const standardClients = clients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
-
-	const move = async (list: Client[], index: number, direction: -1 | 1) => {
-		const allOther = clients.filter((c) => !list.includes(c));
-		const next = [...list];
-		const swapIdx = index + direction;
-		if (swapIdx < 0 || swapIdx >= next.length) return;
-		[next[index], next[swapIdx]] = [next[swapIdx], next[index]];
-		// Deposit clients take slots 10..N*10, standard clients continue from there
-		const combined = list === depositClients
-			? [...next, ...allOther]
-			: [...allOther, ...next];
-		const order = combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 }));
-		setClients(combined);
-		await api.clients.admin.waitlist.reorder.patch({ order });
-	};
-
-	const depositBadge = (c: Client) => {
-		if (c.depositStatus === 'paid') return <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Paid</span>;
-		if (c.depositStatus === 'pending') return <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Pending</span>;
-		return null;
-	};
-
-	const ClientRow = ({ client, index, list }: { client: Client; index: number; list: Client[] }) => (
-		<div key={client.id} className="flex items-center gap-4 px-5 py-4">
-			<span className="text-stone-300 font-mono text-sm w-6 text-center">{index + 1}</span>
-			<div className="flex-1 min-w-0">
-				<div className="flex items-center gap-2">
-					<p className="font-medium text-stone-900 text-sm truncate">{client.firstName} {client.lastName}</p>
-					{depositBadge(client)}
-				</div>
-				<p className="text-xs text-stone-400">{client.email}</p>
-			</div>
-			<div className="text-xs text-stone-400">
-				{(client.applicationData as Record<string, unknown>)?.preferredSex as string ?? '—'}
-			</div>
-			<div className="flex flex-col gap-0.5">
-				<button onClick={() => move(list, index, -1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▲</button>
-				<button onClick={() => move(list, index, 1)} className="text-stone-400 hover:text-stone-700 text-xs px-1">▼</button>
-			</div>
-			<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
-				View
-			</Link>
-		</div>
-	);
-
-	return (
-		<div className="p-8 max-w-2xl">
-			<PageHeader title="Waitlist" subtitle="Clients with a deposit are matched first. Reorder within each section using the arrows." />
-
-			{loading ? <LoadingPage /> : clients.length === 0 ? (
-				<Card><EmptyState icon="📋" title="Waitlist is empty" /></Card>
-			) : (
-				<div className="flex flex-col gap-6">
-					{/* Priority section */}
-					<div>
-						<div className="flex items-center gap-2 mb-3">
-							<span className="text-sm font-semibold text-stone-700">Priority — Deposit</span>
-							<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{depositClients.length}</span>
-						</div>
-						<Card>
-							{depositClients.length === 0 ? (
-								<div className="px-5 py-4 text-sm text-stone-400">No clients with a deposit yet.</div>
-							) : (
-								<div className="divide-y divide-stone-100">
-									{depositClients.map((client, i) => (
-										<ClientRow key={client.id} client={client} index={i} list={depositClients} />
-									))}
-								</div>
-							)}
-						</Card>
-					</div>
-
-					{/* Standard section */}
-					<div>
-						<div className="flex items-center gap-2 mb-3">
-							<span className="text-sm font-semibold text-stone-700">Standard — No Deposit</span>
-							<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{standardClients.length}</span>
-						</div>
-						<Card>
-							{standardClients.length === 0 ? (
-								<div className="px-5 py-4 text-sm text-stone-400">No clients without a deposit.</div>
-							) : (
-								<div className="divide-y divide-stone-100">
-									{standardClients.map((client, i) => (
-										<ClientRow key={client.id} client={client} index={i} list={standardClients} />
-									))}
-								</div>
-							)}
-						</Card>
-					</div>
-				</div>
-			)}
-		</div>
-	);
-}
