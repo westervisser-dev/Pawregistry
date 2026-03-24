@@ -1253,9 +1253,15 @@ function ClientDndTable({ title, clients, onReorder, onDepositUpdate }: {
 									onDepositUpdate={onDepositUpdate}
 								/>
 							))}
+							{clients.length === 0 && (
+								<tr>
+									<td colSpan={8} className="py-3 px-4 text-sm text-stone-400 text-center">
+										👥 No clients
+									</td>
+								</tr>
+							)}
 						</SortableContext>
 					</AdminTable>
-					{clients.length === 0 && <EmptyState icon="👥" title="No clients" />}
 				</DndContext>
 			</Card>
 		</div>
@@ -1316,8 +1322,14 @@ function ClientReadTable({ title, clients, onDepositUpdate }: {
 							</tr>
 						);
 					})}
+					{clients.length === 0 && (
+						<tr>
+							<td colSpan={6} className="py-3 px-4 text-sm text-stone-400 text-center">
+								👥 No clients
+							</td>
+						</tr>
+					)}
 				</AdminTable>
-				{clients.length === 0 && <EmptyState icon="👥" title="No clients" />}
 			</Card>
 		</div>
 	);
