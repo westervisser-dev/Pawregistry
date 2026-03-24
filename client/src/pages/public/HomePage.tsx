@@ -125,10 +125,7 @@ export function HomePage() {
 									to={`/litters/${litter.id}`}
 									className="bg-white rounded-xl border border-stone-200 overflow-hidden hover:shadow-md transition-shadow"
 								>
-									<div className="h-40 bg-stone-100 flex items-center justify-center text-4xl">
-										🐶
-									</div>
-									<div className="p-5">
+										<div className="p-5">
 										<div className="flex items-start justify-between mb-2">
 											<h3 className="font-medium text-stone-900">{litter.name}</h3>
 											<LitterStatusBadge status={litter.status} />
