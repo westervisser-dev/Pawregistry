@@ -88,13 +88,13 @@ export function DogProfilePage() {
 		});
 	}, [id]);
 
-	if (loading) return <LoadingPage />;
-	if (!dog) return <div className="p-16 text-center text-stone-500">Dog not found.</div>;
-
 	useEffect(() => {
 		document.title = 'DogProfile — Paw Registry';
 		return () => { document.title = 'Paw Registry'; };
 	}, []);
+
+	if (loading) return <LoadingPage />;
+	if (!dog) return <div className="p-16 text-center text-stone-500">Dog not found.</div>;
 
 	return (
 		<div className="max-w-5xl mx-auto px-6 py-16">
