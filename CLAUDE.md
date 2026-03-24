@@ -107,7 +107,7 @@ Same pattern for `portal/`.
 
 ## Important Rules
 
-**1. Always end features with:**
+**1. Always end all feature requests with a command back to the user with a commit:**
 ```bash
 git add -A && git commit -m "feat: <description>" && git push origin <branch>
 ```
