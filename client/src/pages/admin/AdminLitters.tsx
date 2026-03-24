@@ -28,14 +28,18 @@ export function AdminLitters() {
 			/>
 			{loading ? <LoadingPage /> : (
 				<Card>
-					<AdminTable headers={['Name', 'Status', 'Sire × Dam', 'Whelp Date', 'Available', '']}>
+					<AdminTable headers={['Name', 'Status', 'Sire × Dam', 'Public ?', '']}>
 						{litters.map((litter) => (
 							<tr key={litter.id} className="border-b border-stone-100 hover:bg-stone-50">
 								<td className="py-3 px-4 font-medium text-stone-900">{litter.name}</td>
 								<td className="py-3 px-4"><LitterStatusBadge status={litter.status} /></td>
 								<td className="py-3 px-4 text-stone-500 text-xs">{(litter as unknown as { sire: Dog; dam: Dog }).sire?.name ?? litter.sireId} × {(litter as unknown as { sire: Dog; dam: Dog }).dam?.name ?? litter.damId}</td>
-								<td className="py-3 px-4 text-stone-600">{litter.whelpDate ? new Date(litter.whelpDate).toLocaleDateString('en-ZA') : '—'}</td>
-								<td className="py-3 px-4 text-stone-600">{litter.availableCount ?? '—'}</td>
+								<td className="py-3 px-4">
+									{litter.isPublic
+										? <span className="inline-flex items-center text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">Yes</span>
+										: <span className="inline-flex items-center text-xs font-medium text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">No</span>
+									}
+								</td>
 								<td className="py-3 px-4">
 									<Link to={`/admin/litters/${litter.id}`} className="text-sm text-brand-600 hover:underline">Edit →</Link>
 								</td>
