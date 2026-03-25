@@ -94,7 +94,7 @@ export function AdminLayout() {
 
 			{/* Sidebar — off-canvas on mobile, always visible on md+ */}
 			<aside className={`
-				fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-stone-200 flex flex-col
+				fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg flex flex-col
 				transform transition-transform duration-200
 				${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
 				md:translate-x-0 md:static md:z-auto
