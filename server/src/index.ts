@@ -50,3 +50,4 @@ const app = new Elysia()
 console.log(`🐾 Paw Registry API running at ${app.server?.hostname}:${app.server?.port}`);
 
 export type App = typeof app;
+

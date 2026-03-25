@@ -26,7 +26,7 @@ function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 		<>
 			<div className="p-5 border-b border-stone-700">
 				<Link to="/" className="flex items-center gap-2" onClick={onLinkClick}>
-					<span className="text-xl">🐾</span>
+					<span style={{ fontSize: '1.375rem' }}>🐾</span>
 					<span className="font-serif font-bold text-white">Paw Registry</span>
 				</Link>
 				<span className="inline-block mt-1 text-xs px-2 py-0.5 bg-brand-600 text-white rounded-full">
@@ -116,7 +116,7 @@ export function AdminLayout() {
 						<span className="block h-0.5 w-5 bg-stone-300" />
 					</button>
 					<Link to="/" className="flex items-center gap-2">
-						<span className="text-lg">🐾</span>
+						<span style={{ fontSize: '1.238rem' }}>🐾</span>
 						<span className="font-serif font-bold text-white text-sm">Paw Registry</span>
 					</Link>
 					<span className="text-xs px-2 py-0.5 bg-brand-600 text-white rounded-full">Admin</span>
