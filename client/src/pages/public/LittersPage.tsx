@@ -4,9 +4,63 @@ import { api } from '@/lib/api';
 import type { LitterWithDogs } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, EmptyState, BreedBadge } from '@/components/ui';
 
+function LitterGateModal({ onClose }: { onClose: () => void }) {
+	return (
+		<div
+			className="fixed inset-0 z-50 flex items-center justify-center p-4"
+			style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+			onClick={onClose}
+		>
+			<div
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="modal-title"
+				className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center"
+				onClick={(e) => e.stopPropagation()}
+			>
+				<div className="text-4xl mb-4">🐾</div>
+				<h2 id="modal-title" className="font-serif text-xl font-bold text-stone-900 mb-3">
+					Application required
+				</h2>
+				<p className="text-stone-600 text-sm leading-relaxed mb-6">
+					To view litter details, please complete the application form so that we may add you as a prospective client.
+					If you've already applied, you can access full litter details from your client portal.
+				</p>
+				<div className="flex flex-col sm:flex-row gap-3">
+					<Link
+						to="/apply"
+						className="flex-1 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-xl transition-colors"
+					>
+						Apply now
+					</Link>
+					<Link
+						to="/login"
+						onClick={onClose}
+						className="flex-1 px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-xl transition-colors"
+					>
+						Go to portal
+					</Link>
+				</div>
+				<button
+					onClick={onClose}
+					className="mt-4 text-xs text-stone-400 hover:text-stone-600 underline underline-offset-2 cursor-pointer"
+				>
+					Dismiss
+				</button>
+			</div>
+		</div>
+	);
+}
+
 export function LittersPage() {
 	const [litters, setLitters] = useState<LitterWithDogs[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [showModal, setShowModal] = useState(false);
+
+	useEffect(() => {
+		document.title = 'Available Litters — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
 
 	useEffect(() => {
 		api.litters.get().then(({ data }) => {
@@ -15,17 +69,11 @@ export function LittersPage() {
 		});
 	}, []);
 
-	useEffect(() => {
-		document.title = 'Available Litters — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
-
 	if (loading) return <LoadingPage />;
 
 	return (
 		<div className="max-w-6xl mx-auto px-6 py-16">
 
-			{/* Left-aligned header */}
 			<div className="mb-12">
 				<h1 className="font-serif text-4xl font-bold text-stone-900 mb-2">Our litters</h1>
 				<p className="text-stone-500 max-w-lg">
@@ -41,12 +89,12 @@ export function LittersPage() {
 						const hasAvailable = (litter.availableCount ?? 0) > 0;
 
 						return (
-							<Link
+							<button
 								key={litter.id}
-								to={`/litters/${litter.id}`}
-								className="group bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 flex flex-col"
+								type="button"
+								onClick={() => setShowModal(true)}
+								className="group bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 flex flex-col text-left w-full"
 							>
-								{/* Card body */}
 								<div className="p-5 flex flex-col flex-1 relative">
 									<div className="flex items-start justify-between gap-3 mb-2">
 										<h2 className="font-serif text-lg font-bold text-stone-900 group-hover:text-brand-600 transition-colors leading-snug">
@@ -76,19 +124,17 @@ export function LittersPage() {
 										)}
 									</div>
 
-									{/* Available count — inline, no heavy row */}
 									{hasAvailable && (
 										<p className="mt-3 text-sm font-semibold text-brand-600 pr-6">
 											{litter.availableCount} {litter.availableCount === 1 ? 'puppy' : 'puppies'} available
 										</p>
 									)}
 
-									{/* Subtle corner arrow */}
 									<span className="absolute bottom-4 right-5 text-xs text-stone-300 group-hover:text-stone-400 group-hover:translate-x-0.5 transition-all duration-150">
 										→
 									</span>
 								</div>
-							</Link>
+							</button>
 						);
 					})}
 				</div>
@@ -106,6 +152,8 @@ export function LittersPage() {
 					</Link>
 				</div>
 			</div>
+
+			{showModal && <LitterGateModal onClose={() => setShowModal(false)} />}
 		</div>
 	);
 }

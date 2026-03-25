@@ -58,7 +58,6 @@ const HomePage = lazy$(() => import('@/pages/public/HomePage'), 'HomePage');
 const DogsPage = lazy$(() => import('@/pages/public/DogsPage'), 'DogsPage');
 const DogProfilePage = lazy$(() => import('@/pages/public/DogProfilePage'), 'DogProfilePage');
 const LittersPage = lazy$(() => import('@/pages/public/LittersPage'), 'LittersPage');
-const LitterPage = lazy$(() => import('@/pages/public/LitterPage'), 'LitterPage');
 const ApplyPage = lazy$(() => import('@/pages/public/ApplyPage'), 'ApplyPage');
 const AboutPage = lazy$(() => import('@/pages/public/AboutPage'), 'AboutPage');
 
@@ -105,7 +104,6 @@ function App() {
 						<Route path="/dogs" element={<DogsPage />} />
 						<Route path="/dogs/:id" element={<DogProfilePage />} />
 						<Route path="/litters" element={<LittersPage />} />
-						<Route path="/litters/:id" element={<LitterPage />} />
 						<Route path="/apply" element={<ApplyPage />} />
 						<Route path="/about" element={<AboutPage />} />
 					</Route>
