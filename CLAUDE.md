@@ -107,7 +107,7 @@ Same pattern for `portal/`.
 
 ## Important Rules
 
-**1. Always end all feature requests with a command back to the user with a commit:**
+**1. Once any changes are made to the codebase provide a git commit command back to the user:**
 ```bash
 git add -A && git commit -m "feat: <description>" && git push origin <branch>
 ```
@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS "my_table" (
 );
 ```
 Also update `server/src/db/schema.ts` and `shared/src/index.ts`.
-
+Always let user run SQL scripts.
 ---
 
 ## Storage Buckets

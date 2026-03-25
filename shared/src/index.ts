@@ -72,7 +72,6 @@ export interface Litter {
 	puppyCount: number | null;
 	availableCount: number | null;
 	depositAmount: number | null;
-	purchasePrice: number | null;
 	notes: string | null;
 	coverImageUrl: string | null;
 	isPublic: boolean;

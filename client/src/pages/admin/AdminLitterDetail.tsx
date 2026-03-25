@@ -458,10 +458,6 @@ export function AdminLitterDetail() {
 							<span className="text-stone-500">Deposit</span>
 							<span>{litter.depositAmount ? `R${litter.depositAmount}` : '—'}</span>
 						</div>
-						<div className="flex justify-between">
-							<span className="text-stone-500">Price</span>
-							<span>{litter.purchasePrice ? `R${litter.purchasePrice}` : '—'}</span>
-						</div>
 					</div>
 				</Card>
 			</div>

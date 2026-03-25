@@ -46,12 +46,6 @@ export function LitterPage() {
 						)}
 					</div>
 				</div>
-				{litter.purchasePrice && (
-					<div className="text-right">
-						<p className="text-sm text-stone-500">Purchase price</p>
-						<p className="font-bold text-stone-900 text-xl">R{litter.purchasePrice.toLocaleString()}</p>
-					</div>
-				)}
 			</div>
 
 			{/* Parents */}

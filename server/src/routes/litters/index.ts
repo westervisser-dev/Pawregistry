@@ -53,7 +53,6 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				expectedDate: t.Optional(t.Nullable(t.String())),
 				whelpDate: t.Optional(t.Nullable(t.String())),
 				depositAmount: t.Optional(t.Nullable(t.Number())),
-				purchasePrice: t.Optional(t.Nullable(t.Number())),
 				notes: t.Optional(t.Nullable(t.String())),
 				isPublic: t.Optional(t.Boolean()),
 			}),
@@ -81,7 +80,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			whelpDate: t.Nullable(t.String()),
 			expectedDate: t.Nullable(t.String()), puppyCount: t.Nullable(t.Number()),
 			availableCount: t.Nullable(t.Number()), depositAmount: t.Nullable(t.Number()),
-			purchasePrice: t.Nullable(t.Number()), notes: t.Nullable(t.String()), isPublic: t.Boolean(),
+			notes: t.Nullable(t.String()), isPublic: t.Boolean(),
 		})) }
 	)
 

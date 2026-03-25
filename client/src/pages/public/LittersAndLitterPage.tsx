@@ -122,7 +122,6 @@ export function LitterPage() {
 					{ label: 'Whelp Date', value: litter.whelpDate ?? 'TBC' },
 					{ label: 'Total Puppies', value: litter.puppyCount ?? 'TBC' },
 					{ label: 'Available', value: litter.availableCount ?? 'TBC' },
-					{ label: 'Price', value: litter.purchasePrice ? `R${litter.purchasePrice.toLocaleString()}` : 'On request' },
 				].map(({ label, value }) => (
 					<div key={label} className="bg-stone-50 rounded-xl border border-stone-200 p-4">
 						<p className="text-xs text-stone-400 uppercase tracking-wide mb-1">{label}</p>

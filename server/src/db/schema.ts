@@ -131,7 +131,6 @@ export const litters = pgTable('litters', {
 	puppyCount: integer('puppy_count'),
 	availableCount: integer('available_count'),
 	depositAmount: real('deposit_amount'),
-	purchasePrice: real('purchase_price'),
 	notes: text('notes'),
 	coverImageUrl: text('cover_image_url'),
 	isPublic: boolean('is_public').notNull().default(false),
