@@ -179,6 +179,47 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		{ body: t.Object({ order: t.Array(t.Object({ id: t.String(), priority: t.Number() })) }) }
 	)
 
+	// ── Admin: generate portal link without sending email (impersonation / support) ──
+	.post(
+		'/admin/:id/impersonate',
+		async ({ params, error }) => {
+			const client = await db.query.clients.findFirst({ where: eq(clients.id, params.id) });
+			if (!client) return error(404, { error: 'Not found', message: 'Client not found' });
+
+			const { supabase } = await import('../../lib/supabase');
+			const { data, error: linkError } = await supabase.auth.admin.generateLink({
+				type: 'magiclink',
+				email: client.email,
+				options: { redirectTo: `${process.env.CLIENT_URL}/portal/callback` },
+			});
+
+			if (linkError || !data?.properties?.action_link) {
+				return error(500, { error: 'Link generation failed', message: linkError?.message ?? 'Unknown error' });
+			}
+
+			return { url: data.properties.action_link };
+		}
+	)
+
+	// ── Admin: send portal invite email to client ──
+	.post(
+		'/admin/:id/send-invite',
+		async ({ params, error }) => {
+			const client = await db.query.clients.findFirst({ where: eq(clients.id, params.id) });
+			if (!client) return error(404, { error: 'Not found', message: 'Client not found' });
+
+			const { supabase } = await import('../../lib/supabase');
+			const { error: authError } = await supabase.auth.signInWithOtp({
+				email: client.email,
+				options: { emailRedirectTo: `${process.env.CLIENT_URL}/portal/callback` },
+			});
+
+			if (authError) return error(500, { error: 'Auth error', message: authError.message });
+
+			return { message: `Portal invite sent to ${client.email}.` };
+		}
+	)
+
 	// ── Admin: delete client ──
 	.delete(
 		'/admin/:id',
