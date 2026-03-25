@@ -24,17 +24,15 @@ interface AdminSidebarProps {
 function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 	return (
 		<>
-			<div className="p-5 border-b border-stone-700">
+			<div className="p-6 border-b border-stone-200">
 				<Link to="/" className="flex items-center gap-2" onClick={onLinkClick}>
 					<span style={{ fontSize: '1.375rem' }}>🐾</span>
-					<span className="font-serif font-bold text-white">Paw Registry</span>
+					<span className="font-serif font-bold text-stone-900">Paw Registry</span>
 				</Link>
-				<span className="inline-block mt-1 text-xs px-2 py-0.5 bg-brand-600 text-white rounded-full">
-					Admin
-				</span>
+				<p className="text-xs text-stone-500 mt-1">Admin Portal</p>
 			</div>
 
-			<nav className="flex-1 p-3 flex flex-col gap-0.5">
+			<nav className="flex-1 p-4 flex flex-col gap-1">
 				{adminNav.map(({ to, label, icon, end }) => (
 					<NavLink
 						key={to}
@@ -44,8 +42,8 @@ function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 						className={({ isActive }) =>
 							`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
 								isActive
-									? 'bg-white/10 text-white'
-									: 'text-stone-400 hover:bg-white/5 hover:text-stone-200'
+									? 'bg-brand-50 text-brand-700'
+									: 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
 							}`
 						}
 					>
@@ -55,11 +53,13 @@ function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 				))}
 			</nav>
 
-			<div className="p-4 border-t border-stone-700">
-				<p className="text-xs text-stone-500 px-3 mb-2 truncate">{email}</p>
+			<div className="p-4 border-t border-stone-200">
+				<div className="px-3 py-2 mb-2">
+					<p className="text-xs font-medium text-stone-900 truncate">{email}</p>
+				</div>
 				<button
 					onClick={signOut}
-					className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-stone-400 hover:bg-white/5 hover:text-stone-200 transition-colors"
+					className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors"
 				>
 					<span>↩</span> Sign out
 				</button>
@@ -94,7 +94,7 @@ export function AdminLayout() {
 
 			{/* Sidebar — off-canvas on mobile, always visible on md+ */}
 			<aside className={`
-				fixed inset-y-0 left-0 z-50 w-60 bg-stone-900 flex flex-col
+				fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-stone-200 flex flex-col
 				transform transition-transform duration-200
 				${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
 				md:translate-x-0 md:static md:z-auto
@@ -105,21 +105,21 @@ export function AdminLayout() {
 			{/* Main */}
 			<div className="flex-1 flex flex-col min-w-0">
 				{/* Mobile top bar */}
-				<div className="md:hidden sticky top-0 z-30 bg-stone-900 h-14 flex items-center px-4 gap-3 border-b border-stone-700">
+				<div className="md:hidden sticky top-0 z-30 bg-white border-b border-stone-200 h-14 flex items-center px-4 gap-3">
 					<button
 						onClick={() => setSidebarOpen(true)}
-						className="flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-white/10 transition-colors"
+						className="flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-stone-100 transition-colors"
 						aria-label="Open menu"
 					>
-						<span className="block h-0.5 w-5 bg-stone-300" />
-						<span className="block h-0.5 w-5 bg-stone-300" />
-						<span className="block h-0.5 w-5 bg-stone-300" />
+						<span className="block h-0.5 w-5 bg-stone-700" />
+						<span className="block h-0.5 w-5 bg-stone-700" />
+						<span className="block h-0.5 w-5 bg-stone-700" />
 					</button>
 					<Link to="/" className="flex items-center gap-2">
 						<span style={{ fontSize: '1.238rem' }}>🐾</span>
-						<span className="font-serif font-bold text-white text-sm">Paw Registry</span>
+						<span className="font-serif font-bold text-stone-900 text-sm">Paw Registry</span>
 					</Link>
-					<span className="text-xs px-2 py-0.5 bg-brand-600 text-white rounded-full">Admin</span>
+					<span className="text-xs text-stone-500">Admin Portal</span>
 				</div>
 
 				<main id="main-content" className="flex-1">
