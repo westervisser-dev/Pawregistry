@@ -1,0 +1,116 @@
+import { Resend } from 'resend';
+import { eq } from 'drizzle-orm';
+import { db } from '../db';
+import { emailTemplates, emailLogs, clients, litters } from '../db/schema';
+
+let _resend: Resend | null = null;
+function getResend(): Resend {
+	if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY ?? '');
+	return _resend;
+}
+
+// Maps client stage values to email trigger identifiers
+const STAGE_TRIGGER: Partial<Record<string, string>> = {
+	enquired: 'stage_enquired',
+	approved: 'stage_approved',
+	waitlisted: 'stage_waitlisted',
+	placed: 'stage_placed',
+	match_requested: 'stage_match_requested',
+	matched: 'stage_matched',
+	matched_paid: 'stage_matched_paid',
+};
+
+function interpolate(text: string, vars: Record<string, string>): string {
+	return text.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? '');
+}
+
+function toHtml(plainText: string): string {
+	const escaped = plainText
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;');
+
+	const lines = escaped.split('\n').map(line => {
+		const linked = line.replace(
+			/(https?:\/\/[^\s]+)/g,
+			'<a href="$1" style="color:#92400e;text-decoration:underline">$1</a>',
+		);
+		return linked
+			? `<p style="margin:0 0 14px 0;color:#1c1917;font-size:15px;line-height:1.65">${linked}</p>`
+			: '<p style="margin:0 0 8px 0">&nbsp;</p>';
+	});
+
+	return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f5f5f4;padding:40px 20px">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px" cellpadding="0" cellspacing="0" role="presentation">
+        <tr><td style="background:#1c1917;border-radius:12px 12px 0 0;padding:24px 32px">
+          <p style="margin:0;color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-0.02em">🐾 Paw Registry</p>
+        </td></tr>
+        <tr><td style="background:#ffffff;padding:32px;border-left:1px solid #e7e5e4;border-right:1px solid #e7e5e4">
+          ${lines.join('\n          ')}
+        </td></tr>
+        <tr><td style="background:#f5f5f4;border-radius:0 0 12px 12px;padding:18px 32px;border:1px solid #e7e5e4;border-top:none">
+          <p style="margin:0;font-size:12px;color:#a8a29e">This is a transactional message related to your application with Paw Registry.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendStageEmail(clientId: string, stage: string): Promise<void> {
+	const trigger = STAGE_TRIGGER[stage];
+	if (!trigger) return;
+
+	const [client] = await db.select().from(clients).where(eq(clients.id, clientId));
+	if (!client) return;
+
+	const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.trigger, trigger));
+	if (!template?.enabled) return;
+
+	const vars: Record<string, string> = {
+		first_name: client.firstName,
+		full_name: `${client.firstName} ${client.lastName}`,
+		portal_link: `${process.env.CLIENT_URL}/portal`,
+		documents_link: `${process.env.CLIENT_URL}/portal/documents`,
+	};
+
+	if (client.litterId) {
+		const [litter] = await db.select().from(litters).where(eq(litters.id, client.litterId));
+		if (litter) {
+			vars.litter_name = litter.name;
+			vars.litter_breed = litter.breed ?? 'TBC';
+			vars.litter_expected_date = litter.expectedDate ?? litter.whelpDate ?? 'TBC';
+			vars.litter_link = `${process.env.CLIENT_URL}/portal/litters/${litter.id}`;
+		}
+	}
+
+	const subject = interpolate(template.subject, vars);
+	const body = interpolate(template.body, vars);
+	const html = toHtml(body);
+
+	let resendId: string | null = null;
+	let sendError: string | null = null;
+
+	try {
+		const from = process.env.RESEND_FROM_EMAIL ?? 'Paw Registry <onboarding@resend.dev>';
+		const { data, error } = await getResend().emails.send({ from, to: client.email, subject, html });
+		if (error) sendError = error.message;
+		else resendId = data?.id ?? null;
+	} catch (e) {
+		sendError = e instanceof Error ? e.message : 'Unknown send error';
+	}
+
+	await db.insert(emailLogs).values({
+		clientId: client.id,
+		trigger,
+		subject,
+		resendId,
+		metadata: { stage, error: sendError },
+	});
+}

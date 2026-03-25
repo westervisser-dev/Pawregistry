@@ -2,8 +2,18 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
-import type { Client, ClientStage } from '@paw-registry/shared';
+import type { Client, ClientStage, EmailLog } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
+
+const EMAIL_TRIGGER_LABELS: Record<string, string> = {
+	stage_enquired: 'Application Received',
+	stage_approved: 'Application Approved',
+	stage_waitlisted: 'Added to Waitlist',
+	stage_placed: 'Litter Matched',
+	stage_match_requested: 'Puppy Selection',
+	stage_matched: 'Puppy Reserved',
+	stage_matched_paid: 'Payment Confirmed',
+};
 
 // ─── Application view helpers ─────────────────────────────────────────────────
 
@@ -91,12 +101,17 @@ export function AdminClientDetail() {
 	const [deleting, setDeleting] = useState(false);
 	const [portalAction, setPortalAction] = useState<'impersonate' | 'invite' | null>(null);
 	const [portalMessage, setPortalMessage] = useState('');
+	const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
 
 	const load = () => {
 		if (!id) return;
 		api.clients.admin({ id }).get().then(({ data }) => {
 			if (data) setClient(data as Client);
 			setLoading(false);
+		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.email as any).logs.get({ query: { clientId: id } }).then(({ data }: { data: EmailLog[] | null }) => {
+			if (data) setEmailLogs(data);
 		});
 	};
 
@@ -348,6 +363,30 @@ export function AdminClientDetail() {
 						<p role="status" className="text-sm text-stone-500">{portalMessage}</p>
 					)}
 				</div>
+			</Card>
+
+			{/* Email history */}
+			<Card className="p-5 mb-6">
+				<h3 className="font-medium text-stone-900 mb-3">Email History</h3>
+				{emailLogs.length === 0 ? (
+					<p className="text-sm text-stone-400">No emails sent yet.</p>
+				) : (
+					<div className="divide-y divide-stone-100">
+						{emailLogs.map(log => (
+							<div key={log.id} className="py-2.5">
+								<p className="text-sm text-stone-800">{log.subject}</p>
+								<p className="text-xs text-stone-400 mt-0.5">
+									{EMAIL_TRIGGER_LABELS[log.trigger] ?? log.trigger}
+									{' · '}
+									{new Date(log.sentAt).toLocaleString()}
+									{!!log.metadata?.error && (
+										<span className="text-red-500 ml-2">Failed: {String(log.metadata.error)}</span>
+									)}
+								</p>
+							</div>
+						))}
+					</div>
+				)}
 			</Card>
 
 			<button

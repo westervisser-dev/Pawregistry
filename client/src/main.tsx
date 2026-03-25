@@ -86,6 +86,7 @@ const AdminClientDetail = lazy$(() => import('@/pages/admin/AdminClientDetail'),
 const AdminUpdates = lazy$(() => import('@/pages/admin/AdminUpdates'), 'AdminUpdates');
 const AdminDocuments = lazy$(() => import('@/pages/admin/AdminDocuments'), 'AdminDocuments');
 const AdminAdmins = lazy$(() => import('@/pages/admin/AdminAdmins'), 'AdminAdmins');
+const AdminEmails = lazy$(() => import('@/pages/admin/AdminEmails'), 'AdminEmails');
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
@@ -141,6 +142,7 @@ function App() {
 							<Route path="/admin/updates" element={<AdminUpdates />} />
 							<Route path="/admin/documents" element={<AdminDocuments />} />
 							<Route path="/admin/admins" element={<AdminAdmins />} />
+							<Route path="/admin/emails" element={<AdminEmails />} />
 						</Route>
 					</Route>
 

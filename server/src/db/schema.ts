@@ -317,3 +317,30 @@ export const clientTemplateChecklistRelations = relations(clientTemplateChecklis
 	client: one(clients, { fields: [clientTemplateChecklist.clientId], references: [clients.id] }),
 	template: one(documentTemplates, { fields: [clientTemplateChecklist.templateId], references: [documentTemplates.id] }),
 }));
+
+// ─── Email Templates ──────────────────────────────────────────────────────────
+
+export const emailTemplates = pgTable('email_templates', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	trigger: text('trigger').notNull().unique(),
+	subject: text('subject').notNull(),
+	body: text('body').notNull(),
+	enabled: boolean('enabled').notNull().default(true),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ─── Email Logs ───────────────────────────────────────────────────────────────
+
+export const emailLogs = pgTable('email_logs', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+	trigger: text('trigger').notNull(),
+	subject: text('subject').notNull(),
+	resendId: text('resend_id'),
+	sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+	metadata: jsonb('metadata').notNull().default({}).$type<Record<string, unknown>>(),
+});
+
+export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
+	client: one(clients, { fields: [emailLogs.clientId], references: [clients.id] }),
+}));

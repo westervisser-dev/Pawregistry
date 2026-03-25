@@ -280,6 +280,27 @@ export interface Admin {
 	createdAt: string;
 }
 
+// ─── Email ────────────────────────────────────────────────────────────────────
+
+export interface EmailTemplate {
+	id: string;
+	trigger: string;
+	subject: string;
+	body: string;
+	enabled: boolean;
+	updatedAt: string;
+}
+
+export interface EmailLog {
+	id: string;
+	clientId: string;
+	trigger: string;
+	subject: string;
+	resendId: string | null;
+	sentAt: string;
+	metadata: Record<string, unknown>;
+}
+
 // ─── API response helpers ────────────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {

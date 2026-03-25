@@ -3,6 +3,7 @@ import { eq, asc, desc } from 'drizzle-orm';
 import { db } from '../../db';
 import { clients } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
+import { sendStageEmail } from '../../lib/email';
 
 const applicationDataSchema = t.Object({
 	// ── Existing fields ──
@@ -72,6 +73,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				depositStatus: body.depositStatus ?? 'none',
 				stage: 'enquired',
 			}).returning();
+			sendStageEmail(client.id, 'enquired').catch(console.error);
 			return { id: client.id, message: 'Application received. We will be in touch soon.' };
 		},
 		{
@@ -140,12 +142,23 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 	.patch(
 		'/admin/:id',
 		async ({ params, body, error }) => {
+			// Fetch current stage only if a stage change is requested (avoid extra query otherwise)
+			const current = body.stage
+				? await db.query.clients.findFirst({ where: eq(clients.id, params.id), columns: { stage: true } })
+				: null;
+
 			const [updated] = await db
 				.update(clients)
 				.set({ ...body, updatedAt: new Date() })
 				.where(eq(clients.id, params.id))
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Client not found' });
+
+			// Fire stage email only when stage actually changed
+			if (body.stage && current && body.stage !== current.stage) {
+				sendStageEmail(params.id, body.stage).catch(console.error);
+			}
+
 			return updated;
 		},
 		{
