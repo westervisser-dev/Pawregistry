@@ -9,6 +9,7 @@ const adminNav = [
 	{ to: '/admin/clients', label: 'Clients', icon: '👥' },
 	{ to: '/admin/updates', label: 'Updates', icon: '📷' },
 	{ to: '/admin/documents', label: 'Documents', icon: '📁' },
+	{ to: '/admin/admins', label: 'Admins', icon: '🔑' },
 ];
 
 // ─── Sidebar content extracted so it never remounts on parent re-renders ──────

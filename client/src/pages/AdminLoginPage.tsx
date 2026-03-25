@@ -3,8 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 
-const ADMIN_EMAIL = 'westervisser@gmail.com';
-
 export function AdminLoginPage() {
 	const navigate = useNavigate();
 	const init = useAuthStore((s) => s.init);
@@ -16,10 +14,6 @@ export function AdminLoginPage() {
 	const submit = async () => {
 		setError('');
 		if (!email || !password) return;
-		if (email !== ADMIN_EMAIL) {
-			setError('Unauthorised email address.');
-			return;
-		}
 		setLoading(true);
 		const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
 		if (authError) {
@@ -28,6 +22,13 @@ export function AdminLoginPage() {
 			return;
 		}
 		await init();
+		const { isAdmin } = useAuthStore.getState();
+		if (!isAdmin) {
+			await supabase.auth.signOut();
+			setLoading(false);
+			setError('This account does not have admin access.');
+			return;
+		}
 		navigate('/admin', { replace: true });
 	};
 

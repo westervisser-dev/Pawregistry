@@ -3,13 +3,13 @@ import { eq } from 'drizzle-orm';
 import { supabase } from '../../lib/supabase';
 import { db } from '../../db';
 import { clients } from '../../db/schema';
+import { isAdminUser } from '../../lib/auth';
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
 	// Send magic link to a client email
 	.post(
 		'/magic-link',
 		async ({ body, error }) => {
-			const adminIds = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim());
 			const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 			const isAdmin = adminEmails.includes(body.email);
 
@@ -63,10 +63,13 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 					.where(eq(clients.id, client.id));
 			}
 
+			const isAdmin = await isAdminUser(user.id);
+
 			return {
 				userId: user.id,
 				email: user.email,
 				hasClientRecord: !!client,
+				isAdmin,
 			};
 		},
 		{ body: t.Object({ accessToken: t.String() }) }

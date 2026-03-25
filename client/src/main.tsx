@@ -65,6 +65,7 @@ const AboutPage = lazy$(() => import('@/pages/public/AboutPage'), 'AboutPage');
 const LoginPage = lazy$(() => import('@/pages/LoginPage'), 'LoginPage');
 const CallbackPage = lazy$(() => import('@/pages/CallbackPage'), 'CallbackPage');
 const AdminLoginPage = lazy$(() => import('@/pages/AdminLoginPage'), 'AdminLoginPage');
+const AdminInviteCallbackPage = lazy$(() => import('@/pages/AdminInviteCallbackPage'), 'AdminInviteCallbackPage');
 
 // Portal
 const PortalDashboard = lazy$(() => import('@/pages/portal/PortalDashboard'), 'PortalDashboard');
@@ -84,6 +85,7 @@ const AdminClients = lazy$(() => import('@/pages/admin/AdminClients'), 'AdminCli
 const AdminClientDetail = lazy$(() => import('@/pages/admin/AdminClientDetail'), 'AdminClientDetail');
 const AdminUpdates = lazy$(() => import('@/pages/admin/AdminUpdates'), 'AdminUpdates');
 const AdminDocuments = lazy$(() => import('@/pages/admin/AdminDocuments'), 'AdminDocuments');
+const AdminAdmins = lazy$(() => import('@/pages/admin/AdminAdmins'), 'AdminAdmins');
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
@@ -111,6 +113,7 @@ function App() {
 					{/* Auth */}
 					<Route path="/login" element={<LoginPage />} />
 					<Route path="/admin/login" element={<AdminLoginPage />} />
+					<Route path="/admin/invite-callback" element={<AdminInviteCallbackPage />} />
 					<Route path="/portal/callback" element={<CallbackPage />} />
 
 					{/* Client portal */}
@@ -137,6 +140,7 @@ function App() {
 							<Route path="/admin/clients/:id" element={<AdminClientDetail />} />
 							<Route path="/admin/updates" element={<AdminUpdates />} />
 							<Route path="/admin/documents" element={<AdminDocuments />} />
+							<Route path="/admin/admins" element={<AdminAdmins />} />
 						</Route>
 					</Route>
 

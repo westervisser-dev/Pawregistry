@@ -271,6 +271,15 @@ export interface DocumentTemplateWithChecklist extends DocumentTemplate {
 	uploadedFileUrl: string | null;
 }
 
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+export interface Admin {
+	id: string;
+	userId: string;
+	email: string;
+	createdAt: string;
+}
+
 // ─── API response helpers ────────────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {

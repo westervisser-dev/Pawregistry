@@ -275,6 +275,15 @@ export const goHomeChecklistsRelations = relations(goHomeChecklists, ({ one }) =
 	puppy: one(puppies, { fields: [goHomeChecklists.puppyId], references: [puppies.id] }),
 }));
 
+// ─── Admins ───────────────────────────────────────────────────────────────────
+
+export const admins = pgTable('admins', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	userId: text('user_id').notNull().unique(), // Supabase auth UUID
+	email: text('email').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ─── Document Templates ───────────────────────────────────────────────────────
 
 export const documentTemplates = pgTable('document_templates', {

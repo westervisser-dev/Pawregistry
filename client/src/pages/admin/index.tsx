@@ -7,3 +7,4 @@ export { AdminClients } from './AdminClients';
 export { AdminClientDetail } from './AdminClientDetail';
 export { AdminUpdates } from './AdminUpdates';
 export { AdminDocuments } from './AdminDocuments';
+export { AdminAdmins } from './AdminAdmins';

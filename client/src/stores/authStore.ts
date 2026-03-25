@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { api } from '@/lib/api';
 import type { Session, User } from '@supabase/supabase-js';
-import { ADMIN_EMAILS } from '@/lib/auth';
 
 interface AuthState {
 	user: User | null;
@@ -22,10 +21,13 @@ export const useAuthStore = create<AuthState>((set) => {
 			const hasClientRecord = (data && typeof data === 'object' && 'hasClientRecord' in data)
 				? Boolean(data.hasClientRecord)
 				: false;
+			const isAdmin = (data && typeof data === 'object' && 'isAdmin' in data)
+				? Boolean(data.isAdmin)
+				: false;
 			set({
 				user: session.user,
 				session,
-				isAdmin: ADMIN_EMAILS.includes(session.user.email ?? ''),
+				isAdmin,
 				hasClientRecord,
 				...(isInit ? { loading: false } : {}),
 			});

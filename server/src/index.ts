@@ -9,6 +9,7 @@ import { documentsRoutes } from './routes/documents';
 import { checklistRoutes } from './routes/documents/checklists';
 import { templatesRoutes } from './routes/templates';
 import { authRoutes } from './routes/auth';
+import { adminsRoutes } from './routes/admins';
 
 const app = new Elysia()
 	.use(
@@ -33,6 +34,7 @@ const app = new Elysia()
 
 	// Routes
 	.use(authRoutes)
+	.use(adminsRoutes)
 	.use(dogsRoutes)
 	.use(littersRoutes)
 	.use(clientsRoutes)

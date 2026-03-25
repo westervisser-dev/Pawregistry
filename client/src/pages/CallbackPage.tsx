@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/ui';
-import { ADMIN_EMAILS } from '@/lib/auth';
 
 export function CallbackPage() {
 	const navigate = useNavigate();
@@ -11,14 +9,12 @@ export function CallbackPage() {
 
 	useEffect(() => {
 		init().then(() => {
-			supabase.auth.getSession().then(({ data: { session } }) => {
-				if (session) {
-					const isAdmin = ADMIN_EMAILS.includes(session.user.email ?? '');
-					navigate(isAdmin ? '/admin' : '/portal', { replace: true });
-				} else {
-					navigate('/login', { replace: true });
-				}
-			});
+			const { user, isAdmin } = useAuthStore.getState();
+			if (user) {
+				navigate(isAdmin ? '/admin' : '/portal', { replace: true });
+			} else {
+				navigate('/login', { replace: true });
+			}
 		});
 	}, [navigate, init]);
 
