@@ -6,6 +6,7 @@ import type { Dog, Litter, Client } from '@paw-registry/shared';
 
 export function AdminDashboard() {
 	const [counts, setCounts] = useState({ dogs: 0, litters: 0, clients: 0, enquiries: 0 });
+	const [recentEnquiries, setRecentEnquiries] = useState<Pick<Client, 'id' | 'firstName' | 'lastName' | 'email' | 'createdAt'>[]>([]);
 
 	useEffect(() => {
 		Promise.all([
@@ -22,6 +23,12 @@ export function AdminDashboard() {
 				clients: clients.length,
 				enquiries: clients.filter((c) => c.stage === 'enquired').length,
 			});
+			setRecentEnquiries(
+				clients
+					.filter((c) => c.stage === 'enquired')
+					.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+					.slice(0, 5),
+			);
 		});
 	}, []);
 
@@ -35,7 +42,7 @@ export function AdminDashboard() {
 	return (
 		<div className="p-8">
 			<PageHeader title="Dashboard" subtitle="Overview of your breeding programme." />
-			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 				{stats.map(({ label, value, icon, to }) => (
 					<Link key={label} to={to}>
 						<Card className="p-5 hover:shadow-sm transition-shadow">
@@ -49,25 +56,65 @@ export function AdminDashboard() {
 				))}
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-				<Card className="p-5">
-					<h2 className="font-medium text-stone-900 mb-4">Quick Actions</h2>
-					<div className="flex flex-col gap-2">
-						{[
-							{ label: '+ Add a dog', to: '/admin/dogs' },
-							{ label: '+ Create a litter', to: '/admin/litters' },
-							{ label: '📋 View waiting list', to: '/admin/clients' },
-							{ label: '📷 Post an update', to: '/admin/updates' },
-						].map(({ label, to }) => (
-							<Link
-								key={to}
-								to={to}
-								className="px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 rounded-lg transition-colors"
-							>
-								{label}
-							</Link>
-						))}
-					</div>
+			<div>
+				<p className="text-sm font-medium text-stone-500 mb-3">Quick Actions</p>
+				<div className="flex flex-wrap gap-3">
+					{[
+						{ label: '+ Add Dog', to: '/admin/dogs/new' },
+						{ label: '+ Create Litter', to: '/admin/litters' },
+						{ label: 'View Waiting List', to: '/admin/clients' },
+						{ label: 'Post Update', to: '/admin/updates' },
+					].map(({ label, to }) => (
+						<Link
+							key={to}
+							to={to}
+							className="px-4 py-2 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"
+						>
+							{label}
+						</Link>
+					))}
+				</div>
+			</div>
+
+			<div className="mt-8">
+				<p className="text-sm font-medium text-stone-500 mb-3">Recent Enquiries</p>
+				<Card>
+					<table className="w-full text-sm">
+						<thead>
+							<tr className="border-b border-stone-100">
+								<th className="text-left px-4 py-2.5 text-xs font-medium text-stone-400 uppercase tracking-wide">Name</th>
+								<th className="text-left px-4 py-2.5 text-xs font-medium text-stone-400 uppercase tracking-wide">Email</th>
+								<th className="text-left px-4 py-2.5 text-xs font-medium text-stone-400 uppercase tracking-wide">Applied</th>
+								<th className="px-4 py-2.5" />
+							</tr>
+						</thead>
+						<tbody>
+							{recentEnquiries.length === 0 ? (
+								<tr>
+									<td colSpan={4} className="px-4 py-6 text-center text-stone-400 text-sm">
+										No pending enquiries
+									</td>
+								</tr>
+							) : (
+								recentEnquiries.map((client) => (
+									<tr key={client.id} className="border-b border-stone-100 last:border-0 hover:bg-stone-50">
+										<td className="px-4 py-3 font-medium text-stone-900">
+											{client.firstName} {client.lastName}
+										</td>
+										<td className="px-4 py-3 text-stone-500">{client.email}</td>
+										<td className="px-4 py-3 text-stone-400 whitespace-nowrap">
+											{new Date(client.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+										</td>
+										<td className="px-4 py-3 text-right">
+											<Link to={`/admin/clients/${client.id}`} className="text-brand-600 hover:underline">
+												Review →
+											</Link>
+										</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
 				</Card>
 			</div>
 		</div>
