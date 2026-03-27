@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 const adminNav = [
 	{ to: '/admin', label: 'Dashboard', icon: '▪', end: true },
 	{ to: '/admin/dogs', label: 'Dogs', icon: '🐕' },
-	{ to: '/admin/litters', label: 'Litters', icon: '🐾' },
+	{ to: '/admin/litters', label: 'Litters', icon: '🐾', iconFilter: 'brightness(0) invert(1)' },
 	{ to: '/admin/clients', label: 'Clients', icon: '👥' },
 	{ divider: true },
 	{ to: '/admin/updates', label: 'Updates', icon: '📋' },
@@ -62,7 +62,7 @@ function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 								}`
 							}
 						>
-							<span className="w-4 text-center text-sm">{item.icon}</span>
+							<span className="w-4 text-center text-sm" style={'iconFilter' in item ? { filter: item.iconFilter } : undefined}>{item.icon}</span>
 							{item.label}
 						</NavLink>
 					);

@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/authStore';
 
 const portalNav = [
 	{ to: '/portal', label: 'Dashboard', icon: '▪', end: true },
-	{ to: '/portal/litters', label: 'Litters', icon: '🐾' },
+	{ to: '/portal/litters', label: 'Litters', icon: '🐾', iconFilter: 'brightness(0) invert(1)' },
 	{ to: '/portal/updates', label: 'Updates', icon: '📋' },
 	{ to: '/portal/documents', label: 'Documents', icon: '📁' },
 	{ to: '/portal/checklist', label: 'Checklist', icon: '✅' },
@@ -41,7 +41,7 @@ function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
 
 			{/* Navigation */}
 			<nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
-				{portalNav.map(({ to, label, icon, end }) => (
+				{portalNav.map(({ to, label, icon, end, iconFilter }) => (
 					<NavLink
 						key={to}
 						to={to}
@@ -55,7 +55,7 @@ function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
 							}`
 						}
 					>
-						<span className="w-4 text-center text-sm">{icon}</span>
+						<span className="w-4 text-center text-sm" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
 						{label}
 					</NavLink>
 				))}
@@ -143,7 +143,7 @@ export function PortalLayout() {
 			{/* Mobile bottom navigation */}
 			<nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-sidebar-bg border-t border-white/10">
 				<div className="grid grid-cols-5 h-16">
-					{portalNav.map(({ to, label, icon, end }) => (
+					{portalNav.map(({ to, label, icon, end, iconFilter }) => (
 						<NavLink
 							key={to}
 							to={to}
@@ -154,7 +154,7 @@ export function PortalLayout() {
 								}`
 							}
 						>
-							<span className="text-xl leading-none">{icon}</span>
+							<span className="text-xl leading-none" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
 							<span className="text-[10px] font-medium leading-tight">{label}</span>
 						</NavLink>
 					))}
