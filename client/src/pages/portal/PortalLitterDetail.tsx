@@ -3,11 +3,16 @@ import { useParams, Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { LitterWithDogs } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
+import { useAuthStore } from '@/stores/authStore';
 
 export function PortalLitterDetail() {
 	const { id } = useParams<{ id: string }>();
 	const [litter, setLitter] = useState<LitterWithDogs | null>(null);
 	const [loading, setLoading] = useState(true);
+	const { user } = useAuthStore();
+	const [myInterestPuppyIds, setMyInterestPuppyIds] = useState<Set<string>>(new Set());
+	const [submittingInterest, setSubmittingInterest] = useState<string | null>(null);
+	const [interestMessage, setInterestMessage] = useState<Record<string, string>>({});
 
 	useEffect(() => {
 		if (!id) return;
@@ -18,9 +23,31 @@ export function PortalLitterDetail() {
 	}, [id]);
 
 	useEffect(() => {
+		if (!id || !user) return;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: Array<{ puppyId: string; status: string }> | null }) => {
+			if (data) setMyInterestPuppyIds(new Set(data.map((i) => i.puppyId)));
+		}).catch(() => {});
+	}, [id, user]);
+
+	useEffect(() => {
 		document.title = 'Litter — My Portal';
 		return () => { document.title = 'Paw Registry'; };
 	}, []);
+
+	const expressInterest = async (puppyId: string) => {
+		setSubmittingInterest(puppyId);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { error } = await (api.litters.puppies({ puppyId }) as any).interest.post({});
+		if (!error) {
+			setMyInterestPuppyIds((prev) => new Set([...prev, puppyId]));
+			setInterestMessage((prev) => ({ ...prev, [puppyId]: 'Interest registered!' }));
+		} else {
+			const body = error.value as { message?: string };
+			setInterestMessage((prev) => ({ ...prev, [puppyId]: body?.message ?? 'Something went wrong.' }));
+		}
+		setSubmittingInterest(null);
+	};
 
 	if (loading) return <LoadingPage />;
 	if (!litter) return <div className="text-warm-500 p-4">Litter not found.</div>;
@@ -97,6 +124,23 @@ export function PortalLitterDetail() {
 								<p className="text-xs font-medium text-warm-700 capitalize">{puppy.sex}</p>
 								<p className="text-xs text-warm-500 mb-2">{puppy.colour}</p>
 								<PuppyStatusBadge status={puppy.status} />
+								{puppy.status === 'available' && user && (
+									<div className="mt-2">
+										{myInterestPuppyIds.has(puppy.id) ? (
+											<span className="text-xs text-green-600 font-medium">Interest registered ✓</span>
+										) : interestMessage[puppy.id] ? (
+											<span className="text-xs text-warm-500">{interestMessage[puppy.id]}</span>
+										) : (
+											<button
+												onClick={() => expressInterest(puppy.id)}
+												disabled={submittingInterest === puppy.id}
+												className="w-full mt-1 px-2 py-1.5 bg-brand-500 text-white text-xs rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
+											>
+												{submittingInterest === puppy.id ? 'Sending…' : 'Express Interest'}
+											</button>
+										)}
+									</div>
+								)}
 							</div>
 						))}
 					</div>

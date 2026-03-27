@@ -324,6 +324,32 @@ export interface ClientActivity {
 	createdAt: string;
 }
 
+// ─── Puppy Interest ───────────────────────────────────────────────────────────
+
+export type PuppyInterestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface PuppyInterest {
+	id: string;
+	puppyId: string;
+	clientId: string;
+	status: PuppyInterestStatus;
+	notes: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface PuppyInterestWithClient extends PuppyInterest {
+	client: {
+		id: string;
+		firstName: string;
+		lastName: string;
+		email: string;
+		city: string | null;
+		stage: ClientStage;
+		depositStatus: DepositStatus;
+	};
+}
+
 // ─── Breed & Size Constants ──────────────────────────────────────────────────
 
 export interface BreedOption {

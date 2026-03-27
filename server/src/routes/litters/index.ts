@@ -1,8 +1,8 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc, asc, inArray } from 'drizzle-orm';
+import { eq, desc, asc, inArray, and, ne } from 'drizzle-orm';
 import { db } from '../../db';
-import { litters, puppies, litterImages, clients, updates } from '../../db/schema';
-import { adminPlugin } from '../../lib/auth';
+import { litters, puppies, litterImages, clients, updates, puppyInterests, clientActivity } from '../../db/schema';
+import { adminPlugin, authPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { parseBreedSize } from '@paw-registry/shared';
 
@@ -24,6 +24,85 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
 		return litter;
 	})
+
+	// ── Client-auth routes ──
+	.use(authPlugin)
+
+	// Client: express interest in a puppy
+	.post(
+		'/puppies/:puppyId/interest',
+		async ({ params, user, error }) => {
+			if (!user) return error(401, { error: 'Unauthorized', message: 'Not authenticated' });
+
+			const client = await db.query.clients.findFirst({
+				where: eq(clients.userId, user.id),
+				columns: { id: true, firstName: true, lastName: true },
+			});
+			if (!client) return error(403, { error: 'Forbidden', message: 'No client account found' });
+
+			const puppy = await db.query.puppies.findFirst({
+				where: eq(puppies.id, params.puppyId),
+				columns: { id: true, status: true, litterId: true },
+			});
+			if (!puppy) return error(404, { error: 'Not found', message: 'Puppy not found' });
+			if (puppy.status !== 'available') return error(400, { error: 'Unavailable', message: 'This puppy is no longer available' });
+
+			// Check for existing interest
+			const existing = await db.query.puppyInterests.findFirst({
+				where: and(eq(puppyInterests.puppyId, params.puppyId), eq(puppyInterests.clientId, client.id)),
+			});
+			if (existing) return error(409, { error: 'Conflict', message: 'You have already expressed interest in this puppy' });
+
+			const [interest] = await db
+				.insert(puppyInterests)
+				.values({ puppyId: params.puppyId, clientId: client.id })
+				.returning();
+
+			// Log client activity
+			await db.insert(clientActivity).values({
+				clientId: client.id,
+				type: 'preferences_updated',
+				description: `Expressed interest in a puppy.`,
+				metadata: { puppyId: params.puppyId, litterId: puppy.litterId },
+				actor: 'client',
+			});
+
+			return interest;
+		}
+	)
+
+	// Client: get own interests for a litter (returns array of puppyIds)
+	.get(
+		'/:id/my-interests',
+		async ({ params, user }) => {
+			if (!user) return [];
+
+			const client = await db.query.clients.findFirst({
+				where: eq(clients.userId, user.id),
+				columns: { id: true },
+			});
+			if (!client) return [];
+
+			const litter = await db.query.litters.findFirst({
+				where: eq(litters.id, params.id),
+				with: { puppies: { columns: { id: true } } },
+			});
+			if (!litter) return [];
+
+			const puppyIds = litter.puppies.map((p) => p.id);
+			if (puppyIds.length === 0) return [];
+
+			const interests = await db.query.puppyInterests.findMany({
+				where: and(
+					eq(puppyInterests.clientId, client.id),
+					inArray(puppyInterests.puppyId, puppyIds)
+				),
+				columns: { puppyId: true, status: true },
+			});
+
+			return interests;
+		}
+	)
 
 	// ── Admin routes ──
 	.use(adminPlugin)
@@ -84,7 +163,6 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		const litterBreedSize = parseBreedSize(litter.breed);
 		if (!litterBreedSize) return error(400, { error: 'Bad request', message: 'Invalid litter breed format' });
 
-		// Fetch all eligible clients: waitlisted, not already placed/matched with another litter
 		const eligible = await db.query.clients.findMany({
 			where: eq(clients.stage, 'waitlisted'),
 			orderBy: [asc(clients.priority)],
@@ -108,7 +186,6 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				let score = 0;
 				const reasons: string[] = [];
 
-				// ── Breed matching (hard filter + scoring) ──
 				const exactMatch1 = pref1 && pref1.breed === litterBreedSize.breed && pref1.size === litterBreedSize.size;
 				const exactMatch2 = pref2 && pref2.breed === litterBreedSize.breed && pref2.size === litterBreedSize.size;
 				const breedOnlyMatch1 = pref1 && pref1.breed === litterBreedSize.breed && pref1.size !== litterBreedSize.size;
@@ -127,11 +204,9 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					score += 20;
 					reasons.push('Second choice breed, open to other size');
 				} else {
-					// No breed match at all — exclude
 					return null;
 				}
 
-				// ── Sex matching (only when puppies exist) ──
 				if (hasPuppies && prefSex) {
 					if (prefSex === 'no_preference') {
 						score += 20;
@@ -145,7 +220,6 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					}
 				}
 
-				// ── Colour matching (only when puppies exist) ──
 				if (hasPuppies && prefColour) {
 					if (puppyColours.some((c) => c.includes(prefColour) || prefColour.includes(c))) {
 						score += 15;
@@ -156,7 +230,6 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					}
 				}
 
-				// ── Deposit bonus ──
 				if (client.depositStatus === 'paid') {
 					score += 10;
 					reasons.push('Deposit paid');
@@ -191,6 +264,82 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 		return results;
 	})
+
+	// ── Admin: get all interests for all puppies in a litter ──
+	.get('/admin/interests/:litterId', async ({ params, error }) => {
+		const litter = await db.query.litters.findFirst({
+			where: eq(litters.id, params.litterId),
+			with: { puppies: { columns: { id: true } } },
+		});
+		if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
+
+		const puppyIds = litter.puppies.map((p) => p.id);
+		if (puppyIds.length === 0) return [];
+
+		const interests = await db.query.puppyInterests.findMany({
+			where: inArray(puppyInterests.puppyId, puppyIds),
+			with: {
+				client: {
+					columns: { id: true, firstName: true, lastName: true, email: true, city: true, stage: true, depositStatus: true },
+				},
+			},
+			orderBy: [asc(puppyInterests.createdAt)],
+		});
+
+		return interests;
+	})
+
+	// ── Admin: approve or reject an interest ──
+	.patch(
+		'/admin/interests/:interestId',
+		async ({ params, body, error }) => {
+			const interest = await db.query.puppyInterests.findFirst({
+				where: eq(puppyInterests.id, params.interestId),
+				with: {
+					client: { columns: { id: true, firstName: true, lastName: true } },
+					puppy: { columns: { id: true, litterId: true } },
+				},
+			});
+			if (!interest) return error(404, { error: 'Not found', message: 'Interest not found' });
+
+			const [updated] = await db
+				.update(puppyInterests)
+				.set({ status: body.status, updatedAt: new Date() })
+				.where(eq(puppyInterests.id, params.interestId))
+				.returning();
+
+			if (body.status === 'approved') {
+				// Mark puppy as reserved
+				await db.update(puppies).set({ status: 'reserved', updatedAt: new Date() }).where(eq(puppies.id, interest.puppyId));
+
+				// Auto-reject all other pending interests for this puppy
+				await db
+					.update(puppyInterests)
+					.set({ status: 'rejected', updatedAt: new Date() })
+					.where(and(
+						eq(puppyInterests.puppyId, interest.puppyId),
+						ne(puppyInterests.id, params.interestId),
+						eq(puppyInterests.status, 'pending'),
+					));
+
+				// Log client activity
+				await db.insert(clientActivity).values({
+					clientId: interest.clientId,
+					type: 'stage_changed',
+					description: `Puppy interest approved by breeder. Puppy reserved.`,
+					metadata: { puppyId: interest.puppyId, interestId: interest.id },
+					actor: 'admin',
+				});
+			}
+
+			return updated;
+		},
+		{
+			body: t.Object({
+				status: t.Union([t.Literal('approved'), t.Literal('rejected')]),
+			}),
+		}
+	)
 
 	.post(
 		'/',
@@ -344,9 +493,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					blockingRecords: blocking.map((c) => `${c.firstName} ${c.lastName}`),
 				});
 			}
-			// Delete orphaned updates (no FK cascade on targetId)
 			await db.delete(updates).where(eq(updates.targetId, params.id));
-			// Delete litter (puppies + images cascade via FK)
 			await db.delete(litters).where(eq(litters.id, params.id));
 			return new Response(null, { status: 204 });
 		}

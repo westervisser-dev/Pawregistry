@@ -164,10 +164,28 @@ export const puppies = pgTable('puppies', {
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const puppiesRelations = relations(puppies, ({ one }) => ({
+export const puppiesRelations = relations(puppies, ({ one, many }) => ({
 	litter: one(litters, { fields: [puppies.litterId], references: [litters.id] }),
 	dog: one(dogs, { fields: [puppies.dogId], references: [dogs.id] }),
 	client: one(clients, { fields: [puppies.id], references: [clients.puppyId] }),
+	interests: many(puppyInterests),
+}));
+
+// ─── Puppy Interests ──────────────────────────────────────────────────────────
+
+export const puppyInterests = pgTable('puppy_interests', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	puppyId: text('puppy_id').notNull().references(() => puppies.id, { onDelete: 'cascade' }),
+	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+	status: text('status').notNull().default('pending'), // pending | approved | rejected
+	notes: text('notes'),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const puppyInterestsRelations = relations(puppyInterests, ({ one }) => ({
+	puppy: one(puppies, { fields: [puppyInterests.puppyId], references: [puppies.id] }),
+	client: one(clients, { fields: [puppyInterests.clientId], references: [clients.id] }),
 }));
 
 // ─── Litter Images ────────────────────────────────────────────────────────────
@@ -213,6 +231,7 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
 	documents: many(documents),
 	updates: many(updates),
 	checklist: one(goHomeChecklists, { fields: [clients.id], references: [goHomeChecklists.clientId] }),
+	interests: many(puppyInterests),
 }));
 
 // ─── Updates ─────────────────────────────────────────────────────────────────

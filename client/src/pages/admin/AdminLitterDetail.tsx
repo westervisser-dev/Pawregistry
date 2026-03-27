@@ -19,6 +19,13 @@ export function AdminLitterDetail() {
 	const [deleteBlocking, setDeleteBlocking] = useState<string[] | null>(null);
 	const [matchingClients, setMatchingClients] = useState<MatchingClient[]>([]);
 	const [matchingLoading, setMatchingLoading] = useState(false);
+	const [litterInterests, setLitterInterests] = useState<Array<{
+		id: string; puppyId: string; clientId: string; status: string; createdAt: string;
+		client: { id: string; firstName: string; lastName: string; email: string; city: string | null; stage: string; depositStatus: string };
+	}>>([]);
+	const [expandedPuppy, setExpandedPuppy] = useState<string | null>(null);
+	const [updatingPuppyId, setUpdatingPuppyId] = useState<string | null>(null);
+	const [approvingInterestId, setApprovingInterestId] = useState<string | null>(null);
 
 	// New-litter form state
 	const [dogs, setDogs] = useState<Dog[]>([]);
@@ -57,6 +64,11 @@ export function AdminLitterDetail() {
 			if (data) setMatchingClients(data);
 			setMatchingLoading(false);
 		}).catch(() => setMatchingLoading(false));
+		// Fetch puppy interests
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.litters.admin as any).interests({ litterId: id }).get().then(({ data }: { data: typeof litterInterests | null }) => {
+			if (data) setLitterInterests(data);
+		}).catch(() => {});
 	}, [id]);
 
 	const createLitter = async () => {
@@ -132,6 +144,49 @@ export function AdminLitterDetail() {
 			navigate('/admin/litters', { state: { toast: `${litter?.name ?? 'Litter'} deleted.` } });
 		}
 		setDeleting(false);
+	};
+
+	const updatePuppyStatus = async (puppyId: string, status: string) => {
+		setUpdatingPuppyId(puppyId);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { data } = await (api.litters.puppies({ puppyId }) as any).patch({ status });
+		if (data && litter) {
+			setLitter({
+				...litter,
+				puppies: litter.puppies.map((p: unknown) => {
+					const pp = p as { id: string };
+					return pp.id === puppyId ? { ...pp, status } : pp;
+				}),
+			});
+		}
+		setUpdatingPuppyId(null);
+	};
+
+	const handleInterestAction = async (interestId: string, status: 'approved' | 'rejected') => {
+		setApprovingInterestId(interestId);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { data } = await (api.litters.admin as any).interests({ litterId: interestId }).patch({ status });
+		if (data) {
+			// Refresh interests list
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(api.litters.admin as any).interests({ litterId: id }).get().then(({ data: fresh }: { data: typeof litterInterests | null }) => {
+				if (fresh) setLitterInterests(fresh);
+			});
+			// If approved, update puppy status in local state
+			if (status === 'approved') {
+				const interest = litterInterests.find((i) => i.id === interestId);
+				if (interest && litter) {
+					setLitter({
+						...litter,
+						puppies: litter.puppies.map((p: unknown) => {
+							const pp = p as { id: string; status: string };
+							return pp.id === interest.puppyId ? { ...pp, status: 'reserved' } : pp;
+						}),
+					});
+				}
+			}
+		}
+		setApprovingInterestId(null);
 	};
 
 	if (loading) return <LoadingPage />;
@@ -498,16 +553,102 @@ export function AdminLitterDetail() {
 				{litter.puppies.length === 0 ? (
 					<EmptyState icon="🐶" title="No puppies recorded yet" />
 				) : (
-					<div className="space-y-2">
-						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null }>).map((p) => (
-							<div key={p.id} className="flex items-center justify-between py-2 border-b border-black/[0.05] last:border-0">
-								<div className="flex items-center gap-3">
-									<span className="w-4 h-4 rounded-full border border-warm-300 inline-block" style={{ background: p.collarColour }} />
-									<span className="text-sm font-medium text-warm-800">{p.colour} {p.sex}</span>
+					<div className="divide-y divide-black/[0.05]">
+						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null }>).map((p) => {
+							const pendingInterests = litterInterests.filter((i) => i.puppyId === p.id && i.status === 'pending');
+							const allInterests = litterInterests.filter((i) => i.puppyId === p.id);
+							const isExpanded = expandedPuppy === p.id;
+
+							return (
+								<div key={p.id}>
+									<div className="flex items-center gap-3 py-3">
+										<span className="w-4 h-4 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
+										<span className="text-sm font-medium text-warm-800 flex-1">{p.colour} · {p.sex}</span>
+										{/* Inline status selector */}
+										<select
+											value={p.status}
+											disabled={updatingPuppyId === p.id}
+											onChange={(e) => updatePuppyStatus(p.id, e.target.value)}
+											className="px-2 py-1 text-xs border border-warm-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-300 bg-white disabled:opacity-50"
+										>
+											{['available', 'reserved', 'placed', 'retained', 'not_for_sale'].map((s) => (
+												<option key={s} value={s}>{s.replace('_', ' ')}</option>
+											))}
+										</select>
+										{/* Interest count badge */}
+										{allInterests.length > 0 && (
+											<button
+												onClick={() => setExpandedPuppy(isExpanded ? null : p.id)}
+												className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+													pendingInterests.length > 0
+														? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+														: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
+												}`}
+											>
+												{pendingInterests.length > 0 ? `${pendingInterests.length} pending` : `${allInterests.length} interested`}
+												<span className="text-[10px]">{isExpanded ? '▲' : '▼'}</span>
+											</button>
+										)}
+									</div>
+									{/* Expanded interests */}
+									{isExpanded && allInterests.length > 0 && (
+										<div className="mb-3 ml-7 space-y-2">
+											{allInterests.map((interest) => (
+												<div
+													key={interest.id}
+													className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
+														interest.status === 'approved' ? 'bg-green-50 border border-green-200' :
+														interest.status === 'rejected' ? 'bg-warm-50 border border-warm-200 opacity-60' :
+														'bg-amber-50 border border-amber-200'
+													}`}
+												>
+													<div className="flex-1 min-w-0">
+														<Link to={`/admin/clients/${interest.client.id}`} className="font-medium text-warm-900 hover:text-brand-600 truncate block">
+															{interest.client.firstName} {interest.client.lastName}
+														</Link>
+														<div className="flex items-center gap-2 mt-0.5">
+															{interest.client.city && <span className="text-xs text-warm-400">{interest.client.city}</span>}
+															<span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+																interest.client.depositStatus === 'paid' ? 'bg-green-100 text-green-700' :
+																interest.client.depositStatus === 'pending' ? 'bg-amber-100 text-amber-700' :
+																'bg-warm-100 text-warm-600'
+															}`}>
+																{interest.client.depositStatus === 'paid' ? 'Deposit paid' :
+																 interest.client.depositStatus === 'pending' ? 'Deposit pending' : 'No deposit'}
+															</span>
+														</div>
+													</div>
+													{interest.status === 'pending' ? (
+														<div className="flex items-center gap-1.5 flex-shrink-0">
+															<button
+																onClick={() => handleInterestAction(interest.id, 'approved')}
+																disabled={approvingInterestId === interest.id}
+																className="px-2.5 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 disabled:opacity-50 transition-colors"
+															>
+																Approve
+															</button>
+															<button
+																onClick={() => handleInterestAction(interest.id, 'rejected')}
+																disabled={approvingInterestId === interest.id}
+																className="px-2.5 py-1 bg-warm-200 text-warm-700 text-xs rounded-lg hover:bg-warm-300 disabled:opacity-50 transition-colors"
+															>
+																Reject
+															</button>
+														</div>
+													) : (
+														<span className={`text-xs font-medium flex-shrink-0 ${
+															interest.status === 'approved' ? 'text-green-600' : 'text-warm-400'
+														}`}>
+															{interest.status}
+														</span>
+													)}
+												</div>
+											))}
+										</div>
+									)}
 								</div>
-								<PuppyStatusBadge status={p.status} />
-							</div>
-						))}
+							);
+						})}
 					</div>
 				)}
 
