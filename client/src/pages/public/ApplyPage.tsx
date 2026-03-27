@@ -262,23 +262,32 @@ export function ApplyPage() {
 	const set = (key: keyof FormData, value: FormData[keyof FormData]) =>
 		setForm((f) => ({ ...f, [key]: value }));
 
-	const next = () => { setError(''); setStep(steps[steps.indexOf(step) + 1] as Step); };
-	const back = () => { setError(''); setStep(steps[steps.indexOf(step) - 1] as Step); };
-
-	const firstInvalidStep = (f: FormData): Step | null => {
-		if (!f.firstName.trim() || !f.lastName.trim() || !f.email.trim() || !f.phone.trim() || !f.city.trim())
-			return 'personal';
-		const sizes = BREED_SIZES[f.preferredBreed] ?? [];
-		if (
-			!f.puppyPurpose.trim() ||
-			!f.readyTimeframe ||
-			!f.preferredBreed ||
-			(sizes.length > 1 && !f.preferredSize) ||
-			!f.preferredColour.trim() ||
-			!f.agreedToContract
-		) return 'preferences';
+	const validateStep = (s: Step, f: FormData): string | null => {
+		if (s === 'personal') {
+			if (!f.firstName.trim() || !f.lastName.trim() || !f.email.trim() || !f.phone.trim() || !f.city.trim())
+				return 'Please fill in all required fields before continuing.';
+		}
+		if (s === 'preferences') {
+			const sizes = BREED_SIZES[f.preferredBreed] ?? [];
+			if (
+				!f.puppyPurpose.trim() ||
+				!f.readyTimeframe ||
+				!f.preferredBreed ||
+				(sizes.length > 1 && !f.preferredSize) ||
+				!f.preferredColour.trim() ||
+				!f.agreedToContract
+			) return 'Please fill in all required fields before continuing.';
+		}
 		return null;
 	};
+
+	const next = () => {
+		const err = validateStep(step, form);
+		if (err) { setError(err); return; }
+		setError('');
+		setStep(steps[steps.indexOf(step) + 1] as Step);
+	};
+	const back = () => { setError(''); setStep(steps[steps.indexOf(step) - 1] as Step); };
 
 	const handleBreedChange = (breed: string) => {
 		const sizes = BREED_SIZES[breed] ?? [];
@@ -293,11 +302,13 @@ export function ApplyPage() {
 	};
 
 	const submit = async () => {
-		const invalidStep = firstInvalidStep(form);
-		if (invalidStep) {
-			setError('Please fill in all required fields before submitting.');
-			setStep(invalidStep);
-			return;
+		for (const s of steps.filter(s => s !== 'done')) {
+			const err = validateStep(s, form);
+			if (err) {
+				setError('Please fill in all required fields before submitting.');
+				setStep(s);
+				return;
+			}
 		}
 		setSubmitting(true);
 		const depositStatus = form.depositIntent ? 'pending' : 'none';
