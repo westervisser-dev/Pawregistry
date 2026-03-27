@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, PuppyStatusBadge, EmptyState } from '@/components/ui';
-import type { Dog, Litter, LitterImage } from '@paw-registry/shared';
+import type { Dog, Litter, LitterImage, MatchingClient } from '@paw-registry/shared';
+import { BREEDS, BREED_SIZES, buildBreedSize, parseBreedSize, getBreedSizeLabel } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
 
 export function AdminLitterDetail() {
@@ -16,11 +17,13 @@ export function AdminLitterDetail() {
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	const [deleteBlocking, setDeleteBlocking] = useState<string[] | null>(null);
+	const [matchingClients, setMatchingClients] = useState<MatchingClient[]>([]);
+	const [matchingLoading, setMatchingLoading] = useState(false);
 
 	// New-litter form state
 	const [dogs, setDogs] = useState<Dog[]>([]);
-	const [newForm, setNewForm] = useState<{ name: string; breed: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
-		name: '', breed: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
+	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
+		name: '', breedKey: '', sizeKey: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
 	});
 	const [galleryImages, setGalleryImages] = useState<LitterImage[]>([]);
 	const [galleryError, setGalleryError] = useState('');
@@ -47,19 +50,27 @@ export function AdminLitterDetail() {
 			}
 			setLoading(false);
 		});
+		// Fetch matching clients
+		setMatchingLoading(true);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.litters({ id }) as any)['matching-clients'].get().then(({ data }: { data: MatchingClient[] | null }) => {
+			if (data) setMatchingClients(data);
+			setMatchingLoading(false);
+		}).catch(() => setMatchingLoading(false));
 	}, [id]);
 
 	const createLitter = async () => {
 		setFormError('');
-		if (!newForm.name.trim() || !newForm.sireId || !newForm.damId) {
-			setFormError('Name, Sire, and Dam are required.');
+		if (!newForm.name.trim() || !newForm.breedKey || !newForm.sireId || !newForm.damId) {
+			setFormError('Name, Breed, Sire, and Dam are required.');
 			return;
 		}
 		setSaving(true);
 		try {
+			const breedValue = newForm.breedKey ? buildBreedSize(newForm.breedKey, newForm.sizeKey || null) : null;
 			const { data, error } = await api.litters.post({
 				name: newForm.name,
-				...(newForm.breed ? { breed: newForm.breed } : {}),
+				...(breedValue ? { breed: breedValue } : {}),
 				sireId: newForm.sireId,
 				damId: newForm.damId,
 				status: newForm.status as 'planned' | 'confirmed' | 'born' | 'weaning' | 'ready' | 'completed',
@@ -147,14 +158,34 @@ export function AdminLitterDetail() {
 							/>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-warm-500 mb-1">Breed</label>
-							<input
-								type="text"
-								value={newForm.breed}
-								onChange={(e) => setF('breed', e.target.value)}
-								placeholder="e.g. Golden Retriever"
+							<label className="block text-xs font-medium text-warm-500 mb-1">Breed<span className="text-red-400 ml-0.5">*</span></label>
+							<select
+								value={newForm.breedKey}
+								onChange={(e) => {
+									const breed = e.target.value;
+									const sizes = BREED_SIZES[breed] ?? [];
+									const autoSize = sizes.length === 1 ? sizes[0].value : '';
+									setNewForm((f) => ({ ...f, breedKey: breed, sizeKey: autoSize }));
+								}}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-							/>
+							>
+								<option value="">Select breed…</option>
+								{BREEDS.map((b) => (
+									<option key={b.value} value={b.value}>{b.label}</option>
+								))}
+							</select>
+							{newForm.breedKey && (BREED_SIZES[newForm.breedKey]?.length ?? 0) > 1 && (
+								<select
+									value={newForm.sizeKey}
+									onChange={(e) => setNewForm((f) => ({ ...f, sizeKey: e.target.value }))}
+									className="w-full mt-2 px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+								>
+									<option value="">Select size…</option>
+									{(BREED_SIZES[newForm.breedKey] ?? []).map((s) => (
+										<option key={s.value} value={s.value}>{s.label}</option>
+									))}
+								</select>
+							)}
 						</div>
 						<div>
 							<label className="block text-xs font-medium text-warm-500 mb-1">
@@ -339,7 +370,7 @@ export function AdminLitterDetail() {
 	return (
 		<div className="p-8 max-w-4xl">
 			<PageHeader
-				title={<span className="flex items-center gap-3">{litter.name}{litter.breed && <Badge variant="default">{litter.breed}</Badge>}</span>}
+				title={<span className="flex items-center gap-3">{litter.name}{litter.breed && <Badge variant="default">{getBreedSizeLabel(litter.breed)}</Badge>}</span>}
 				subtitle={`${(litter as typeof litter & { sire: Dog }).sire?.name ?? '—'} × ${(litter as typeof litter & { dam: Dog }).dam?.name ?? '—'}`}
 				action={
 					<button onClick={() => navigate('/admin/litters')} className="text-sm text-warm-500 hover:text-warm-700">
@@ -511,6 +542,74 @@ export function AdminLitterDetail() {
 						</button>
 					</div>
 				</div>
+			</Card>
+
+			{/* Potential Clients */}
+			<Card className="p-6 mb-6">
+				<div className="flex items-center justify-between mb-4">
+					<h3 className="font-semibold text-warm-800">Potential Clients</h3>
+					{matchingClients.length > 0 && (
+						<span className="text-xs text-warm-400">{matchingClients.length} match{matchingClients.length !== 1 ? 'es' : ''}</span>
+					)}
+				</div>
+				{matchingLoading ? (
+					<p className="text-sm text-warm-400">Loading matches…</p>
+				) : !litter.breed ? (
+					<p className="text-sm text-warm-400">Set a breed on this litter to see matching clients.</p>
+				) : matchingClients.length === 0 ? (
+					<EmptyState icon="👥" title="No matching clients" />
+				) : (
+					<div className="space-y-3">
+						{matchingClients.map((mc) => (
+							<Link
+								key={mc.id}
+								to={`/admin/clients/${mc.id}`}
+								className="block p-4 rounded-lg border border-warm-200 hover:border-brand-300 hover:bg-brand-50/30 transition-colors"
+							>
+								<div className="flex items-start justify-between gap-3">
+									<div className="min-w-0">
+										<div className="flex items-center gap-2">
+											<span className="font-medium text-sm text-warm-900">{mc.firstName} {mc.lastName}</span>
+											{mc.depositStatus === 'paid' ? (
+												<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Paid</span>
+											) : mc.depositStatus === 'pending' ? (
+												<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Pending</span>
+											) : null}
+										</div>
+										{mc.city && <p className="text-xs text-warm-400 mt-0.5">{mc.city}</p>}
+										<div className="flex flex-wrap gap-1 mt-2">
+											{mc.matchReasons.map((reason) => (
+												<span
+													key={reason}
+													className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+														reason.startsWith('First choice') ? 'bg-green-100 text-green-700' :
+														reason.startsWith('Second choice') ? 'bg-blue-100 text-blue-700' :
+														reason.includes('Sex') || reason.includes('sex') ? 'bg-purple-100 text-purple-700' :
+														reason.includes('olour') ? 'bg-pink-100 text-pink-700' :
+														reason.includes('Deposit') ? 'bg-amber-100 text-amber-700' :
+														'bg-warm-100 text-warm-600'
+													}`}
+												>
+													{reason}
+												</span>
+											))}
+										</div>
+									</div>
+									<div className="flex flex-col items-end gap-1 flex-shrink-0">
+										<span className="text-lg font-bold text-brand-600">{mc.score}</span>
+										<span className="text-[10px] text-warm-400 uppercase tracking-wide">pts</span>
+									</div>
+								</div>
+								<div className="mt-2 pt-2 border-t border-black/[0.05] flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-warm-400">
+									<span>1st: {getBreedSizeLabel(mc.preferredBreedSize)}</span>
+									{mc.secondChoiceBreedSize && <span>2nd: {getBreedSizeLabel(mc.secondChoiceBreedSize)}</span>}
+									{mc.preferredSex && mc.preferredSex !== 'no_preference' && <span className="capitalize">Sex: {mc.preferredSex}</span>}
+									{mc.preferredColour && <span>Colour: {mc.preferredColour}</span>}
+								</div>
+							</Link>
+						))}
+					</div>
+				)}
 			</Card>
 
 			<button

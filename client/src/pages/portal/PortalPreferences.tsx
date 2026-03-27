@@ -3,44 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, Button } from '@/components/ui';
 import type { Client, ClientApplication } from '@paw-registry/shared';
-
-// ─── Breed / Size data (mirrors ApplyPage) ───────────────────────────────────
-
-const BREEDS = [
-	{ value: 'f1_goldendoodle', label: 'F1 Goldendoodle', detail: 'Golden Retriever × Poodle' },
-	{ value: 'f1b_goldendoodle', label: 'F1b Goldendoodle', detail: 'F1 Goldendoodle × Poodle' },
-	{ value: 'f1_border_doodle', label: 'F1 Border Doodle', detail: 'Border Collie × Poodle' },
-	{ value: 'f1_mini_biewer_doodle', label: 'F1 Mini Biewer Doodle', detail: 'Biewer Terrier × Mini Poodle' },
-	{ value: 'red_tuxedo_french_poodle', label: 'Red Tuxedo French Poodle', detail: 'Pure bred poodle' },
-];
-
-const BREED_SIZES: Record<string, { value: string; label: string; detail: string }[]> = {
-	f1_goldendoodle: [
-		{ value: 'standard', label: 'Standard', detail: '±32–45 kg / 55–65 cm' },
-		{ value: 'miniature', label: 'Miniature', detail: '±25–28 kg / 45–50 cm' },
-		{ value: 'dwarf', label: 'Dwarf', detail: '±16–24 kg / 40–45 cm' },
-	],
-	f1b_goldendoodle: [
-		{ value: 'standard', label: 'Standard', detail: '±32–45 kg / 55–65 cm' },
-		{ value: 'miniature', label: 'Miniature', detail: '±25–28 kg / 45–50 cm' },
-		{ value: 'dwarf', label: 'Dwarf', detail: '±16–24 kg / 40–45 cm' },
-	],
-	f1_border_doodle: [
-		{ value: 'border_doodle', label: 'Border Doodle', detail: '±13–18 kg / 30–38 cm' },
-	],
-	f1_mini_biewer_doodle: [
-		{ value: 'biewer_doodle', label: 'Biewer Doodle', detail: '±7–12 kg / 20–25 cm' },
-	],
-	red_tuxedo_french_poodle: [
-		{ value: 'standard_poodle', label: 'Standard Poodle', detail: '±25–30 kg / 40–50 cm' },
-		{ value: 'moyen_poodle', label: 'Moyen Poodle', detail: '±12–18 kg / 30–38 cm' },
-	],
-};
+import { BREEDS, BREED_SIZES, parseBreedSize as _parseBreedSize } from '@paw-registry/shared';
 
 function parseBreedSize(raw: string | null | undefined): { breed: string; size: string } {
-	if (!raw) return { breed: '', size: '' };
-	const [breed, size] = raw.split(' - ');
-	return { breed: breed ?? '', size: size ?? '' };
+	const parsed = _parseBreedSize(raw);
+	return { breed: parsed?.breed ?? '', size: parsed?.size ?? '' };
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
