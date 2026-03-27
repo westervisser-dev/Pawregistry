@@ -15,11 +15,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 	render() {
 		if (this.state.error) {
 			return (
-				<div className="min-h-screen bg-stone-50 flex items-center justify-center px-6">
+				<div className="min-h-screen bg-warm-50 flex items-center justify-center px-6">
 					<div className="w-full max-w-sm text-center">
 						<p className="text-4xl mb-4">🐾</p>
-						<h1 className="font-serif text-xl font-bold text-stone-900 mb-2">Something went wrong</h1>
-						<p className="text-stone-500 text-sm mb-6">An unexpected error occurred. Please refresh the page.</p>
+						<h1 className="font-serif text-xl font-bold text-warm-900 mb-2">Something went wrong</h1>
+						<p className="text-warm-500 text-sm mb-6">An unexpected error occurred. Please refresh the page.</p>
 						<button
 							onClick={() => window.location.reload()}
 							className="px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"
@@ -74,6 +74,7 @@ const PortalDocuments = lazy$(() => import('@/pages/portal/PortalDocuments'), 'P
 const PortalChecklist = lazy$(() => import('@/pages/portal/PortalChecklist'), 'PortalChecklist');
 const PortalLitters = lazy$(() => import('@/pages/portal/PortalLitters'), 'PortalLitters');
 const PortalLitterDetail = lazy$(() => import('@/pages/portal/PortalLitterDetail'), 'PortalLitterDetail');
+const PortalPreferences = lazy$(() => import('@/pages/portal/PortalPreferences'), 'PortalPreferences');
 
 // Admin
 const AdminDashboard = lazy$(() => import('@/pages/admin/AdminDashboard'), 'AdminDashboard');
@@ -125,6 +126,7 @@ function App() {
 							<Route path="/portal/litters/:id" element={<PortalLitterDetail />} />
 							<Route path="/portal/updates" element={<PortalUpdates />} />
 							<Route path="/portal/documents" element={<PortalDocuments />} />
+							<Route path="/portal/preferences" element={<PortalPreferences />} />
 							<Route path="/portal/checklist" element={<PortalChecklist />} />
 						</Route>
 					</Route>

@@ -30,14 +30,14 @@ export function AdminLitters() {
 				<Card>
 					<AdminTable headers={['Name', 'Status', 'Sire × Dam', 'Public ?', '']}>
 						{litters.map((litter) => (
-							<tr key={litter.id} className="border-b border-stone-100 hover:bg-stone-50">
-								<td className="py-3 px-4 font-medium text-stone-900">{litter.name}</td>
+							<tr key={litter.id} className="border-b border-black/[0.05] hover:bg-warm-50">
+								<td className="py-3 px-4 font-medium text-warm-900">{litter.name}</td>
 								<td className="py-3 px-4"><LitterStatusBadge status={litter.status} /></td>
-								<td className="py-3 px-4 text-stone-500 text-xs">{(litter as unknown as { sire: Dog; dam: Dog }).sire?.name ?? litter.sireId} × {(litter as unknown as { sire: Dog; dam: Dog }).dam?.name ?? litter.damId}</td>
+								<td className="py-3 px-4 text-warm-500 text-xs">{(litter as unknown as { sire: Dog; dam: Dog }).sire?.name ?? litter.sireId} × {(litter as unknown as { sire: Dog; dam: Dog }).dam?.name ?? litter.damId}</td>
 								<td className="py-3 px-4">
 									{litter.isPublic
 										? <span className="inline-flex items-center text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">Yes</span>
-										: <span className="inline-flex items-center text-xs font-medium text-stone-500 bg-stone-100 px-2 py-0.5 rounded-full">No</span>
+										: <span className="inline-flex items-center text-xs font-medium text-warm-500 bg-warm-100 px-2 py-0.5 rounded-full">No</span>
 									}
 								</td>
 								<td className="py-3 px-4">

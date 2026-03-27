@@ -3,10 +3,10 @@ import { Outlet, NavLink, Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 
 const portalNav = [
-	{ to: '/portal', label: 'Dashboard', icon: '🏠', end: true },
+	{ to: '/portal', label: 'Dashboard', icon: '▪', end: true },
 	{ to: '/portal/litters', label: 'Litters', icon: '🐾' },
-	{ to: '/portal/updates', label: 'Updates', icon: '📷' },
-	{ to: '/portal/documents', label: 'Documents', icon: '📄' },
+	{ to: '/portal/updates', label: 'Updates', icon: '📋' },
+	{ to: '/portal/documents', label: 'Documents', icon: '📁' },
 	{ to: '/portal/checklist', label: 'Checklist', icon: '✅' },
 ];
 
@@ -19,17 +19,28 @@ interface SidebarProps {
 }
 
 function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
+	const initials = (email ?? '')
+		.split('@')[0]
+		.slice(0, 2)
+		.toUpperCase();
+
 	return (
 		<>
-			<div className="p-6 border-b border-stone-200">
-				<Link to="/" className="flex items-center gap-2" onClick={onLinkClick}>
-					<span className="text-xl">🐾</span>
-					<span className="font-serif font-bold text-stone-900">Paw Registry</span>
+			{/* Logo area */}
+			<div className="px-5 pt-7 pb-6 border-b border-white/10">
+				<Link to="/" className="flex items-center gap-3" onClick={onLinkClick}>
+					<div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0 p-0.5">
+						<span className="text-lg leading-none">🐾</span>
+					</div>
+					<div>
+						<div className="font-serif text-[16px] text-[#F0EDEA] tracking-[0.01em]">Paw Registry</div>
+						<div className="text-[10.5px] text-[rgba(240,237,234,0.4)] mt-0.5 tracking-[0.06em] uppercase">Client Portal</div>
+					</div>
 				</Link>
-				<p className="text-xs text-stone-500 mt-1">Client Portal</p>
 			</div>
 
-			<nav className="flex-1 p-4 flex flex-col gap-1">
+			{/* Navigation */}
+			<nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
 				{portalNav.map(({ to, label, icon, end }) => (
 					<NavLink
 						key={to}
@@ -37,28 +48,32 @@ function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
 						end={end}
 						onClick={onLinkClick}
 						className={({ isActive }) =>
-							`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+							`flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13.5px] transition-colors ${
 								isActive
-									? 'bg-brand-50 text-brand-700'
-									: 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+									? 'bg-brand-500 text-white font-medium'
+									: 'text-[rgba(240,237,234,0.5)] hover:bg-white/[0.06] hover:text-[rgba(240,237,234,0.85)]'
 							}`
 						}
 					>
-						<span>{icon}</span>
+						<span className="w-4 text-center text-sm">{icon}</span>
 						{label}
 					</NavLink>
 				))}
 			</nav>
 
-			<div className="p-4 border-t border-stone-200">
-				<div className="px-3 py-2 mb-2">
-					<p className="text-xs font-medium text-stone-900 truncate">{email}</p>
+			{/* Footer */}
+			<div className="px-5 pt-4 pb-5 border-t border-white/10">
+				<div className="flex items-center gap-2.5">
+					<div className="w-[30px] h-[30px] rounded-full bg-brand-500 flex items-center justify-center text-xs font-medium text-white shrink-0">
+						{initials}
+					</div>
+					<p className="text-[11.5px] text-[rgba(240,237,234,0.4)] truncate">{email}</p>
 				</div>
 				<button
 					onClick={signOut}
-					className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors"
+					className="flex items-center gap-1.5 mt-2.5 text-xs text-[rgba(240,237,234,0.3)] hover:text-[rgba(240,237,234,0.6)] transition-colors cursor-pointer py-1.5"
 				>
-					<span>↩</span> Sign out
+					↩ Sign out
 				</button>
 			</div>
 		</>
@@ -74,10 +89,10 @@ export function PortalLayout() {
 	const closeSidebar = () => setSidebarOpen(false);
 
 	return (
-		<div className="min-h-screen bg-stone-50 flex">
+		<div className="min-h-screen bg-warm-100 flex">
 			<a
 				href="#main-content"
-				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-stone-900 focus:rounded-lg focus:shadow-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-medium"
+				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-warm-900 focus:rounded-lg focus:shadow-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-medium"
 			>
 				Skip to content
 			</a>
@@ -89,9 +104,9 @@ export function PortalLayout() {
 				/>
 			)}
 
-			{/* Sidebar — off-canvas on mobile, always visible on md+ */}
+			{/* Sidebar — dark charcoal, off-canvas on mobile, always visible on md+ */}
 			<aside className={`
-				fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-stone-200 flex flex-col
+				fixed inset-y-0 left-0 z-50 w-[220px] bg-sidebar-bg flex flex-col
 				transform transition-transform duration-200
 				${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
 				md:translate-x-0 md:static md:z-auto
@@ -102,31 +117,31 @@ export function PortalLayout() {
 			{/* Main */}
 			<div className="flex-1 flex flex-col min-w-0">
 				{/* Mobile top bar */}
-				<div className="md:hidden sticky top-0 z-30 bg-white border-b border-stone-200 h-14 flex items-center px-4 gap-3">
+				<div className="md:hidden sticky top-0 z-30 bg-sidebar-bg h-14 flex items-center px-4 gap-3">
 					<button
 						onClick={() => setSidebarOpen(true)}
-						className="flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-stone-100 transition-colors"
+						className="flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-white/[0.06] transition-colors"
 						aria-label="Open menu"
 					>
-						<span className="block h-0.5 w-5 bg-stone-700" />
-						<span className="block h-0.5 w-5 bg-stone-700" />
-						<span className="block h-0.5 w-5 bg-stone-700" />
+						<span className="block h-0.5 w-5 bg-[rgba(240,237,234,0.5)]" />
+						<span className="block h-0.5 w-5 bg-[rgba(240,237,234,0.5)]" />
+						<span className="block h-0.5 w-5 bg-[rgba(240,237,234,0.5)]" />
 					</button>
 					<Link to="/" className="flex items-center gap-2">
 						<span className="text-lg">🐾</span>
-						<span className="font-serif font-bold text-stone-900 text-sm">Paw Registry</span>
+						<span className="font-serif font-bold text-[#F0EDEA] text-sm">Paw Registry</span>
 					</Link>
-					<span className="text-xs text-stone-500">Client Portal</span>
+					<span className="text-[10.5px] text-[rgba(240,237,234,0.4)] uppercase tracking-wider">Client Portal</span>
 				</div>
 
-				{/* Page content — extra bottom padding on mobile for the bottom nav */}
-				<main id="main-content" className="flex-1 p-4 md:p-8 pb-24 md:pb-8">
+				{/* Page content */}
+				<main id="main-content" className="flex-1 p-5 md:p-8 lg:p-9 pb-24 md:pb-8">
 					<Outlet />
 				</main>
 			</div>
 
-			{/* Mobile bottom navigation — thumb-first for clients on the go */}
-			<nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-stone-200">
+			{/* Mobile bottom navigation */}
+			<nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-sidebar-bg border-t border-white/10">
 				<div className="grid grid-cols-5 h-16">
 					{portalNav.map(({ to, label, icon, end }) => (
 						<NavLink
@@ -135,7 +150,7 @@ export function PortalLayout() {
 							end={end}
 							className={({ isActive }) =>
 								`flex flex-col items-center justify-center gap-0.5 text-center transition-colors ${
-									isActive ? 'text-brand-600' : 'text-stone-400'
+									isActive ? 'text-brand-400' : 'text-[rgba(240,237,234,0.4)]'
 								}`
 							}
 						>

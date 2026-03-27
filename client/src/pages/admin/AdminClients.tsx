@@ -79,7 +79,7 @@ export function AdminClients() {
 						key={s || 'all'}
 						onClick={() => { setStage(s); load(s); }}
 						className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-							stage === s ? 'bg-brand-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+							stage === s ? 'bg-brand-500 text-white' : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
 						}`}
 					>
 						{stageLabels[s]}

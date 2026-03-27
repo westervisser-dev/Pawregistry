@@ -130,12 +130,12 @@ export function AdminLitterDetail() {
 		const setF = (key: keyof typeof newForm, value: string) => setNewForm((f) => ({ ...f, [key]: value }));
 		return (
 			<div className="p-8 max-w-3xl">
-				<Link to="/admin/litters" className="text-sm text-stone-400 hover:text-stone-600 mb-6 inline-block">← Litters</Link>
+				<Link to="/admin/litters" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">← Litters</Link>
 				<PageHeader title="New Litter" />
 				<Card className="p-6 flex flex-col gap-4">
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">
+							<label className="block text-xs font-medium text-warm-500 mb-1">
 								Litter Name<span className="text-red-400 ml-0.5">*</span>
 							</label>
 							<input
@@ -143,27 +143,27 @@ export function AdminLitterDetail() {
 								value={newForm.name}
 								onChange={(e) => setF('name', e.target.value)}
 								placeholder="e.g. Autumn 2025 Litter"
-								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Breed</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Breed</label>
 							<input
 								type="text"
 								value={newForm.breed}
 								onChange={(e) => setF('breed', e.target.value)}
 								placeholder="e.g. Golden Retriever"
-								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">
+							<label className="block text-xs font-medium text-warm-500 mb-1">
 								Sire (Father)<span className="text-red-400 ml-0.5">*</span>
 							</label>
 							<select
 								value={newForm.sireId}
 								onChange={(e) => setF('sireId', e.target.value)}
-								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							>
 								<option value="">Select sire…</option>
 								{dogs.filter((d) => d.sex === 'male').map((d) => (
@@ -172,13 +172,13 @@ export function AdminLitterDetail() {
 							</select>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">
+							<label className="block text-xs font-medium text-warm-500 mb-1">
 								Dam (Mother)<span className="text-red-400 ml-0.5">*</span>
 							</label>
 							<select
 								value={newForm.damId}
 								onChange={(e) => setF('damId', e.target.value)}
-								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							>
 								<option value="">Select dam…</option>
 								{dogs.filter((d) => d.sex === 'female').map((d) => (
@@ -187,11 +187,11 @@ export function AdminLitterDetail() {
 							</select>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Status</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Status</label>
 							<select
 								value={newForm.status}
 								onChange={(e) => setF('status', e.target.value)}
-								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							>
 								{['planned', 'confirmed', 'born', 'weaning', 'ready', 'completed'].map((s) => (
 									<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -199,21 +199,21 @@ export function AdminLitterDetail() {
 							</select>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Expected Date</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Expected Date</label>
 							<input
 								type="date"
 								value={newForm.expectedDate}
 								onChange={(e) => setF('expectedDate', e.target.value)}
-								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							/>
 						</div>
 						<div className="col-span-2">
-							<label className="block text-xs font-medium text-stone-500 mb-1">Notes</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Notes</label>
 							<textarea
 								value={newForm.notes}
 								onChange={(e) => setF('notes', e.target.value)}
 								rows={3}
-								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none resize-none"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none resize-none"
 							/>
 						</div>
 					</div>
@@ -224,16 +224,16 @@ export function AdminLitterDetail() {
 							onChange={(e) => setNewForm((f) => ({ ...f, isPublic: e.target.checked }))}
 							className="w-4 h-4 accent-brand-500"
 						/>
-						<span className="text-sm text-stone-700">Visible on public site</span>
+						<span className="text-sm text-warm-700">Visible on public site</span>
 					</label>
 					{/* Photos */}
 					<div>
-						<label className="block text-xs font-medium text-stone-500 mb-2">Photos</label>
+						<label className="block text-xs font-medium text-warm-500 mb-2">Photos</label>
 						{pendingPhotos.length > 0 && (
 							<div className="flex flex-wrap gap-2 mb-3">
 								{pendingPhotos.map((file, i) => (
 									<div key={i} className="relative w-16 h-16 flex-shrink-0">
-										<img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover rounded-lg border border-stone-200" />
+										<img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover rounded-lg border border-warm-200" />
 										<button
 											type="button"
 											onClick={() => setPendingPhotos((p) => p.filter((_, j) => j !== i))}
@@ -244,7 +244,7 @@ export function AdminLitterDetail() {
 							</div>
 						)}
 						{pendingPhotos.length < 30 && (
-							<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
+							<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-warm-200 bg-white text-xs text-warm-600 hover:bg-warm-50 transition-colors">
 								<span>Add photos</span>
 								<input
 									type="file"
@@ -260,23 +260,23 @@ export function AdminLitterDetail() {
 							</label>
 						)}
 						{pendingPhotos.length > 0 && (
-							<p className="text-xs text-stone-400 mt-1">{pendingPhotos.length} photo{pendingPhotos.length !== 1 ? 's' : ''} selected — uploaded after creation</p>
+							<p className="text-xs text-warm-400 mt-1">{pendingPhotos.length} photo{pendingPhotos.length !== 1 ? 's' : ''} selected — uploaded after creation</p>
 						)}
 					</div>
 
 					{/* Puppies */}
 					<div>
-						<label className="block text-xs font-medium text-stone-500 mb-2">Puppies</label>
+						<label className="block text-xs font-medium text-warm-500 mb-2">Puppies</label>
 						{pendingPuppies.length > 0 && (
 							<div className="space-y-1 mb-3">
 								{pendingPuppies.map((p, i) => (
-									<div key={i} className="flex items-center gap-3 py-1.5 px-3 bg-stone-50 rounded-lg text-sm">
-										<span className="w-3 h-3 rounded-full border border-stone-300 flex-shrink-0" style={{ background: p.collarColour }} />
-										<span className="text-stone-700">{p.colour} {p.sex}</span>
+									<div key={i} className="flex items-center gap-3 py-1.5 px-3 bg-warm-50 rounded-lg text-sm">
+										<span className="w-3 h-3 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
+										<span className="text-warm-700">{p.colour} {p.sex}</span>
 										<button
 											type="button"
 											onClick={() => setPendingPuppies((list) => list.filter((_, j) => j !== i))}
-											className="ml-auto text-stone-400 hover:text-red-500 text-xs"
+											className="ml-auto text-warm-400 hover:text-red-500 text-xs"
 										>Remove</button>
 									</div>
 								))}
@@ -287,18 +287,18 @@ export function AdminLitterDetail() {
 								placeholder="Collar colour"
 								value={newPuppyDraft.collarColour}
 								onChange={(e) => setNewPuppyDraft((p) => ({ ...p, collarColour: e.target.value }))}
-								className="flex-1 px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+								className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 							<input
 								placeholder="Coat colour"
 								value={newPuppyDraft.colour}
 								onChange={(e) => setNewPuppyDraft((p) => ({ ...p, colour: e.target.value }))}
-								className="flex-1 px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+								className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 							<select
 								value={newPuppyDraft.sex}
 								onChange={(e) => setNewPuppyDraft((p) => ({ ...p, sex: e.target.value as 'male' | 'female' }))}
-								className="px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+								className="px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 							>
 								<option value="male">M</option>
 								<option value="female">F</option>
@@ -310,7 +310,7 @@ export function AdminLitterDetail() {
 									setPendingPuppies((p) => [...p, newPuppyDraft]);
 									setNewPuppyDraft({ collarColour: '', sex: 'male', colour: '' });
 								}}
-								className="px-4 py-2 bg-stone-100 text-stone-700 text-sm rounded-lg hover:bg-stone-200 transition-colors"
+								className="px-4 py-2 bg-warm-100 text-warm-700 text-sm rounded-lg hover:bg-warm-200 transition-colors"
 							>Add</button>
 						</div>
 					</div>
@@ -328,7 +328,7 @@ export function AdminLitterDetail() {
 		);
 	}
 
-	if (!litter) return <div className="p-8 text-stone-500">Litter not found.</div>;
+	if (!litter) return <div className="p-8 text-warm-500">Litter not found.</div>;
 
 	// Eden Treaty auto-deserialises ISO date strings to Date objects — convert back to readable strings
 	const fmtDate = (d: Date | string | null | undefined) =>
@@ -342,7 +342,7 @@ export function AdminLitterDetail() {
 				title={<span className="flex items-center gap-3">{litter.name}{litter.breed && <Badge variant="default">{litter.breed}</Badge>}</span>}
 				subtitle={`${(litter as typeof litter & { sire: Dog }).sire?.name ?? '—'} × ${(litter as typeof litter & { dam: Dog }).dam?.name ?? '—'}`}
 				action={
-					<button onClick={() => navigate('/admin/litters')} className="text-sm text-stone-500 hover:text-stone-700">
+					<button onClick={() => navigate('/admin/litters')} className="text-sm text-warm-500 hover:text-warm-700">
 						← Back
 					</button>
 				}
@@ -352,13 +352,13 @@ export function AdminLitterDetail() {
 
 				<Card className="p-6 md:col-span-2">
 					<div className="flex items-center justify-between mb-4">
-						<h3 className="font-semibold text-stone-800">Gallery</h3>
-						<span className="text-xs text-stone-400">{galleryImages.length}/30 photos</span>
+						<h3 className="font-semibold text-warm-800">Gallery</h3>
+						<span className="text-xs text-warm-400">{galleryImages.length}/30 photos</span>
 					</div>
 					<div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
 						{galleryImages.map((img) => (
 							<div key={img.id} className="relative aspect-square">
-								<img src={img.url} alt="Gallery" className="w-full h-full object-cover rounded-lg border border-stone-200" />
+								<img src={img.url} alt="Gallery" className="w-full h-full object-cover rounded-lg border border-warm-200" />
 								<button
 									type="button"
 									onClick={async () => {
@@ -375,12 +375,12 @@ export function AdminLitterDetail() {
 							</div>
 						))}
 						{galleryImages.length === 0 && (
-							<p className="text-xs text-stone-400 col-span-full">No photos yet.</p>
+							<p className="text-xs text-warm-400 col-span-full">No photos yet.</p>
 						)}
 					</div>
 					<div className="flex items-center gap-3">
 						{galleryImages.length < 30 ? (
-							<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
+							<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-warm-200 bg-white text-xs text-warm-600 hover:bg-warm-50 transition-colors">
 								<span>Upload photos</span>
 								<input
 									type="file"
@@ -402,14 +402,14 @@ export function AdminLitterDetail() {
 								/>
 							</label>
 						) : (
-							<p className="text-xs text-stone-400">Maximum of 30 photos reached.</p>
+							<p className="text-xs text-warm-400">Maximum of 30 photos reached.</p>
 						)}
 					</div>
 					{galleryError && <p className="text-xs text-red-500 mt-2">{galleryError}</p>}
 				</Card>
 
 				<Card className="p-6">
-					<h3 className="font-semibold text-stone-800 mb-4">Status</h3>
+					<h3 className="font-semibold text-warm-800 mb-4">Status</h3>
 					<div className="flex flex-wrap gap-2">
 						{statuses.map((s) => (
 							<button
@@ -419,14 +419,14 @@ export function AdminLitterDetail() {
 								className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
 									litter.status === s
 										? 'bg-brand-500 text-white'
-										: 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+										: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
 								}`}
 							>
 								{s}
 							</button>
 						))}
 					</div>
-					<div className="mt-4 pt-4 border-t border-stone-100">
+					<div className="mt-4 pt-4 border-t border-black/[0.05]">
 						<label className="flex items-center gap-3 cursor-pointer select-none">
 							<input
 								type="checkbox"
@@ -434,28 +434,28 @@ export function AdminLitterDetail() {
 								onChange={togglePublic}
 								className="w-4 h-4 accent-brand-500"
 							/>
-							<span className="text-sm text-stone-700">Visible on public site</span>
+							<span className="text-sm text-warm-700">Visible on public site</span>
 						</label>
 					</div>
 				</Card>
 
 				<Card className="p-6">
-					<h3 className="font-semibold text-stone-800 mb-4">Details</h3>
+					<h3 className="font-semibold text-warm-800 mb-4">Details</h3>
 					<div className="space-y-2 text-sm">
 						<div className="flex justify-between">
-							<span className="text-stone-500">Whelp date</span>
+							<span className="text-warm-500">Whelp date</span>
 							<span>{fmtDate(litter.whelpDate)}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-stone-500">Expected</span>
+							<span className="text-warm-500">Expected</span>
 							<span>{fmtDate(litter.expectedDate)}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-stone-500">Puppies</span>
+							<span className="text-warm-500">Puppies</span>
 							<span>{litter.puppyCount ?? '—'}</span>
 						</div>
 						<div className="flex justify-between">
-							<span className="text-stone-500">Deposit</span>
+							<span className="text-warm-500">Deposit</span>
 							<span>{litter.depositAmount ? `R${litter.depositAmount}` : '—'}</span>
 						</div>
 					</div>
@@ -463,16 +463,16 @@ export function AdminLitterDetail() {
 			</div>
 
 			<Card className="p-6 mb-6">
-				<h3 className="font-semibold text-stone-800 mb-4">Puppies ({litter.puppies.length})</h3>
+				<h3 className="font-semibold text-warm-800 mb-4">Puppies ({litter.puppies.length})</h3>
 				{litter.puppies.length === 0 ? (
 					<EmptyState icon="🐶" title="No puppies recorded yet" />
 				) : (
 					<div className="space-y-2">
 						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null }>).map((p) => (
-							<div key={p.id} className="flex items-center justify-between py-2 border-b border-stone-100 last:border-0">
+							<div key={p.id} className="flex items-center justify-between py-2 border-b border-black/[0.05] last:border-0">
 								<div className="flex items-center gap-3">
-									<span className="w-4 h-4 rounded-full border border-stone-300 inline-block" style={{ background: p.collarColour }} />
-									<span className="text-sm font-medium text-stone-800">{p.colour} {p.sex}</span>
+									<span className="w-4 h-4 rounded-full border border-warm-300 inline-block" style={{ background: p.collarColour }} />
+									<span className="text-sm font-medium text-warm-800">{p.colour} {p.sex}</span>
 								</div>
 								<PuppyStatusBadge status={p.status} />
 							</div>
@@ -480,25 +480,25 @@ export function AdminLitterDetail() {
 					</div>
 				)}
 
-				<div className="mt-4 pt-4 border-t border-stone-100">
-					<p className="text-xs font-medium text-stone-500 uppercase tracking-wide mb-3">Add puppy</p>
+				<div className="mt-4 pt-4 border-t border-black/[0.05]">
+					<p className="text-xs font-medium text-warm-500 uppercase tracking-wide mb-3">Add puppy</p>
 					<div className="flex gap-2">
 						<input
 							placeholder="Collar colour"
 							value={newPuppy.collarColour}
 							onChange={(e) => setNewPuppy((p) => ({ ...p, collarColour: e.target.value }))}
-							className="flex-1 px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+							className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 						/>
 						<input
 							placeholder="Coat colour"
 							value={newPuppy.colour}
 							onChange={(e) => setNewPuppy((p) => ({ ...p, colour: e.target.value }))}
-							className="flex-1 px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+							className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 						/>
 						<select
 							value={newPuppy.sex}
 							onChange={(e) => setNewPuppy((p) => ({ ...p, sex: e.target.value as 'male' | 'female' }))}
-							className="px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+							className="px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 						>
 							<option value="male">M</option>
 							<option value="female">F</option>

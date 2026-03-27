@@ -1,12 +1,46 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { Card, PageHeader } from '@/components/ui';
+import {
+	Card,
+	CardHeader,
+	PageHeader,
+	StatCard,
+	ActionButton,
+	CountBadge,
+	ActivityFeed,
+	Avatar,
+	ViewAllLink,
+} from '@/components/ui';
 import type { Dog, Litter, Client } from '@paw-registry/shared';
+
+function getGreeting(): string {
+	const h = new Date().getHours();
+	if (h < 12) return 'Good morning';
+	if (h < 17) return 'Good afternoon';
+	return 'Good evening';
+}
+
+function timeAgo(dateStr: string): string {
+	const diff = Date.now() - new Date(dateStr).getTime();
+	const mins = Math.floor(diff / 60_000);
+	if (mins < 60) return `${mins}m ago`;
+	const hours = Math.floor(mins / 60);
+	if (hours < 24) return `${hours}h ago`;
+	const days = Math.floor(hours / 24);
+	return `${days}d ago`;
+}
 
 export function AdminDashboard() {
 	const [counts, setCounts] = useState({ dogs: 0, litters: 0, clients: 0, enquiries: 0 });
 	const [recentEnquiries, setRecentEnquiries] = useState<Pick<Client, 'id' | 'firstName' | 'lastName' | 'email' | 'createdAt'>[]>([]);
+	const [allClients, setAllClients] = useState<Client[]>([]);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		document.title = 'Dashboard — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
 
 	useEffect(() => {
 		Promise.all([
@@ -17,105 +51,167 @@ export function AdminDashboard() {
 			const dogs = (dogsRes.data as Dog[] | null) ?? [];
 			const litters = (littersRes.data as Litter[] | null) ?? [];
 			const clients = (clientsRes.data as Client[] | null) ?? [];
+
+			const enquired = clients.filter((c) => c.stage === 'enquired');
+
 			setCounts({
 				dogs: dogs.length,
 				litters: litters.length,
 				clients: clients.length,
-				enquiries: clients.filter((c) => c.stage === 'enquired').length,
+				enquiries: enquired.length,
 			});
+
 			setRecentEnquiries(
-				clients
-					.filter((c) => c.stage === 'enquired')
-					.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+				enquired
+					.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 					.slice(0, 5),
 			);
+
+			setAllClients(clients);
+			setLoading(false);
 		});
 	}, []);
 
-	const stats = [
-		{ label: 'Active Dogs', value: counts.dogs, icon: '🐕', to: '/admin/dogs' },
-		{ label: 'Litters', value: counts.litters, icon: '🐶', to: '/admin/litters' },
-		{ label: 'Total Clients', value: counts.clients, icon: '👥', to: '/admin/clients' },
-		{ label: 'New Enquiries', value: counts.enquiries, icon: '📥', to: '/admin/clients?stage=enquired' },
-	];
+	// Build activity feed from recent client events
+	const recentActivity = allClients
+		.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+		.slice(0, 4)
+		.map((c) => ({
+			text: `New enquiry from ${c.firstName} ${c.lastName}`,
+			time: timeAgo(c.createdAt),
+			color: 'brand' as const,
+		}));
+
+	const newCount = recentEnquiries.length;
 
 	return (
-		<div className="p-8">
-			<PageHeader title="Dashboard" subtitle="Overview of your breeding programme." />
-			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-				{stats.map(({ label, value, icon, to }) => (
-					<Link key={label} to={to}>
-						<Card className="p-5 hover:shadow-sm transition-shadow">
-							<div className="flex items-center justify-between mb-3">
-								<span className="text-2xl">{icon}</span>
-							</div>
-							<p className="text-3xl font-bold text-stone-900">{value}</p>
-							<p className="text-sm text-stone-400 mt-1">{label}</p>
-						</Card>
-					</Link>
-				))}
+		<div className="p-8 max-w-[1200px]">
+			<PageHeader
+				title="Dashboard"
+				subtitle={`${getGreeting()} — here's your breeding programme overview.`}
+			/>
+
+			{/* ── Stats Grid ──────────────────────────────────────── */}
+			<div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-7">
+				<StatCard
+					icon="🐕"
+					value={counts.dogs}
+					label="Active Dogs"
+					accent="brand"
+					to="/admin/dogs"
+				/>
+				<StatCard
+					icon="🐶"
+					value={counts.litters}
+					label="Litters"
+					accent="brown"
+					to="/admin/litters"
+				/>
+				<StatCard
+					icon="👥"
+					value={counts.clients}
+					label="Total Clients"
+					accent="green"
+					to="/admin/clients"
+				/>
+				<StatCard
+					icon="📬"
+					value={counts.enquiries}
+					label="New Enquiries"
+					accent="blue"
+					trend={counts.enquiries > 0 ? { text: 'needs review', variant: 'alert' } : undefined}
+					to="/admin/clients?stage=enquired"
+				/>
 			</div>
 
-			<div>
-				<p className="text-sm font-medium text-stone-500 mb-3">Quick Actions</p>
-				<div className="flex flex-wrap gap-3">
-					{[
-						{ label: '+ Add Dog', to: '/admin/dogs/new' },
-						{ label: '+ Create Litter', to: '/admin/litters' },
-						{ label: 'View Waiting List', to: '/admin/clients' },
-						{ label: 'Post Update', to: '/admin/updates' },
-					].map(({ label, to }) => (
-						<Link
-							key={to}
-							to={to}
-							className="px-4 py-2 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"
-						>
-							{label}
-						</Link>
-					))}
-				</div>
-			</div>
-
-			<div className="mt-8">
-				<p className="text-sm font-medium text-stone-500 mb-3">Recent Enquiries</p>
+			{/* ── Lower Grid: Table + Actions Panel ───────────────── */}
+			<div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
+				{/* Recent Enquiries Table */}
 				<Card>
-					<table className="w-full text-sm">
-						<thead>
-							<tr className="border-b border-stone-100">
-								<th className="text-left px-4 py-2.5 text-xs font-medium text-stone-400 uppercase tracking-wide">Name</th>
-								<th className="text-left px-4 py-2.5 text-xs font-medium text-stone-400 uppercase tracking-wide">Email</th>
-								<th className="text-left px-4 py-2.5 text-xs font-medium text-stone-400 uppercase tracking-wide">Applied</th>
-								<th className="px-4 py-2.5" />
-							</tr>
-						</thead>
-						<tbody>
-							{recentEnquiries.length === 0 ? (
+					<CardHeader
+						title="Recent Enquiries"
+						badge={newCount > 0 ? <CountBadge count={newCount} /> : undefined}
+						action={<ViewAllLink to="/admin/clients?stage=enquired" />}
+					/>
+					<div className="overflow-x-auto">
+						<table className="w-full mt-3.5">
+							<thead>
 								<tr>
-									<td colSpan={4} className="px-4 py-6 text-center text-stone-400 text-sm">
-										No pending enquiries
-									</td>
+									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Name</th>
+									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Email</th>
+									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Applied</th>
+									<th className="px-[22px] pb-2.5 border-b border-black/[0.06]" />
 								</tr>
-							) : (
-								recentEnquiries.map((client) => (
-									<tr key={client.id} className="border-b border-stone-100 last:border-0 hover:bg-stone-50">
-										<td className="px-4 py-3 font-medium text-stone-900">
-											{client.firstName} {client.lastName}
-										</td>
-										<td className="px-4 py-3 text-stone-500">{client.email}</td>
-										<td className="px-4 py-3 text-stone-400 whitespace-nowrap">
-											{new Date(client.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-										</td>
-										<td className="px-4 py-3 text-right">
-											<Link to={`/admin/clients/${client.id}`} className="text-brand-600 hover:underline">
-												Review →
-											</Link>
+							</thead>
+							<tbody>
+								{loading ? (
+									<tr>
+										<td colSpan={4} className="px-[22px] py-8 text-center text-warm-400 text-sm">
+											Loading…
 										</td>
 									</tr>
-								))
-							)}
-						</tbody>
-					</table>
+								) : recentEnquiries.length === 0 ? (
+									<tr>
+										<td colSpan={4} className="px-[22px] py-8 text-center text-warm-400 text-sm">
+											No pending enquiries
+										</td>
+									</tr>
+								) : (
+									recentEnquiries.map((client) => (
+										<tr key={client.id} className="border-b border-black/[0.05] last:border-0 hover:bg-warm-50 transition-colors">
+											<td className="px-[22px] py-[13px]">
+												<div className="flex items-center gap-2.5">
+													<Avatar name={`${client.firstName} ${client.lastName}`} />
+													<span className="text-[13px] text-warm-800 font-medium">
+														{client.firstName} {client.lastName}
+													</span>
+												</div>
+											</td>
+											<td className="px-[22px] py-[13px] text-[12.5px] text-warm-500">
+												{client.email}
+											</td>
+											<td className="px-[22px] py-[13px] text-xs text-warm-400">
+												{new Date(client.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+											</td>
+											<td className="px-[22px] py-[13px]">
+												<Link
+													to={`/admin/clients/${client.id}`}
+													className="text-xs text-brand-500 font-medium hover:underline whitespace-nowrap"
+												>
+													Review →
+												</Link>
+											</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+					</div>
 				</Card>
+
+				{/* Actions Panel */}
+				<div className="flex flex-col gap-3.5">
+					{/* Quick Actions */}
+					<Card className="p-5">
+						<h3 className="font-serif text-[15px] text-warm-900 mb-3.5">Quick Actions</h3>
+						<div className="flex flex-col gap-2">
+							<ActionButton icon="+" label="Add Dog" to="/admin/dogs/new" variant="primary" />
+							<ActionButton icon="+" label="Create Litter" to="/admin/litters/new" />
+							<ActionButton icon="📋" label="Waiting List" to="/admin/clients" />
+							<ActionButton icon="📢" label="Post Update" to="/admin/updates" />
+						</div>
+					</Card>
+
+					{/* Recent Activity */}
+					<Card className="p-5">
+						<h3 className="font-serif text-[15px] text-warm-900 mb-3.5">Recent Activity</h3>
+						{recentActivity.length > 0 ? (
+							<ActivityFeed items={recentActivity} />
+						) : (
+							<p className="text-xs text-warm-400">No recent activity</p>
+						)}
+					</Card>
+				</div>
 			</div>
 		</div>
 	);

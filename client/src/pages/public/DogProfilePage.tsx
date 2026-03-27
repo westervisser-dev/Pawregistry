@@ -22,9 +22,9 @@ function PedigreeNode({ dog, depth }: { dog: PedigreeTree; depth: number }) {
 
 	return (
 		<div className="flex items-center gap-2">
-			<div className={`bg-white border border-stone-200 rounded-lg ${boxSize} flex-shrink-0`}>
-				<p className={`${fontSize} text-stone-900 truncate`}>{dog.name}</p>
-				<p className="text-xs text-stone-400 truncate">{dog.colour}</p>
+			<div className={`bg-white border border-warm-200 rounded-lg ${boxSize} flex-shrink-0`}>
+				<p className={`${fontSize} text-warm-900 truncate`}>{dog.name}</p>
+				<p className="text-xs text-warm-400 truncate">{dog.colour}</p>
 				{depth < 2 && (
 					<Badge variant={dog.sex === 'male' ? 'blue' : 'purple'}>
 						{dog.sex === 'male' ? '♂' : '♀'}
@@ -35,13 +35,13 @@ function PedigreeNode({ dog, depth }: { dog: PedigreeTree; depth: number }) {
 				<div className="flex flex-col gap-2">
 					{dog.sire && (
 						<div className="flex items-center gap-1">
-							<div className="w-4 h-px bg-stone-300" />
+							<div className="w-4 h-px bg-warm-300" />
 							<PedigreeNode dog={dog.sire} depth={depth + 1} />
 						</div>
 					)}
 					{dog.dam && (
 						<div className="flex items-center gap-1">
-							<div className="w-4 h-px bg-stone-300" />
+							<div className="w-4 h-px bg-warm-300" />
 							<PedigreeNode dog={dog.dam} depth={depth + 1} />
 						</div>
 					)}
@@ -94,17 +94,17 @@ export function DogProfilePage() {
 	}, []);
 
 	if (loading) return <LoadingPage />;
-	if (!dog) return <div className="p-16 text-center text-stone-500">Dog not found.</div>;
+	if (!dog) return <div className="p-16 text-center text-warm-500">Dog not found.</div>;
 
 	return (
 		<div className="max-w-5xl mx-auto px-6 py-16">
-			<Link to="/dogs" className="text-sm text-stone-500 hover:text-stone-700 mb-8 inline-block">
+			<Link to="/dogs" className="text-sm text-warm-500 hover:text-warm-700 mb-8 inline-block">
 				← All Dogs
 			</Link>
 
 			{/* Profile header */}
 			<div className="flex flex-col md:flex-row gap-8 mb-12">
-				<div className="w-full md:w-72 h-72 bg-stone-100 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+				<div className="w-full md:w-72 h-72 bg-warm-100 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center">
 					{dog.profileImageUrl ? (
 						<img src={dog.profileImageUrl} alt={dog.name} className="w-full h-full object-cover" />
 					) : (
@@ -113,11 +113,11 @@ export function DogProfilePage() {
 				</div>
 				<div className="flex-1">
 					<div className="flex items-center gap-3 mb-1">
-						<h1 className="font-serif text-4xl font-bold text-stone-900">{dog.name}</h1>
+						<h1 className="font-serif text-4xl font-bold text-warm-900">{dog.name}</h1>
 						<Badge variant={dog.sex === 'male' ? 'blue' : 'purple'}>{dog.sex}</Badge>
 					</div>
 					{dog.registeredName && (
-						<p className="text-stone-400 text-sm mb-4">{dog.registeredName}</p>
+						<p className="text-warm-400 text-sm mb-4">{dog.registeredName}</p>
 					)}
 					<dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
 						{[
@@ -128,13 +128,13 @@ export function DogProfilePage() {
 							{ label: 'Microchip', value: dog.microchipNumber ?? '—' },
 						].map(({ label, value }) => (
 							<div key={label}>
-								<dt className="text-stone-400">{label}</dt>
-								<dd className="text-stone-800 font-medium">{value}</dd>
+								<dt className="text-warm-400">{label}</dt>
+								<dd className="text-warm-800 font-medium">{value}</dd>
 							</div>
 						))}
 					</dl>
 					{dog.notes && (
-						<p className="mt-4 text-stone-600 text-sm leading-relaxed">{dog.notes}</p>
+						<p className="mt-4 text-warm-600 text-sm leading-relaxed">{dog.notes}</p>
 					)}
 				</div>
 			</div>
@@ -142,18 +142,18 @@ export function DogProfilePage() {
 			{/* Health certs */}
 			{dog.healthCerts?.length > 0 && (
 				<section className="mb-12">
-					<h2 className="font-serif text-2xl font-bold text-stone-900 mb-4">Health Certifications</h2>
+					<h2 className="font-serif text-2xl font-bold text-warm-900 mb-4">Health Certifications</h2>
 					<div className="grid grid-cols-2 md:grid-cols-3 gap-3">
 						{dog.healthCerts.map((cert) => (
-							<div key={cert.id} className="bg-white border border-stone-200 rounded-lg p-4">
-								<p className="text-sm font-medium text-stone-700">{certLabels[cert.type] ?? cert.type}</p>
+							<div key={cert.id} className="bg-white border border-warm-200 rounded-lg p-4">
+								<p className="text-sm font-medium text-warm-700">{certLabels[cert.type] ?? cert.type}</p>
 								<div className="mt-1">
 									<Badge variant={resultVariant[cert.result] ?? 'default'}>
 										{cert.result}
 									</Badge>
 								</div>
 								{cert.issuedAt && (
-									<p className="text-xs text-stone-400 mt-2">{cert.issuedAt}</p>
+									<p className="text-xs text-warm-400 mt-2">{cert.issuedAt}</p>
 								)}
 							</div>
 						))}
@@ -164,8 +164,8 @@ export function DogProfilePage() {
 			{/* Pedigree */}
 			{pedigree && (
 				<section>
-					<h2 className="font-serif text-2xl font-bold text-stone-900 mb-6">Pedigree</h2>
-					<div className="bg-stone-50 rounded-xl border border-stone-200 p-6 overflow-x-auto">
+					<h2 className="font-serif text-2xl font-bold text-warm-900 mb-6">Pedigree</h2>
+					<div className="bg-warm-50 rounded-xl border border-warm-200 p-6 overflow-x-auto">
 						<PedigreeNode dog={pedigree} depth={0} />
 					</div>
 				</section>
@@ -174,10 +174,10 @@ export function DogProfilePage() {
 			{/* Image gallery */}
 			{dog.imageUrls?.length > 1 && (
 				<section className="mt-12">
-					<h2 className="font-serif text-2xl font-bold text-stone-900 mb-4">Gallery</h2>
+					<h2 className="font-serif text-2xl font-bold text-warm-900 mb-4">Gallery</h2>
 					<div className="grid grid-cols-3 md:grid-cols-4 gap-3">
 						{dog.imageUrls.map((url, i) => (
-							<div key={i} className="aspect-square rounded-lg overflow-hidden bg-stone-100">
+							<div key={i} className="aspect-square rounded-lg overflow-hidden bg-warm-100">
 								<img src={url} alt={`${dog.name} ${i + 1}`} className="w-full h-full object-cover" />
 							</div>
 						))}

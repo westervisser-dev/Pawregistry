@@ -64,11 +64,11 @@ export function AdminDocuments() {
 			/>
 
 			<Card className="p-6 mb-8">
-				<h2 className="font-medium text-stone-900 mb-4">Upload Template</h2>
+				<h2 className="font-medium text-warm-900 mb-4">Upload Template</h2>
 				<div className="flex flex-col gap-4">
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">
+							<label className="block text-xs font-medium text-warm-500 mb-1">
 								Name<span className="text-red-400 ml-0.5">*</span>
 							</label>
 							<input
@@ -76,39 +76,39 @@ export function AdminDocuments() {
 								value={form.name}
 								onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
 								placeholder="e.g. Puppy Purchase Agreement"
-								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Category</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Category</label>
 							<input
 								type="text"
 								value={form.category}
 								onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
 								placeholder="e.g. Contracts, Health, Care Guide"
-								className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 						</div>
 					</div>
 					<div>
-						<label className="block text-xs font-medium text-stone-500 mb-1">Description</label>
+						<label className="block text-xs font-medium text-warm-500 mb-1">Description</label>
 						<input
 							type="text"
 							value={form.description}
 							onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
 							placeholder="Brief description of this document"
-							className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 						/>
 					</div>
 					<div>
-						<label className="block text-xs font-medium text-stone-500 mb-1">
+						<label className="block text-xs font-medium text-warm-500 mb-1">
 							File<span className="text-red-400 ml-0.5">*</span>
 						</label>
 						<input
 							ref={fileRef}
 							type="file"
 							accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-							className="w-full text-sm text-stone-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200"
+							className="w-full text-sm text-warm-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-warm-100 file:text-warm-700 hover:file:bg-warm-200"
 						/>
 					</div>
 					{formError && <p className="text-sm text-red-600">{formError}</p>}
@@ -127,14 +127,14 @@ export function AdminDocuments() {
 					{templates.length === 0 ? (
 						<EmptyState icon="📄" title="No templates yet" description="Upload your first template above." />
 					) : (
-						<div className="divide-y divide-stone-100">
+						<div className="divide-y divide-black/[0.05]">
 							{templates.map((template) => (
 								<div key={template.id} className="flex items-start justify-between px-5 py-4 gap-4">
 									<div className="flex items-start gap-3 flex-1 min-w-0">
 										<span className="text-2xl mt-0.5">📄</span>
 										<div className="flex-1 min-w-0">
 											<div className="flex items-center gap-2 flex-wrap">
-												<p className="font-medium text-stone-900 text-sm">{template.name}</p>
+												<p className="font-medium text-warm-900 text-sm">{template.name}</p>
 												{template.category && (
 													<Badge variant="default">{template.category}</Badge>
 												)}
@@ -143,9 +143,9 @@ export function AdminDocuments() {
 												)}
 											</div>
 											{template.description && (
-												<p className="text-xs text-stone-500 mt-0.5">{template.description}</p>
+												<p className="text-xs text-warm-500 mt-0.5">{template.description}</p>
 											)}
-											<p className="text-xs text-stone-400 mt-1">
+											<p className="text-xs text-warm-400 mt-1">
 												Added {new Date(template.createdAt).toLocaleDateString()}
 											</p>
 										</div>
@@ -161,7 +161,7 @@ export function AdminDocuments() {
 										</a>
 										<button
 											onClick={() => toggleActive(template)}
-											className="text-xs text-stone-500 hover:text-stone-800 px-2 py-1 rounded hover:bg-stone-100"
+											className="text-xs text-warm-500 hover:text-warm-800 px-2 py-1 rounded hover:bg-warm-100"
 										>
 											{template.isActive ? 'Hide' : 'Show'}
 										</button>

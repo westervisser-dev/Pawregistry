@@ -23,7 +23,7 @@ export function HomePage() {
 	return (
 		<div>
 			{/* Hero */}
-			<section className="relative bg-stone-900 text-white overflow-hidden">
+			<section className="relative bg-warm-900 text-white overflow-hidden">
 				<img
 					src="https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1600&q=85&auto=format&fit=crop"
 					srcSet="https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=768&q=80&auto=format&fit=crop 768w, https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1200&q=85&auto=format&fit=crop 1200w, https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1600&q=85&auto=format&fit=crop 1600w"
@@ -33,7 +33,7 @@ export function HomePage() {
 					decoding="async"
 					className="absolute inset-0 w-full h-full object-cover object-center scale-105"
 				/>
-				<div className="absolute inset-0 bg-gradient-to-br from-stone-900/90 via-stone-800/80 to-brand-900/75" />
+				<div className="absolute inset-0 bg-gradient-to-br from-warm-900/90 via-warm-800/80 to-brand-900/75" />
 				<div className="relative max-w-6xl mx-auto px-6 py-16 md:py-32 flex flex-col items-start gap-6">
 					<span className="text-brand-300 text-sm font-medium uppercase tracking-widest">
 						Thoughtful Breeding
@@ -41,7 +41,7 @@ export function HomePage() {
 					<h1 className="font-serif text-5xl md:text-6xl font-bold leading-tight max-w-2xl">
 						Raised with love.<br />Placed with care.
 					</h1>
-					<p className="text-stone-300 text-lg max-w-xl leading-relaxed">
+					<p className="text-warm-300 text-lg max-w-xl leading-relaxed">
 						We breed healthy, well-socialised dogs from health-tested parents with
 						verified pedigrees. Every puppy comes with lifetime breeder support.
 					</p>
@@ -65,7 +65,7 @@ export function HomePage() {
 
 			{/* Why us */}
 			<section className="max-w-6xl mx-auto px-6 py-20">
-				<h2 className="font-serif text-3xl font-bold text-stone-900 text-center mb-12">
+				<h2 className="font-serif text-3xl font-bold text-warm-900 text-center mb-12">
 					Our Commitment
 				</h2>
 				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
@@ -86,10 +86,10 @@ export function HomePage() {
 							body: 'We remain available to every family throughout the life of your dog. Our relationship doesn\'t end at placement.',
 						},
 					].map(({ icon, title, body }) => (
-						<div key={title} className="flex flex-col items-start gap-4 p-6 bg-white rounded-xl border border-stone-200">
+						<div key={title} className="flex flex-col items-start gap-4 p-6 bg-white rounded-xl border border-warm-200">
 							<span className="text-3xl">{icon}</span>
-							<h3 className="font-serif text-lg font-bold text-stone-900">{title}</h3>
-							<p className="text-stone-600 text-sm leading-relaxed">{body}</p>
+							<h3 className="font-serif text-lg font-bold text-warm-900">{title}</h3>
+							<p className="text-warm-600 text-sm leading-relaxed">{body}</p>
 						</div>
 					))}
 				</div>
@@ -100,7 +100,7 @@ export function HomePage() {
 				<section className="bg-brand-50 py-20">
 					<div className="max-w-6xl mx-auto px-6">
 						<div className="flex items-center justify-between mb-10">
-							<h2 className="font-serif text-3xl font-bold text-stone-900">Current Litters</h2>
+							<h2 className="font-serif text-3xl font-bold text-warm-900">Current Litters</h2>
 							<Link to="/litters" className="text-brand-600 text-sm font-medium hover:underline">
 								View all →
 							</Link>
@@ -108,11 +108,11 @@ export function HomePage() {
 						{littersLoading ? (
 							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 								{[1, 2, 3].map((n) => (
-									<div key={n} className="bg-white rounded-xl border border-stone-200 overflow-hidden animate-pulse">
-										<div className="h-40 bg-stone-200" />
+									<div key={n} className="bg-white rounded-xl border border-warm-200 overflow-hidden animate-pulse">
+										<div className="h-40 bg-warm-200" />
 										<div className="p-5 flex flex-col gap-3">
-											<div className="h-4 bg-stone-200 rounded w-3/4" />
-											<div className="h-3 bg-stone-100 rounded w-1/2" />
+											<div className="h-4 bg-warm-200 rounded w-3/4" />
+											<div className="h-3 bg-warm-100 rounded w-1/2" />
 										</div>
 									</div>
 								))}
@@ -123,14 +123,14 @@ export function HomePage() {
 								<Link
 									key={litter.id}
 									to={`/litters/${litter.id}`}
-									className="bg-white rounded-xl border border-stone-200 overflow-hidden hover:shadow-md transition-shadow"
+									className="bg-white rounded-xl border border-warm-200 overflow-hidden hover:shadow-md transition-shadow"
 								>
 										<div className="p-5">
 										<div className="flex items-start justify-between mb-2">
-											<h3 className="font-medium text-stone-900">{litter.name}</h3>
+											<h3 className="font-medium text-warm-900">{litter.name}</h3>
 											<LitterStatusBadge status={litter.status} />
 										</div>
-										<p className="text-sm text-stone-500">
+										<p className="text-sm text-warm-500">
 											{litter.sire?.name} × {litter.dam?.name}
 										</p>
 										{litter.availableCount != null && litter.availableCount > 0 && (
@@ -149,10 +149,10 @@ export function HomePage() {
 
 			{/* CTA */}
 			<section className="max-w-6xl mx-auto px-6 py-20 text-center">
-				<h2 className="font-serif text-3xl font-bold text-stone-900 mb-4">
+				<h2 className="font-serif text-3xl font-bold text-warm-900 mb-4">
 					Ready to apply?
 				</h2>
-				<p className="text-stone-500 mb-8 max-w-md mx-auto">
+				<p className="text-warm-500 mb-8 max-w-md mx-auto">
 					Fill in our puppy application and we'll be in touch to discuss
 					which litter might be a good fit.
 				</p>

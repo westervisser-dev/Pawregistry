@@ -46,30 +46,30 @@ function formatBreedSize(raw: string | null | undefined): { breed: string; size:
 
 function BreedSizeDisplay({ raw }: { raw: string | null | undefined }) {
 	const parsed = formatBreedSize(raw);
-	if (!parsed) return <span className="text-stone-300">—</span>;
+	if (!parsed) return <span className="text-warm-300">—</span>;
 	return (
-		<span className="text-stone-800">
+		<span className="text-warm-800">
 			<span className="font-medium">{parsed.breed}</span>
-			{parsed.size && <span className="text-stone-400"> · {parsed.size}</span>}
+			{parsed.size && <span className="text-warm-400"> · {parsed.size}</span>}
 		</span>
 	);
 }
 
 function AppField({ label, value }: { label: string; value: unknown }) {
 	const display = () => {
-		if (value === null || value === undefined || value === '') return <span className="text-stone-300">—</span>;
+		if (value === null || value === undefined || value === '') return <span className="text-warm-300">—</span>;
 		if (typeof value === 'boolean') return value
 			? <span className="text-green-600 font-medium">Yes</span>
-			: <span className="text-stone-400">No</span>;
-		if (Array.isArray(value)) return value.length ? String(value.join(', ')) : <span className="text-stone-300">—</span>;
+			: <span className="text-warm-400">No</span>;
+		if (Array.isArray(value)) return value.length ? String(value.join(', ')) : <span className="text-warm-300">—</span>;
 		const str = String(value);
 		if (str === 'true') return <span className="text-green-600 font-medium">Yes</span>;
-		if (str === 'false') return <span className="text-stone-400">No</span>;
-		return <span className="text-stone-800">{str}</span>;
+		if (str === 'false') return <span className="text-warm-400">No</span>;
+		return <span className="text-warm-800">{str}</span>;
 	};
 	return (
-		<div className="py-2.5 border-b border-stone-100 last:border-0 grid grid-cols-2 gap-4 items-start">
-			<dt className="text-xs text-stone-400 pt-0.5">{label}</dt>
+		<div className="py-2.5 border-b border-black/[0.05] last:border-0 grid grid-cols-2 gap-4 items-start">
+			<dt className="text-xs text-warm-400 pt-0.5">{label}</dt>
 			<dd className="text-sm">{display()}</dd>
 		</div>
 	);
@@ -81,7 +81,7 @@ function AppSection({ title, fields }: { title: string; fields: { label: string;
 	return (
 		<div>
 			<p className="text-xs font-semibold text-amber-700 uppercase tracking-widest mb-1">{title}</p>
-			<dl className="divide-y divide-stone-100">
+			<dl className="divide-y divide-black/[0.05]">
 				{visible.map(({ label, value }) => (
 					<AppField key={label} label={label} value={value} />
 				))}
@@ -170,7 +170,7 @@ export function AdminClientDetail() {
 	};
 
 	if (loading) return <LoadingPage />;
-	if (!client) return <div className="p-8 text-stone-500">Client not found.</div>;
+	if (!client) return <div className="p-8 text-warm-500">Client not found.</div>;
 
 	const a = client.applicationData as unknown as Record<string, unknown>;
 
@@ -182,17 +182,17 @@ export function AdminClientDetail() {
 
 	return (
 		<div className="p-8 max-w-4xl">
-			<Link to="/admin/clients" className="text-sm text-stone-400 hover:text-stone-600 mb-6 inline-block">← Clients</Link>
+			<Link to="/admin/clients" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">← Clients</Link>
 
 			<div className="flex items-start justify-between mb-6">
 				<div>
-					<h1 className="font-serif text-2xl font-bold text-stone-900">
+					<h1 className="font-serif text-2xl font-bold text-warm-900">
 						{client.firstName} {client.lastName}
 					</h1>
-					<p className="text-stone-500 text-sm">{client.email}</p>
-					{client.phone && <p className="text-stone-400 text-sm">{client.phone}</p>}
+					<p className="text-warm-500 text-sm">{client.email}</p>
+					{client.phone && <p className="text-warm-400 text-sm">{client.phone}</p>}
 					{(client.city || client.country) && (
-						<p className="text-stone-400 text-sm">{[client.city, client.country].filter(Boolean).join(', ')}</p>
+						<p className="text-warm-400 text-sm">{[client.city, client.country].filter(Boolean).join(', ')}</p>
 					)}
 					{!!a.preferredBreedSize && (() => {
 						const p = formatBreedSize(a.preferredBreedSize as string);
@@ -202,7 +202,7 @@ export function AdminClientDetail() {
 									🐾 {p.breed}{p.size ? ` · ${p.size}` : ''}
 								</span>
 								{!!a.preferredSex && a.preferredSex !== 'no_preference' && (
-									<span className="inline-flex items-center px-2.5 py-1 bg-stone-100 rounded-full text-xs font-medium text-stone-600 capitalize">
+									<span className="inline-flex items-center px-2.5 py-1 bg-warm-100 rounded-full text-xs font-medium text-warm-600 capitalize">
 										{String(a.preferredSex)}
 									</span>
 								)}
@@ -217,14 +217,14 @@ export function AdminClientDetail() {
 					) : client.depositStatus === 'pending' ? (
 						<span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Deposit · Pending</span>
 					) : (
-						<span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-500">No Deposit</span>
+						<span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-warm-100 text-warm-500">No Deposit</span>
 					)}
 				</div>
 			</div>
 
 			{/* Stage management */}
 			<Card className="p-5 mb-6">
-				<h3 className="font-medium text-stone-900 mb-3">Move Stage</h3>
+				<h3 className="font-medium text-warm-900 mb-3">Move Stage</h3>
 				<div className="flex flex-wrap gap-2">
 					{([
 						['enquired', 'Enquired'],
@@ -241,8 +241,8 @@ export function AdminClientDetail() {
 							onClick={() => updateStage(s)}
 							className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
 								client.stage === s
-									? 'bg-stone-900 text-white'
-									: 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+									? 'bg-warm-900 text-white'
+									: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
 							}`}
 						>
 							{label}
@@ -253,7 +253,7 @@ export function AdminClientDetail() {
 
 			{/* Application */}
 			<Card className="p-6 mb-6">
-				<h3 className="font-medium text-stone-900 mb-6">Application</h3>
+				<h3 className="font-medium text-warm-900 mb-6">Application</h3>
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 					<AppSection title="Personal Details" fields={[
 						{ label: 'Primary caregiver', value: a.primaryCaregiver },
@@ -294,26 +294,26 @@ export function AdminClientDetail() {
 					]} />
 					<div>
 						<p className="text-xs font-semibold text-amber-700 uppercase tracking-widest mb-1">Puppy Preferences</p>
-						<dl className="divide-y divide-stone-100">
+						<dl className="divide-y divide-black/[0.05]">
 							{!!a.puppyPurpose && <AppField label="Purpose" value={a.puppyPurpose} />}
 							{!!a.readyTimeframe && <AppField label="Ready timeframe" value={readyLabels[a.readyTimeframe as string] ?? a.readyTimeframe} />}
 							{!!a.preferredBreedSize && (
-								<div className="py-2.5 border-b border-stone-100 grid grid-cols-2 gap-4 items-start">
-									<dt className="text-xs text-stone-400 pt-0.5">First choice</dt>
+								<div className="py-2.5 border-b border-black/[0.05] grid grid-cols-2 gap-4 items-start">
+									<dt className="text-xs text-warm-400 pt-0.5">First choice</dt>
 									<dd className="text-sm"><BreedSizeDisplay raw={a.preferredBreedSize as string} /></dd>
 								</div>
 							)}
 							{!!a.secondChoiceBreedSize && (
-								<div className="py-2.5 border-b border-stone-100 grid grid-cols-2 gap-4 items-start">
-									<dt className="text-xs text-stone-400 pt-0.5">Second choice</dt>
+								<div className="py-2.5 border-b border-black/[0.05] grid grid-cols-2 gap-4 items-start">
+									<dt className="text-xs text-warm-400 pt-0.5">Second choice</dt>
 									<dd className="text-sm"><BreedSizeDisplay raw={a.secondChoiceBreedSize as string} /></dd>
 								</div>
 							)}
 							<AppField label="Open to other breed/size" value={a.considerOtherBreedSize} />
 							{!!a.preferredSex && (
-								<div className="py-2.5 border-b border-stone-100 grid grid-cols-2 gap-4 items-start">
-									<dt className="text-xs text-stone-400 pt-0.5">Preferred sex</dt>
-									<dd className="text-sm text-stone-800">
+								<div className="py-2.5 border-b border-black/[0.05] grid grid-cols-2 gap-4 items-start">
+									<dt className="text-xs text-warm-400 pt-0.5">Preferred sex</dt>
+									<dd className="text-sm text-warm-800">
 										{a.preferredSex === 'no_preference' ? 'No preference' : <span className="capitalize">{String(a.preferredSex)}</span>}
 									</dd>
 								</div>
@@ -323,15 +323,15 @@ export function AdminClientDetail() {
 							<AppField label="Open to other colour" value={a.considerOtherColour} />
 							<AppField label="Would consider rehome" value={a.considerRehome} />
 							<AppField label="Agreed to contract" value={a.agreedToContract} />
-							<div className="py-2.5 border-b border-stone-100 last:border-0 grid grid-cols-2 gap-4 items-start">
-								<dt className="text-xs text-stone-400 pt-0.5">Deposit intent</dt>
+							<div className="py-2.5 border-b border-black/[0.05] last:border-0 grid grid-cols-2 gap-4 items-start">
+								<dt className="text-xs text-warm-400 pt-0.5">Deposit intent</dt>
 								<dd className="text-sm">
 									{client.depositStatus === 'paid' ? (
 										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Paid</span>
 									) : client.depositStatus === 'pending' ? (
 										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Yes — pending payment</span>
 									) : (
-										<span className="text-stone-400">Not interested</span>
+										<span className="text-warm-400">Not interested</span>
 									)}
 								</dd>
 							</div>
@@ -342,40 +342,40 @@ export function AdminClientDetail() {
 
 			{/* Portal access */}
 			<Card className="p-5 mb-6">
-				<h3 className="font-medium text-stone-900 mb-1">Portal Access</h3>
-				<p className="text-sm text-stone-400 mb-4">Open the portal as this client, or send them a login link by email.</p>
+				<h3 className="font-medium text-warm-900 mb-1">Portal Access</h3>
+				<p className="text-sm text-warm-400 mb-4">Open the portal as this client, or send them a login link by email.</p>
 				<div className="flex flex-wrap items-center gap-3">
 					<button
 						onClick={openAsClient}
 						disabled={!!portalAction}
-						className="px-4 py-2 bg-stone-900 text-white text-sm font-medium rounded-lg hover:bg-stone-700 disabled:opacity-50 transition-colors"
+						className="px-4 py-2 bg-warm-900 text-white text-sm font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 transition-colors"
 					>
 						{portalAction === 'impersonate' ? 'Opening…' : 'Open portal as client →'}
 					</button>
 					<button
 						onClick={sendInvite}
 						disabled={!!portalAction}
-						className="px-4 py-2 border border-stone-200 text-stone-700 text-sm font-medium rounded-lg hover:bg-stone-50 disabled:opacity-50 transition-colors"
+						className="px-4 py-2 border border-warm-200 text-warm-700 text-sm font-medium rounded-lg hover:bg-warm-50 disabled:opacity-50 transition-colors"
 					>
 						{portalAction === 'invite' ? 'Sending…' : 'Send portal invite'}
 					</button>
 					{portalMessage && (
-						<p role="status" className="text-sm text-stone-500">{portalMessage}</p>
+						<p role="status" className="text-sm text-warm-500">{portalMessage}</p>
 					)}
 				</div>
 			</Card>
 
 			{/* Email history */}
 			<Card className="p-5 mb-6">
-				<h3 className="font-medium text-stone-900 mb-3">Email History</h3>
+				<h3 className="font-medium text-warm-900 mb-3">Email History</h3>
 				{emailLogs.length === 0 ? (
-					<p className="text-sm text-stone-400">No emails sent yet.</p>
+					<p className="text-sm text-warm-400">No emails sent yet.</p>
 				) : (
-					<div className="divide-y divide-stone-100">
+					<div className="divide-y divide-black/[0.05]">
 						{emailLogs.map(log => (
 							<div key={log.id} className="py-2.5">
-								<p className="text-sm text-stone-800">{log.subject}</p>
-								<p className="text-xs text-stone-400 mt-0.5">
+								<p className="text-sm text-warm-800">{log.subject}</p>
+								<p className="text-xs text-warm-400 mt-0.5">
 									{EMAIL_TRIGGER_LABELS[log.trigger] ?? log.trigger}
 									{' · '}
 									{new Date(log.sentAt).toLocaleString()}

@@ -140,19 +140,19 @@ function StepIndicator({ current }: { current: Step }) {
 						<div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
 							i < currentIdx ? 'bg-brand-500 text-white' :
 							i === currentIdx ? 'bg-brand-500 text-white ring-4 ring-brand-100' :
-							'bg-stone-100 text-stone-400'
+							'bg-warm-100 text-warm-400'
 						}`}>
 							{i < currentIdx ? '✓' : i + 1}
 						</div>
-						<span className={`text-xs mt-1 hidden sm:block ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-stone-400'}`}>
+						<span className={`text-xs mt-1 hidden sm:block ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-warm-400'}`}>
 							{label}
 						</span>
-						<span className={`text-xs mt-1 sm:hidden ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-stone-400'}`}>
+						<span className={`text-xs mt-1 sm:hidden ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-warm-400'}`}>
 							{i === currentIdx ? label : ''}
 						</span>
 					</div>
 					{i < labels.length - 1 && (
-						<div className={`h-px flex-1 sm:w-16 sm:flex-none mx-2 mb-5 ${i < currentIdx ? 'bg-brand-300' : 'bg-stone-200'}`} />
+						<div className={`h-px flex-1 sm:w-16 sm:flex-none mx-2 mb-5 ${i < currentIdx ? 'bg-brand-300' : 'bg-warm-200'}`} />
 					)}
 				</div>
 			))}
@@ -163,10 +163,10 @@ function StepIndicator({ current }: { current: Step }) {
 function Input({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
 	return (
 		<div>
-			<label className="block text-sm font-medium text-stone-700 mb-1">{label}</label>
+			<label className="block text-sm font-medium text-warm-700 mb-1">{label}</label>
 			<input
 				{...props}
-				className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400"
+				className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400"
 			/>
 		</div>
 	);
@@ -175,11 +175,11 @@ function Input({ label, ...props }: { label: string } & React.InputHTMLAttribute
 function Textarea({ label, ...props }: { label: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return (
 		<div>
-			<label className="block text-sm font-medium text-stone-700 mb-1">{label}</label>
+			<label className="block text-sm font-medium text-warm-700 mb-1">{label}</label>
 			<textarea
 				{...props}
 				rows={3}
-				className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 resize-none"
+				className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 resize-none"
 			/>
 		</div>
 	);
@@ -196,11 +196,11 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 			/>
 			<div
 				aria-hidden="true"
-				className={`w-10 h-6 rounded-full transition-colors flex items-center peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 peer-focus-visible:ring-offset-1 ${checked ? 'bg-brand-500' : 'bg-stone-200'}`}
+				className={`w-10 h-6 rounded-full transition-colors flex items-center peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 peer-focus-visible:ring-offset-1 ${checked ? 'bg-brand-500' : 'bg-warm-200'}`}
 			>
 				<div className={`w-4 h-4 rounded-full bg-white shadow mx-1 transition-transform ${checked ? 'translate-x-4' : ''}`} />
 			</div>
-			<span className="text-sm text-stone-700">{label}</span>
+			<span className="text-sm text-warm-700">{label}</span>
 		</label>
 	);
 }
@@ -224,7 +224,7 @@ function ButtonGroup<T extends string>({
 		: 'grid grid-cols-2 gap-2';
 	return (
 		<div>
-			<label className="block text-sm font-medium text-stone-700 mb-2">{label}</label>
+			<label className="block text-sm font-medium text-warm-700 mb-2">{label}</label>
 			<div className={gridClass}>
 				{options.map((opt) => (
 					<button
@@ -234,7 +234,7 @@ function ButtonGroup<T extends string>({
 						className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
 							value === opt.value
 								? 'bg-brand-50 border-brand-400 text-brand-700'
-								: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+								: 'bg-white border-warm-200 text-warm-600 hover:border-warm-300'
 						}`}
 					>
 						{opt.label}
@@ -358,8 +358,8 @@ export function ApplyPage() {
 		return (
 			<div className="max-w-lg mx-auto px-6 py-24 text-center">
 				<div className="text-5xl mb-6">🐾</div>
-				<h1 className="font-serif text-3xl font-bold text-stone-900 mb-4">Application Received!</h1>
-				<p className="text-stone-600 leading-relaxed">
+				<h1 className="font-serif text-3xl font-bold text-warm-900 mb-4">Application Received!</h1>
+				<p className="text-warm-600 leading-relaxed">
 					Thank you for applying. We'll review your application and be in touch within a few days.
 				</p>
 				{form.depositIntent ? (
@@ -367,7 +367,7 @@ export function ApplyPage() {
 						<span className="font-semibold">Deposit requested —</span> Once your application is approved, we'll reach out with deposit payment details to secure your priority spot.
 					</div>
 				) : (
-					<div className="mt-6 p-4 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-600">
+					<div className="mt-6 p-4 bg-warm-50 border border-warm-200 rounded-lg text-sm text-warm-600">
 						You can pay a deposit at any time after your application is reviewed to move to priority placement.
 					</div>
 				)}
@@ -388,18 +388,18 @@ export function ApplyPage() {
 	return (
 		<div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 md:py-16">
 			<div className="mb-8">
-				<h1 className="font-serif text-3xl font-bold text-stone-900 mb-2">Puppy Application</h1>
-				<p className="text-stone-500 text-sm">This form helps us ensure that our clients and families are well equipped to home one of our pups.</p>
+				<h1 className="font-serif text-3xl font-bold text-warm-900 mb-2">Puppy Application</h1>
+				<p className="text-warm-500 text-sm">This form helps us ensure that our clients and families are well equipped to home one of our pups.</p>
 			</div>
 
 			<StepIndicator current={step} />
 
-			<div className="bg-white rounded-xl border border-stone-200 p-5 md:p-8">
+			<div className="bg-white rounded-xl border border-warm-200 p-5 md:p-8">
 
 				{/* ── Personal ── */}
 				{step === 'personal' && (
 					<div className="flex flex-col gap-4">
-						<h2 className="font-serif text-xl font-bold text-stone-900 mb-2">Personal Details</h2>
+						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Personal Details</h2>
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<Input label="First name" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
 							<Input label="Last name" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
@@ -422,7 +422,7 @@ export function ApplyPage() {
 				{/* ── Home & Life ── */}
 				{step === 'home' && (
 					<div className="flex flex-col gap-5">
-						<h2 className="font-serif text-xl font-bold text-stone-900 mb-2">Home & Life</h2>
+						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Home & Life</h2>
 
 						<ButtonGroup
 							label="Do you own, rent or lease your home?"
@@ -437,7 +437,7 @@ export function ApplyPage() {
 						/>
 
 						<div>
-							<label className="block text-sm font-medium text-stone-700 mb-2">Type of home</label>
+							<label className="block text-sm font-medium text-warm-700 mb-2">Type of home</label>
 							<div className="grid grid-cols-3 gap-2">
 								{(['house', 'townhouse', 'apartment', 'farm', 'other'] as const).map((t) => (
 									<button
@@ -447,7 +447,7 @@ export function ApplyPage() {
 										className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
 											form.livingType === t
 												? 'bg-brand-50 border-brand-400 text-brand-700'
-												: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+												: 'bg-white border-warm-200 text-warm-600 hover:border-warm-300'
 										}`}
 									>
 										{t === 'townhouse' ? 'Townhouse / Condo' : t.charAt(0).toUpperCase() + t.slice(1)}
@@ -550,7 +550,7 @@ export function ApplyPage() {
 				{/* ── Experience ── */}
 				{step === 'experience' && (
 					<div className="flex flex-col gap-5">
-						<h2 className="font-serif text-xl font-bold text-stone-900 mb-2">Experience</h2>
+						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Experience</h2>
 
 						<Toggle
 							label="I've owned dogs before"
@@ -617,7 +617,7 @@ export function ApplyPage() {
 				{/* ── Puppy Preferences ── */}
 				{step === 'preferences' && (
 					<div className="flex flex-col gap-5">
-						<h2 className="font-serif text-xl font-bold text-stone-900 mb-2">Puppy Preferences</h2>
+						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Puppy Preferences</h2>
 
 						<Textarea
 							label="For what purpose(s) are you purchasing a puppy?"
@@ -640,7 +640,7 @@ export function ApplyPage() {
 
 						{/* Breed selector */}
 						<div>
-							<label className="block text-sm font-medium text-stone-700 mb-2">Preferred breed</label>
+							<label className="block text-sm font-medium text-warm-700 mb-2">Preferred breed</label>
 							<div className="flex flex-col gap-2">
 								{BREEDS.map((b) => (
 									<button
@@ -650,11 +650,11 @@ export function ApplyPage() {
 										className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
 											form.preferredBreed === b.value
 												? 'bg-brand-50 border-brand-400 text-brand-700'
-												: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+												: 'bg-white border-warm-200 text-warm-600 hover:border-warm-300'
 										}`}
 									>
 										<span className="font-semibold">{b.label}</span>
-										<span className="ml-2 font-normal text-stone-400">{b.detail}</span>
+										<span className="ml-2 font-normal text-warm-400">{b.detail}</span>
 									</button>
 								))}
 							</div>
@@ -663,7 +663,7 @@ export function ApplyPage() {
 						{/* Size selector — shown after breed is chosen, hidden if only one (auto-selected) */}
 						{form.preferredBreed && sizeOptions.length > 1 && (
 							<div>
-								<label className="block text-sm font-medium text-stone-700 mb-2">Preferred size</label>
+								<label className="block text-sm font-medium text-warm-700 mb-2">Preferred size</label>
 								<div className="flex flex-col gap-2">
 									{sizeOptions.map((s) => (
 										<button
@@ -673,11 +673,11 @@ export function ApplyPage() {
 											className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
 												form.preferredSize === s.value
 													? 'bg-brand-50 border-brand-400 text-brand-700'
-													: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+													: 'bg-white border-warm-200 text-warm-600 hover:border-warm-300'
 											}`}
 										>
 											<span className="font-semibold">{s.label}</span>
-											<span className="ml-2 font-normal text-stone-400">{s.detail}</span>
+											<span className="ml-2 font-normal text-warm-400">{s.detail}</span>
 										</button>
 									))}
 								</div>
@@ -687,8 +687,8 @@ export function ApplyPage() {
 						{/* Show auto-selected size as info */}
 						{form.preferredBreed && sizeOptions.length === 1 && (
 							<div>
-								<label className="block text-sm font-medium text-stone-300 mb-2">Preferred size</label>
-								<div className="px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 text-sm text-stone-400">
+								<label className="block text-sm font-medium text-warm-300 mb-2">Preferred size</label>
+								<div className="px-4 py-3 rounded-lg bg-warm-50 border border-warm-200 text-sm text-warm-400">
 									<span className="font-medium">{sizeOptions[0].label}</span>
 									<span className="ml-2">{sizeOptions[0].detail}</span>
 								</div>
@@ -707,7 +707,7 @@ export function ApplyPage() {
 						{form.hasSecondChoiceBreed && (
 							<>
 								<div>
-									<label className="block text-sm font-medium text-stone-700 mb-2">Second choice breed</label>
+									<label className="block text-sm font-medium text-warm-700 mb-2">Second choice breed</label>
 									<div className="flex flex-col gap-2">
 										{BREEDS.filter((b) => b.value !== form.preferredBreed).map((b) => (
 											<button
@@ -717,11 +717,11 @@ export function ApplyPage() {
 												className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
 													form.secondChoiceBreed === b.value
 														? 'bg-brand-50 border-brand-400 text-brand-700'
-														: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+														: 'bg-white border-warm-200 text-warm-600 hover:border-warm-300'
 												}`}
 											>
 												<span className="font-semibold">{b.label}</span>
-												<span className="ml-2 font-normal text-stone-400">{b.detail}</span>
+												<span className="ml-2 font-normal text-warm-400">{b.detail}</span>
 											</button>
 										))}
 									</div>
@@ -729,7 +729,7 @@ export function ApplyPage() {
 
 								{form.secondChoiceBreed && secondChoiceSizeOptions.length > 1 && (
 									<div>
-										<label className="block text-sm font-medium text-stone-700 mb-2">Second choice size</label>
+										<label className="block text-sm font-medium text-warm-700 mb-2">Second choice size</label>
 										<div className="flex flex-col gap-2">
 											{secondChoiceSizeOptions.map((s) => (
 												<button
@@ -739,11 +739,11 @@ export function ApplyPage() {
 													className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
 														form.secondChoiceSize === s.value
 															? 'bg-brand-50 border-brand-400 text-brand-700'
-															: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+															: 'bg-white border-warm-200 text-warm-600 hover:border-warm-300'
 													}`}
 												>
 													<span className="font-semibold">{s.label}</span>
-													<span className="ml-2 font-normal text-stone-400">{s.detail}</span>
+													<span className="ml-2 font-normal text-warm-400">{s.detail}</span>
 												</button>
 											))}
 										</div>
@@ -752,8 +752,8 @@ export function ApplyPage() {
 
 								{form.secondChoiceBreed && secondChoiceSizeOptions.length === 1 && (
 									<div>
-										<label className="block text-sm font-medium text-stone-300 mb-2">Second choice size</label>
-										<div className="px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 text-sm text-stone-400">
+										<label className="block text-sm font-medium text-warm-300 mb-2">Second choice size</label>
+										<div className="px-4 py-3 rounded-lg bg-warm-50 border border-warm-200 text-sm text-warm-400">
 											<span className="font-medium">{secondChoiceSizeOptions[0].label}</span>
 											<span className="ml-2">{secondChoiceSizeOptions[0].detail}</span>
 										</div>
@@ -775,7 +775,7 @@ export function ApplyPage() {
 
 						{!form.hasSecondChoiceBreed && form.hasSecondChoiceSize && sameBrandAltSizeOptions.length > 0 && (
 							<div>
-								<label className="block text-sm font-medium text-stone-700 mb-2">Second choice size</label>
+								<label className="block text-sm font-medium text-warm-700 mb-2">Second choice size</label>
 								<div className="flex flex-col gap-2">
 									{sameBrandAltSizeOptions.map((s) => (
 										<button
@@ -785,11 +785,11 @@ export function ApplyPage() {
 											className={`px-4 py-3 rounded-lg text-sm font-medium border text-left transition-colors ${
 												form.secondChoiceSize === s.value
 													? 'bg-brand-50 border-brand-400 text-brand-700'
-													: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+													: 'bg-white border-warm-200 text-warm-600 hover:border-warm-300'
 											}`}
 										>
 											<span className="font-semibold">{s.label}</span>
-											<span className="ml-2 font-normal text-stone-400">{s.detail}</span>
+											<span className="ml-2 font-normal text-warm-400">{s.detail}</span>
 										</button>
 									))}
 								</div>
@@ -797,7 +797,7 @@ export function ApplyPage() {
 						)}
 
 						<div>
-							<label className="block text-sm font-medium text-stone-700 mb-2">Preferred sex</label>
+							<label className="block text-sm font-medium text-warm-700 mb-2">Preferred sex</label>
 							<div className="flex gap-2">
 								{(['male', 'female', 'no_preference'] as const).map((s) => (
 									<button
@@ -807,7 +807,7 @@ export function ApplyPage() {
 										className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
 											form.preferredSex === s
 												? 'bg-brand-50 border-brand-400 text-brand-700'
-												: 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+												: 'bg-white border-warm-200 text-warm-600 hover:border-warm-300'
 										}`}
 									>
 										{s === 'no_preference' ? 'No preference' : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -841,7 +841,7 @@ export function ApplyPage() {
 							onChange={(v) => set('considerRehome', v)}
 						/>
 
-						<div className="mt-2 p-4 bg-stone-50 rounded-lg border border-stone-200 text-sm text-stone-600 leading-relaxed">
+						<div className="mt-2 p-4 bg-warm-50 rounded-lg border border-warm-200 text-sm text-warm-600 leading-relaxed">
 							All companion puppies are sold with copies of parent registration papers and a spay/neuter contract.
 							By the age of 15 months your companion dog must be spayed or neutered and the certificate emailed to us as proof.
 							Our dogs are sold as pets only and not for breeding purposes.
@@ -860,8 +860,8 @@ export function ApplyPage() {
 				{step === 'deposit' && (
 					<div className="flex flex-col gap-6">
 						<div>
-							<h2 className="font-serif text-xl font-bold text-stone-900 mb-1">Deposit & Waiting List</h2>
-							<p className="text-sm text-stone-500">Securing a deposit is optional — but it does make a difference to your position.</p>
+							<h2 className="font-serif text-xl font-bold text-warm-900 mb-1">Deposit & Waiting List</h2>
+							<p className="text-sm text-warm-500">Securing a deposit is optional — but it does make a difference to your position.</p>
 						</div>
 
 						<div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 leading-relaxed">
@@ -876,7 +876,7 @@ export function ApplyPage() {
 								className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${
 									form.depositIntent
 										? 'border-brand-400 bg-brand-50'
-										: 'border-stone-200 bg-white hover:border-stone-300'
+										: 'border-warm-200 bg-white hover:border-warm-300'
 									}`}
 							>
 								<div className="flex items-center justify-between">
@@ -886,10 +886,10 @@ export function ApplyPage() {
 									)}
 								</div>
 								<div>
-									<p className="font-semibold text-stone-900 text-sm">Yes, I’d like to pay a deposit</p>
-									<p className="text-xs text-stone-500 mt-1">Secure priority placement on the waiting list. We’ll be in touch with payment details after your application is reviewed.</p>
+									<p className="font-semibold text-warm-900 text-sm">Yes, I’d like to pay a deposit</p>
+									<p className="text-xs text-warm-500 mt-1">Secure priority placement on the waiting list. We’ll be in touch with payment details after your application is reviewed.</p>
 								</div>
-								<ul className="text-xs text-stone-600 space-y-1">
+								<ul className="text-xs text-warm-600 space-y-1">
 									<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Priority position on the waitlist</li>
 									<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Matched before non-deposit clients</li>
 									<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Payment arranged outside the app</li>
@@ -902,23 +902,23 @@ export function ApplyPage() {
 								onClick={() => set('depositIntent', false)}
 								className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${
 									!form.depositIntent
-										? 'border-stone-400 bg-stone-50'
-										: 'border-stone-200 bg-white hover:border-stone-300'
+										? 'border-warm-400 bg-warm-50'
+										: 'border-warm-200 bg-white hover:border-warm-300'
 									}`}
 							>
 								<div className="flex items-center justify-between">
 									<span className="text-2xl">🕐</span>
 									{!form.depositIntent && (
-										<span className="text-xs font-semibold text-stone-600 bg-stone-200 px-2 py-0.5 rounded-full">Selected</span>
+										<span className="text-xs font-semibold text-warm-600 bg-warm-200 px-2 py-0.5 rounded-full">Selected</span>
 									)}
 								</div>
 								<div>
-									<p className="font-semibold text-stone-900 text-sm">Not right now — I’ll decide later</p>
-									<p className="text-xs text-stone-500 mt-1">You can pay a deposit at any time after your application is reviewed. You’ll still be on the list — just in the standard queue.</p>
+									<p className="font-semibold text-warm-900 text-sm">Not right now — I’ll decide later</p>
+									<p className="text-xs text-warm-500 mt-1">You can pay a deposit at any time after your application is reviewed. You’ll still be on the list — just in the standard queue.</p>
 								</div>
-								<ul className="text-xs text-stone-600 space-y-1">
-									<li className="flex items-center gap-1.5"><span className="text-stone-400">○</span> Standard position on the waitlist</li>
-									<li className="flex items-center gap-1.5"><span className="text-stone-400">○</span> Can upgrade to priority at any time</li>
+								<ul className="text-xs text-warm-600 space-y-1">
+									<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> Standard position on the waitlist</li>
+									<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> Can upgrade to priority at any time</li>
 								</ul>
 							</button>
 						</div>
@@ -926,9 +926,9 @@ export function ApplyPage() {
 				)}
 
 				{/* Navigation */}
-				<div className="flex justify-between mt-8 pt-6 border-t border-stone-100">
+				<div className="flex justify-between mt-8 pt-6 border-t border-black/[0.05]">
 					{step !== 'personal' ? (
-						<button onClick={back} className="px-5 py-2.5 text-sm font-medium text-stone-600 hover:text-stone-800">
+						<button onClick={back} className="px-5 py-2.5 text-sm font-medium text-warm-600 hover:text-warm-800">
 							← Back
 						</button>
 					) : <div />}

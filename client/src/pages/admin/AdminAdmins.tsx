@@ -57,9 +57,9 @@ export function AdminAdmins() {
 				<div className="flex flex-col gap-6">
 					{/* Invite */}
 					<Card>
-						<div className="p-6 border-b border-stone-100">
-							<h2 className="font-medium text-stone-900">Invite a new admin</h2>
-							<p className="text-sm text-stone-500 mt-0.5">They will receive an email to set up their password.</p>
+						<div className="p-6 border-b border-black/[0.05]">
+							<h2 className="font-medium text-warm-900">Invite a new admin</h2>
+							<p className="text-sm text-warm-500 mt-0.5">They will receive an email to set up their password.</p>
 						</div>
 						<div className="p-6">
 							<div className="flex gap-3 max-w-md">
@@ -69,7 +69,7 @@ export function AdminAdmins() {
 									onChange={(e) => setEmail(e.target.value)}
 									onKeyDown={(e) => e.key === 'Enter' && invite()}
 									placeholder="colleague@example.com"
-									className="flex-1 px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+									className="flex-1 px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 								/>
 								<button
 									onClick={invite}
@@ -88,9 +88,9 @@ export function AdminAdmins() {
 					<Card>
 						<AdminTable headers={['Email', 'Added', '']}>
 							{admins.map((admin) => (
-								<tr key={admin.id} className="border-b border-stone-100 hover:bg-stone-50">
-									<td className="py-3 px-4 font-medium text-stone-900">{admin.email}</td>
-									<td className="py-3 px-4 text-stone-500 text-sm">
+								<tr key={admin.id} className="border-b border-black/[0.05] hover:bg-warm-50">
+									<td className="py-3 px-4 font-medium text-warm-900">{admin.email}</td>
+									<td className="py-3 px-4 text-warm-500 text-sm">
 										{new Date(admin.createdAt).toLocaleDateString('en-ZA')}
 									</td>
 									<td className="py-3 px-4 text-right">
@@ -106,7 +106,7 @@ export function AdminAdmins() {
 							))}
 						</AdminTable>
 						{admins.length === 0 && (
-							<p className="text-center text-stone-400 text-sm py-8">No admins found.</p>
+							<p className="text-center text-warm-400 text-sm py-8">No admins found.</p>
 						)}
 					</Card>
 				</div>

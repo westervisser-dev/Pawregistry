@@ -16,18 +16,18 @@ export function PublicLayout() {
 	const closeMenu = () => setMenuOpen(false);
 
 	return (
-		<div className="min-h-screen flex flex-col bg-stone-50">
+		<div className="min-h-screen flex flex-col bg-warm-50">
 			<a
 				href="#main-content"
-				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-stone-900 focus:rounded-lg focus:shadow-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-medium"
+				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-warm-900 focus:rounded-lg focus:shadow-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-medium"
 			>
 				Skip to content
 			</a>
-			<header className="bg-white border-b border-stone-200 sticky top-0 z-50">
+			<header className="bg-white border-b border-warm-200 sticky top-0 z-50">
 				<div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
 					<Link to="/" className="flex items-center gap-2" onClick={closeMenu}>
 						<span className="text-2xl">🐾</span>
-						<span className="font-serif text-xl font-bold text-stone-900">Paw Registry</span>
+						<span className="font-serif text-xl font-bold text-warm-900">Paw Registry</span>
 					</Link>
 
 					{/* Desktop nav */}
@@ -40,7 +40,7 @@ export function PublicLayout() {
 									`text-sm font-medium transition-colors ${
 										isActive
 											? 'text-brand-600'
-											: 'text-stone-600 hover:text-stone-900'
+											: 'text-warm-600 hover:text-warm-900'
 									}`
 								}
 							>
@@ -82,13 +82,13 @@ export function PublicLayout() {
 						{/* Mobile hamburger */}
 						<button
 							onClick={() => setMenuOpen((o) => !o)}
-							className="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-stone-100 transition-colors"
+							className="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-warm-100 transition-colors"
 							aria-label="Toggle menu"
 							aria-expanded={menuOpen}
 						>
-							<span className={`block h-0.5 w-5 bg-stone-700 transition-transform duration-200 origin-center ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-							<span className={`block h-0.5 w-5 bg-stone-700 transition-opacity duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
-							<span className={`block h-0.5 w-5 bg-stone-700 transition-transform duration-200 origin-center ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+							<span className={`block h-0.5 w-5 bg-warm-700 transition-transform duration-200 origin-center ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+							<span className={`block h-0.5 w-5 bg-warm-700 transition-opacity duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
+							<span className={`block h-0.5 w-5 bg-warm-700 transition-transform duration-200 origin-center ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
 						</button>
 					</div>
 				</div>
@@ -98,7 +98,7 @@ export function PublicLayout() {
 					className="md:hidden overflow-hidden transition-[grid-template-rows] duration-200 ease-out"
 					style={{ display: 'grid', gridTemplateRows: menuOpen ? '1fr' : '0fr' }}
 				>
-					<div className="min-h-0 border-t border-stone-100 bg-white">
+					<div className="min-h-0 border-t border-black/[0.05] bg-white">
 						<div className="px-6 py-4 flex flex-col gap-1">
 							{navLinks.map(({ to, label }) => (
 								<NavLink
@@ -106,8 +106,8 @@ export function PublicLayout() {
 									to={to}
 									onClick={closeMenu}
 									className={({ isActive }) =>
-										`py-3 text-sm font-medium border-b border-stone-50 last:border-0 transition-colors ${
-											isActive ? 'text-brand-600' : 'text-stone-700'
+										`py-3 text-sm font-medium border-b border-warm-50 last:border-0 transition-colors ${
+											isActive ? 'text-brand-600' : 'text-warm-700'
 										}`
 									}
 								>
@@ -153,7 +153,7 @@ export function PublicLayout() {
 				<Outlet />
 			</main>
 
-			<footer className="bg-stone-900 text-stone-400 py-12 mt-20">
+			<footer className="bg-warm-900 text-warm-400 py-12 mt-20">
 				<div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
 					<div>
 						<div className="flex items-center gap-2 mb-4">

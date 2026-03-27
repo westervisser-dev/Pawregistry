@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { LoadingPage, Card, StageBadge, Badge } from '@/components/ui';
-import type { Client } from '@paw-registry/shared';
+import { LoadingPage, Card, Badge } from '@/components/ui';
+import type { Client, ClientApplication } from '@paw-registry/shared';
+
+// ─── Stage Data ──────────────────────────────────────────────────────────────
 
 const STAGES = [
 	{
@@ -62,6 +65,58 @@ const STAGES = [
 	},
 ] as const;
 
+const STAGE_STEPS = [
+	{ key: 'enquired', label: 'Applied' },
+	{ key: 'approved', label: 'Approved' },
+	{ key: 'waitlisted', label: 'Waitlisted' },
+	{ key: 'placed', label: 'Matched' },
+	{ key: 'matched_paid', label: 'Complete' },
+];
+
+function getStageIndex(stage: string): number {
+	const idx = STAGE_STEPS.findIndex(s => s.key === stage);
+	if (idx >= 0) return idx;
+	if (stage === 'match_requested' || stage === 'matched') return 3;
+	return 0;
+}
+
+// ─── Breed / Size Helpers ────────────────────────────────────────────────────
+
+const BREED_LABELS: Record<string, string> = {
+	f1_goldendoodle: 'F1 Goldendoodle',
+	f1b_goldendoodle: 'F1b Goldendoodle',
+	f1_border_doodle: 'F1 Border Doodle',
+	f1_mini_biewer_doodle: 'F1 Mini Biewer Doodle',
+	red_tuxedo_french_poodle: 'Red Tuxedo French Poodle',
+};
+
+const SIZE_LABELS: Record<string, string> = {
+	standard: 'Standard',
+	miniature: 'Miniature',
+	dwarf: 'Dwarf',
+	border_doodle: 'Border Doodle',
+	biewer_doodle: 'Biewer Doodle',
+	standard_poodle: 'Standard Poodle',
+	moyen_poodle: 'Moyen Poodle',
+};
+
+function formatBreedSize(raw: string | null | undefined): { breed: string; size: string | null } | null {
+	if (!raw) return null;
+	const [breedRaw, sizeRaw] = raw.split(' - ');
+	return {
+		breed: BREED_LABELS[breedRaw] ?? breedRaw,
+		size: sizeRaw ? (SIZE_LABELS[sizeRaw] ?? sizeRaw) : null,
+	};
+}
+
+const SEX_LABELS: Record<string, string> = {
+	male: 'Male',
+	female: 'Female',
+	no_preference: 'No preference',
+};
+
+// ─── Stages Modal ────────────────────────────────────────────────────────────
+
 function StagesModal({ currentStage, onClose }: { currentStage: string; onClose: () => void }) {
 	return (
 		<div
@@ -76,22 +131,20 @@ function StagesModal({ currentStage, onClose }: { currentStage: string; onClose:
 				className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col"
 				onClick={(e) => e.stopPropagation()}
 			>
-				{/* Header */}
-				<div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-stone-100">
+				<div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-black/[0.05]">
 					<div>
-						<h2 id="modal-title" className="font-serif text-lg font-bold text-stone-900">How do the stages work?</h2>
-						<p className="text-xs text-stone-500 mt-0.5">Follow your journey from application to bringing your puppy home.</p>
+						<h2 id="modal-title" className="font-serif text-lg font-bold text-warm-900">How do the stages work?</h2>
+						<p className="text-xs text-warm-500 mt-0.5">Follow your journey from application to bringing your puppy home.</p>
 					</div>
 					<button
 						onClick={onClose}
 						aria-label="Close"
-						className="text-stone-400 hover:text-stone-600 text-xl leading-none ml-4 cursor-pointer"
+						className="text-warm-400 hover:text-warm-600 text-xl leading-none ml-4 cursor-pointer"
 					>
 						✕
 					</button>
 				</div>
 
-				{/* Stages list */}
 				<div className="overflow-y-auto px-6 py-4 space-y-4">
 					{STAGES.map((stage, i) => {
 						const isCurrent = stage.key === currentStage;
@@ -105,23 +158,20 @@ function StagesModal({ currentStage, onClose }: { currentStage: string; onClose:
 									isCurrent
 										? 'border-brand-200 bg-brand-50/40'
 										: isPast
-											? 'border-stone-100 bg-stone-50 opacity-60'
-											: 'border-stone-100 bg-white'
+											? 'border-black/[0.05] bg-warm-50 opacity-60'
+											: 'border-black/[0.05] bg-white'
 								}`}
 							>
-								{/* Timeline line */}
 								{i < STAGES.length - 1 && (
-									<div className="absolute left-[2.35rem] top-[3.5rem] bottom-[-1.25rem] w-px bg-stone-100 z-0" />
+									<div className="absolute left-[2.35rem] top-[3.5rem] bottom-[-1.25rem] w-px bg-warm-100 z-0" />
 								)}
 
-								{/* Icon */}
 								<div className={`relative z-10 flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-base border ${
-									isCurrent ? 'bg-white border-brand-300 shadow-sm' : 'bg-white border-stone-200'
+									isCurrent ? 'bg-white border-brand-300 shadow-sm' : 'bg-white border-warm-200'
 								}`}>
-									{isPast ? <span className="text-stone-400 text-sm">✓</span> : stage.icon}
+									{isPast ? <span className="text-warm-400 text-sm">✓</span> : stage.icon}
 								</div>
 
-								{/* Content */}
 								<div className="flex-1 min-w-0">
 									<div className="flex items-center gap-2 mb-1">
 										<Badge variant={stage.variant}>{stage.label}</Badge>
@@ -129,19 +179,18 @@ function StagesModal({ currentStage, onClose }: { currentStage: string; onClose:
 											<span className="text-xs text-brand-600 font-medium">← You are here</span>
 										)}
 									</div>
-									<p className="text-sm text-stone-700 leading-relaxed">{stage.description}</p>
-									<p className="text-xs text-stone-400 mt-1.5 italic">{stage.trigger}</p>
+									<p className="text-sm text-warm-700 leading-relaxed">{stage.description}</p>
+									<p className="text-xs text-warm-400 mt-1.5 italic">{stage.trigger}</p>
 								</div>
 							</div>
 						);
 					})}
 				</div>
 
-				{/* Footer */}
-				<div className="px-6 py-4 border-t border-stone-100">
+				<div className="px-6 py-4 border-t border-black/[0.05]">
 					<button
 						onClick={onClose}
-						className="w-full py-2.5 bg-stone-900 text-white text-sm font-medium rounded-lg hover:bg-stone-800 transition-colors cursor-pointer"
+						className="w-full py-2.5 bg-warm-900 text-white text-sm font-medium rounded-lg hover:bg-warm-800 transition-colors cursor-pointer"
 					>
 						Got it
 					</button>
@@ -150,6 +199,112 @@ function StagesModal({ currentStage, onClose }: { currentStage: string; onClose:
 		</div>
 	);
 }
+
+// ─── Stage Progress (full-width, aligned dots + labels) ──────────────────────
+
+function StageProgress({ currentStage }: { currentStage: string }) {
+	const activeIdx = getStageIndex(currentStage);
+
+	return (
+		<div className="mt-4">
+			{/* Dots & lines — each step takes equal width via flex-1 */}
+			<div className="flex items-center">
+				{STAGE_STEPS.map((step, i) => {
+					const isDone = i < activeIdx;
+					const isActive = i === activeIdx;
+
+					return (
+						<div key={step.key} className={`flex items-center ${i < STAGE_STEPS.length - 1 ? 'flex-1' : ''}`}>
+							<div
+								className={`w-[10px] h-[10px] rounded-full shrink-0 transition-colors ${
+									isDone
+										? 'bg-[#5DBB55]'
+										: isActive
+											? 'bg-brand-500 ring-[3px] ring-brand-500/20'
+											: 'bg-warm-300'
+								}`}
+							/>
+							{i < STAGE_STEPS.length - 1 && (
+								<div
+									className={`h-0.5 flex-1 transition-colors ${
+										isDone ? 'bg-[#5DBB55]' : 'bg-warm-300'
+									}`}
+								/>
+							)}
+						</div>
+					);
+				})}
+			</div>
+
+			{/* Labels — aligned under each dot via matching grid */}
+			<div className="flex mt-2">
+				{STAGE_STEPS.map((step, i) => {
+					const isActive = i === activeIdx;
+					return (
+						<div key={step.key} className={`${i < STAGE_STEPS.length - 1 ? 'flex-1' : ''}`}>
+							<span
+								className={`text-[10px] ${
+									isActive
+										? 'text-brand-500 font-medium'
+										: 'text-warm-400'
+								}`}
+							>
+								{step.label}
+							</span>
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
+// ─── Welcome Banner ──────────────────────────────────────────────────────────
+
+function WelcomeBanner({ firstName, stage }: { firstName: string; stage: string }) {
+	const stageLabel = STAGES.find(s => s.key === stage)?.label ?? stage;
+	const isPositiveStage = ['approved', 'waitlisted', 'placed', 'matched', 'matched_paid'].includes(stage);
+
+	return (
+		<div className="bg-sidebar-bg rounded-2xl px-7 py-7 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+			<div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-brand-500/[0.15] pointer-events-none" />
+			<div className="absolute -bottom-12 right-16 w-30 h-30 rounded-full bg-brand-500/[0.08] pointer-events-none" />
+
+			<div className="relative z-[1]">
+				<h1 className="font-serif text-[26px] text-[#F0EDEA] leading-[1.15]">
+					Welcome back, {firstName} 👋
+				</h1>
+				<p className="text-[13px] text-[rgba(240,237,234,0.45)] mt-1.5">
+					Here's the latest on your puppy journey.
+				</p>
+			</div>
+
+			<div className={`relative z-[1] flex items-center gap-2 rounded-full px-5 py-2.5 border ${
+				isPositiveStage
+					? 'bg-[rgba(74,160,65,0.15)] border-[rgba(74,160,65,0.35)]'
+					: 'bg-white/10 border-white/20'
+			}`}>
+				{isPositiveStage && (
+					<div className="w-2 h-2 rounded-full bg-[#5DBB55] shrink-0" />
+				)}
+				<div>
+					<div className={`text-[13px] font-medium tracking-[0.02em] ${
+						isPositiveStage ? 'text-[#7DD977]' : 'text-[#F0EDEA]'
+					}`}>
+						{stageLabel}
+					</div>
+					<div className={`text-[11px] mt-px ${
+						isPositiveStage ? 'text-[rgba(125,217,119,0.55)]' : 'text-[rgba(240,237,234,0.4)]'
+					}`}>
+						Application stage
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+// ─── Dashboard ───────────────────────────────────────────────────────────────
 
 export function PortalDashboard() {
 	const [client, setClient] = useState<Client | null>(null);
@@ -169,53 +324,132 @@ export function PortalDashboard() {
 	}, []);
 
 	if (loading) return <LoadingPage />;
-	if (!client) return <div className="text-stone-500">No client record linked to your account.</div>;
+	if (!client) return <div className="text-warm-500">No client record linked to your account.</div>;
+
+	const app = client.applicationData as unknown as ClientApplication | undefined;
+	const fullName = `${client.firstName} ${client.lastName}`;
+	const initials = `${client.firstName?.[0] ?? ''}${client.lastName?.[0] ?? ''}`.toUpperCase();
+	const stageLabel = client.stage.replaceAll('_', ' ');
+
+	const firstChoice = formatBreedSize(app?.preferredBreedSize);
+	const secondChoice = formatBreedSize(app?.secondChoiceBreedSize);
 
 	return (
 		<div>
-			<div className="mb-8">
-				<h1 className="font-serif text-2xl font-bold text-stone-900">
-					Welcome back, {client.firstName} 👋
-				</h1>
-				<p className="text-stone-600 text-sm mt-1">Here's the latest on your puppy journey.</p>
-			</div>
+			{/* Welcome banner */}
+			<WelcomeBanner firstName={client.firstName} stage={client.stage} />
 
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-				<Card className="p-5">
-					<p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Application Stage</p>
-					<div className="mt-2"><StageBadge stage={client.stage} /></div>
+			{/* Two-column top row */}
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-5">
+
+				{/* ── Application Stage card ── */}
+				<Card className="p-[22px]">
+					{/* Header row: label + stage pill */}
+					<div className="flex items-center justify-between mb-1">
+						<p className="text-[10.5px] uppercase tracking-[0.07em] text-warm-400 font-medium">
+							Application Stage
+						</p>
+						<div className="inline-flex items-center gap-1.5 bg-[#EAF7E8] text-[#3A7835] text-[12.5px] font-medium px-3 py-[5px] rounded-full border border-[rgba(74,160,65,0.2)]">
+							<div className="w-1.5 h-1.5 rounded-full bg-[#5DBB55]" />
+							{stageLabel}
+						</div>
+					</div>
+
+					{/* Full-width progress bar */}
+					<StageProgress currentStage={client.stage} />
+
 					<button
 						onClick={() => setShowStages(true)}
-						className="mt-3 text-xs text-stone-400 hover:text-brand-600 underline underline-offset-2 cursor-pointer transition-colors"
+						className="mt-3.5 text-xs text-brand-500 hover:text-brand-600 cursor-pointer transition-colors"
 					>
-						How do the stages work?
+						How do the stages work? →
 					</button>
 				</Card>
-				{client.puppyId && (
-					<Card className="p-5">
-						<p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Your Puppy</p>
-						<p className="font-medium text-stone-900 mt-1">🐶 Matched</p>
-					</Card>
-				)}
-				<Card className="p-5">
-					<p className="text-xs text-stone-400 uppercase tracking-wide mb-1">Contact</p>
-					<p className="font-medium text-stone-900 mt-1 text-sm">{client.email}</p>
+
+				{/* ── Puppy Preferences card ── */}
+				<Card className="p-[22px]">
+					<div className="flex items-center justify-between mb-3.5">
+						<p className="text-[10.5px] uppercase tracking-[0.07em] text-warm-400 font-medium">
+							Puppy Preferences
+						</p>
+						<Link
+							to="/portal/preferences"
+							className="text-xs text-brand-500 font-medium px-3 py-[5px] rounded-lg border border-brand-500/30 bg-brand-50 hover:bg-brand-500 hover:text-white hover:border-transparent transition-all"
+						>
+							Edit preferences
+						</Link>
+					</div>
+
+					{/* First choice */}
+					<div className="mb-3">
+						<p className="text-[10px] uppercase tracking-[0.07em] text-warm-400 mb-1">First choice</p>
+						{firstChoice ? (
+							<p className="text-sm text-warm-800">
+								<span className="font-medium">{firstChoice.breed}</span>
+								{firstChoice.size && <span className="text-warm-400"> · {firstChoice.size}</span>}
+							</p>
+						) : (
+							<p className="text-sm text-warm-300">—</p>
+						)}
+					</div>
+
+					{/* Second choice */}
+					{secondChoice && (
+						<div className="mb-3">
+							<p className="text-[10px] uppercase tracking-[0.07em] text-warm-400 mb-1">Second choice</p>
+							<p className="text-sm text-warm-800">
+								<span className="font-medium">{secondChoice.breed}</span>
+								{secondChoice.size && <span className="text-warm-400"> · {secondChoice.size}</span>}
+							</p>
+						</div>
+					)}
+
+					{/* Sex preference */}
+					<div className="flex gap-6 mt-3 pt-3 border-t border-black/[0.06]">
+						<div>
+							<p className="text-[10px] uppercase tracking-[0.07em] text-warm-400 mb-1">Sex</p>
+							<p className="text-[13px] text-warm-800">{SEX_LABELS[app?.preferredSex ?? ''] ?? '—'}</p>
+						</div>
+						{app?.preferredColour && (
+							<div>
+								<p className="text-[10px] uppercase tracking-[0.07em] text-warm-400 mb-1">Colour</p>
+								<p className="text-[13px] text-warm-800">{app.preferredColour}</p>
+							</div>
+						)}
+					</div>
 				</Card>
 			</div>
 
-			<Card className="p-6">
-				<h2 className="font-medium text-stone-900 mb-3">Your Details</h2>
-				<dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+			{/* ── Your Details card (merged contact + details) ── */}
+			<Card className="p-6 sm:p-7">
+				<div className="flex items-center justify-between mb-5">
+					<h2 className="font-serif text-[17px] text-warm-900">Your Details</h2>
+				</div>
+
+				{/* Contact header row */}
+				<div className="flex items-center gap-3 mb-5 pb-5 border-b border-black/[0.06]">
+					<div className="w-[42px] h-[42px] rounded-full bg-brand-50 flex items-center justify-center text-sm font-medium text-brand-700 shrink-0">
+						{initials}
+					</div>
+					<div>
+						<p className="text-[15px] font-medium text-warm-900">{fullName}</p>
+						<p className="text-[12.5px] text-warm-500 mt-0.5">{client.email}</p>
+					</div>
+				</div>
+
+				{/* Details grid */}
+				<dl className="grid grid-cols-1 sm:grid-cols-2">
 					{[
-						{ label: 'Name', value: `${client.firstName} ${client.lastName}` },
-						{ label: 'Email', value: client.email },
 						{ label: 'Phone', value: client.phone ?? '—' },
 						{ label: 'City', value: client.city ?? '—' },
-						{ label: 'Country', value: client.country },
-					].map(({ label, value }) => (
-						<div key={label}>
-							<dt className="text-stone-400">{label}</dt>
-							<dd className="text-stone-800">{value}</dd>
+						{ label: 'Country', value: client.country ?? '—' },
+					].map(({ label, value }, i) => (
+						<div
+							key={label}
+							className={`py-3.5 ${i < 2 ? 'border-b border-black/[0.06]' : ''}`}
+						>
+							<dt className="text-[11px] uppercase tracking-[0.07em] text-warm-400 font-medium mb-1">{label}</dt>
+							<dd className="text-sm text-warm-800">{value}</dd>
 						</div>
 					))}
 				</dl>

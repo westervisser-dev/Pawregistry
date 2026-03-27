@@ -42,8 +42,8 @@ export function DogsPage() {
 			)}
 
 			<div className="mb-10">
-				<h1 className="font-serif text-4xl font-bold text-stone-900 mb-3">Our Dogs</h1>
-				<p className="text-stone-500 max-w-xl">
+				<h1 className="font-serif text-4xl font-bold text-warm-900 mb-3">Our Dogs</h1>
+				<p className="text-warm-500 max-w-xl">
 					Meet our breeding programme. All dogs are health-tested, registered, and
 					selected for excellent temperament.
 				</p>
@@ -58,7 +58,7 @@ export function DogsPage() {
 						className={`px-4 py-2 rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-1 ${
 							filter === f
 								? 'bg-brand-500 text-white'
-								: 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+								: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
 						}`}
 					>
 						{f.charAt(0).toUpperCase() + f.slice(1)}
@@ -81,13 +81,13 @@ export function DogsPage() {
 						return (
 							<div
 								key={dog.id}
-								className={`group bg-white rounded-xl border border-stone-200 overflow-hidden flex flex-col transition-[transform,box-shadow] duration-200 ${
+								className={`group bg-white rounded-xl border border-warm-200 overflow-hidden flex flex-col transition-[transform,box-shadow] duration-200 ${
 									isExpanded
 										? 'relative z-50 shadow-2xl -translate-y-1'
 										: 'hover:shadow-md'
 								}`}
 							>
-								<div className="h-56 bg-stone-100 overflow-hidden flex items-center justify-center flex-shrink-0">
+								<div className="h-56 bg-warm-100 overflow-hidden flex items-center justify-center flex-shrink-0">
 									{dog.profileImageUrl ? (
 										<img
 											src={dog.profileImageUrl}
@@ -102,18 +102,18 @@ export function DogsPage() {
 								</div>
 								<div className="p-5 flex flex-col flex-1">
 									<div className="flex items-start justify-between mb-1 gap-2">
-										<h3 className="font-serif font-bold text-stone-900 text-lg leading-snug">{dog.name}</h3>
+										<h3 className="font-serif font-bold text-warm-900 text-lg leading-snug">{dog.name}</h3>
 										<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-500 text-white whitespace-nowrap flex-shrink-0">
 											{dog.breed}
 										</span>
 									</div>
 									{dog.registeredName && (
-										<p className="text-xs text-stone-400 mb-2">{dog.registeredName}</p>
+										<p className="text-xs text-warm-400 mb-2">{dog.registeredName}</p>
 									)}
-									<p className="text-sm text-stone-500 capitalize">{dog.sex} · {dog.colour}</p>
+									<p className="text-sm text-warm-500 capitalize">{dog.sex} · {dog.colour}</p>
 									<div className="mt-2 flex-1">
 										{notes && (
-											<div className="text-xs text-stone-400 leading-relaxed">
+											<div className="text-xs text-warm-400 leading-relaxed">
 												<span>{displayNotes}</span>
 												{isTruncated && !isExpanded && (
 													<button

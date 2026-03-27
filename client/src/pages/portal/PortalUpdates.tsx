@@ -24,15 +24,15 @@ export function PortalUpdates() {
 	return (
 		<div>
 			<div className="mb-8">
-				<h1 className="font-serif text-2xl font-bold text-stone-900">Puppy Updates</h1>
-				<p className="text-stone-600 text-sm mt-1">Your puppy journal from us to you.</p>
+				<h1 className="font-serif text-2xl font-bold text-warm-900">Puppy Updates</h1>
+				<p className="text-warm-600 text-sm mt-1">Your puppy journal from us to you.</p>
 			</div>
 
 			{updates.length === 0 ? (
 				<Card className="p-12 text-center">
 					<p className="text-4xl mb-4" aria-hidden="true">📷</p>
-					<p className="text-stone-600 font-medium">No updates yet</p>
-					<p className="text-stone-400 text-sm mt-1">We'll post updates here as your puppy grows.</p>
+					<p className="text-warm-600 font-medium">No updates yet</p>
+					<p className="text-warm-400 text-sm mt-1">We'll post updates here as your puppy grows.</p>
 				</Card>
 			) : (
 				<div className="flex flex-col gap-6">
@@ -41,7 +41,7 @@ export function PortalUpdates() {
 							{update.mediaUrls.length > 0 && (
 								<div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
 									{update.mediaUrls.slice(0, 3).map((url, i) => (
-										<div key={i} className="aspect-square bg-stone-100 overflow-hidden">
+										<div key={i} className="aspect-square bg-warm-100 overflow-hidden">
 											<img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
 										</div>
 									))}
@@ -52,12 +52,12 @@ export function PortalUpdates() {
 									{update.weekNumber && (
 										<Badge variant="amber">Week {update.weekNumber}</Badge>
 									)}
-									<span className="text-xs text-stone-400">
+									<span className="text-xs text-warm-400">
 										{update.publishedAt ? new Date(update.publishedAt).toLocaleDateString() : ''}
 									</span>
 								</div>
-								<h2 className="font-serif font-bold text-stone-900 text-lg mb-2">{update.title}</h2>
-								<p className="text-stone-600 text-sm leading-relaxed">{update.body}</p>
+								<h2 className="font-serif font-bold text-warm-900 text-lg mb-2">{update.title}</h2>
+								<p className="text-warm-600 text-sm leading-relaxed">{update.body}</p>
 							</div>
 						</Card>
 					))}

@@ -26,9 +26,9 @@ export function AdminTable({ headers, children }: { headers: string[]; children:
 		<div className="overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%_-_2rem),transparent)] md:[mask-image:none]">
 			<table className="w-full text-sm">
 				<thead>
-					<tr className="border-b border-stone-200">
+					<tr className="border-b border-black/[0.06]">
 						{headers.map((h) => (
-							<th key={h} className="text-left py-3 px-4 text-xs font-medium text-stone-400 uppercase tracking-wide">
+							<th key={h} className="text-left py-3 px-4 text-[10.5px] font-medium text-warm-400 uppercase tracking-[0.06em]">
 								{h}
 							</th>
 						))}
@@ -64,28 +64,28 @@ export function DeleteModal({
 			<div role="dialog" aria-modal="true" aria-labelledby="modal-title" className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
 				{blockingRecords ? (
 					<>
-						<h2 id="modal-title" className="font-serif text-lg font-bold text-stone-900 mb-2">Cannot delete</h2>
-						<p className="text-sm text-stone-600 mb-3">
+						<h2 id="modal-title" className="font-serif text-lg text-warm-900 mb-2">Cannot delete</h2>
+						<p className="text-sm text-warm-600 mb-3">
 							<strong>{entityLabel}</strong> is still assigned to the following record{blockingRecords.length !== 1 ? 's' : ''}.
 							Reassign or remove them first:
 						</p>
 						<ul className="mb-5 space-y-1">
 							{blockingRecords.map((r) => (
-								<li key={r} className="text-sm font-medium text-stone-800 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2">
+								<li key={r} className="text-sm font-medium text-warm-800 bg-warm-50 border border-warm-200 rounded-lg px-3 py-2">
 									{r}
 								</li>
 							))}
 						</ul>
-						<button onClick={onClose} className="w-full px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-lg transition-colors">
+						<button onClick={onClose} className="w-full px-4 py-2.5 bg-warm-100 hover:bg-warm-200 text-warm-700 text-sm font-medium rounded-lg transition-colors">
 							Got it
 						</button>
 					</>
 				) : (
 					<>
-						<h2 id="modal-title" className="font-serif text-lg font-bold text-stone-900 mb-2">Delete {entityLabel}?</h2>
-						<p className="text-sm text-stone-500 mb-6">This action cannot be undone.</p>
+						<h2 id="modal-title" className="font-serif text-lg text-warm-900 mb-2">Delete {entityLabel}?</h2>
+						<p className="text-sm text-warm-500 mb-6">This action cannot be undone.</p>
 						<div className="flex gap-3">
-							<button onClick={onClose} className="flex-1 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-medium rounded-lg transition-colors">
+							<button onClick={onClose} className="flex-1 px-4 py-2.5 bg-warm-100 hover:bg-warm-200 text-warm-700 text-sm font-medium rounded-lg transition-colors">
 								Cancel
 							</button>
 							<button
@@ -150,7 +150,7 @@ export function DepositStatusSelect({ client, onUpdate }: { client: Client; onUp
 			? 'bg-green-50 text-green-700 border-green-200'
 			: client.depositStatus === 'pending'
 			? 'bg-amber-50 text-amber-700 border-amber-200'
-			: 'bg-stone-50 text-stone-500 border-stone-200';
+			: 'bg-warm-50 text-warm-500 border-warm-200';
 
 	return (
 		<select
@@ -185,13 +185,13 @@ export function SortableClientRow({ client, index, onDepositUpdate }: {
 	const parsed = formatBreedSize(pbs);
 
 	return (
-		<tr ref={setNodeRef} style={style} className="border-b border-stone-100 hover:bg-stone-50 bg-white">
-			<td className="py-3 px-4 text-stone-400 text-xs font-mono w-8 tabular-nums">{index + 1}</td>
+		<tr ref={setNodeRef} style={style} className="border-b border-black/[0.05] hover:bg-warm-50 bg-white transition-colors">
+			<td className="py-3 px-4 text-warm-400 text-xs font-mono w-8 tabular-nums">{index + 1}</td>
 			<td className="py-2 px-3 w-8">
 				<button
 					{...attributes}
 					{...listeners}
-					className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 flex items-center justify-center py-1"
+					className="cursor-grab active:cursor-grabbing text-warm-300 hover:text-warm-500 flex items-center justify-center py-1"
 					tabIndex={-1}
 				>
 					<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
@@ -205,21 +205,21 @@ export function SortableClientRow({ client, index, onDepositUpdate }: {
 				</button>
 			</td>
 			<td className="py-3 px-4">
-				<p className="font-medium text-stone-900">{client.firstName} {client.lastName}</p>
-				<p className="text-xs text-stone-400">{client.email}</p>
+				<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
+				<p className="text-xs text-warm-400">{client.email}</p>
 			</td>
 			<td className="py-3 px-4">
 				{parsed ? (
 					<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
 						🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
 					</span>
-				) : <span className="text-stone-300 text-xs">—</span>}
+				) : <span className="text-warm-300 text-xs">—</span>}
 			</td>
 			<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
 			<td className="py-3 px-4">
 				<DepositStatusSelect client={client} onUpdate={onDepositUpdate} />
 			</td>
-			<td className="py-3 px-4 text-stone-400 text-xs whitespace-nowrap">
+			<td className="py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 				{new Date(client.createdAt).toLocaleDateString()}
 			</td>
 			<td className="py-3 px-4">
@@ -254,8 +254,8 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate }: {
 	return (
 		<div>
 			<div className="flex items-center gap-2 mb-3">
-				<span className="text-sm font-semibold text-stone-700">{title}</span>
-				<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{clients.length}</span>
+				<span className="text-sm font-semibold text-warm-700">{title}</span>
+				<span className="text-xs text-warm-400 bg-warm-200 px-2 py-0.5 rounded-full">{clients.length}</span>
 			</div>
 			<Card>
 				<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -271,7 +271,7 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate }: {
 							))}
 							{clients.length === 0 && (
 								<tr>
-									<td colSpan={8} className="py-3 px-4 text-sm text-stone-400 text-center">
+									<td colSpan={8} className="py-3 px-4 text-sm text-warm-400 text-center">
 										👥 No clients
 									</td>
 								</tr>
@@ -297,25 +297,25 @@ export function ClientReadTable({ title, clients, onDepositUpdate }: {
 	return (
 		<div>
 			<div className="flex items-center gap-2 mb-3">
-				<span className="text-sm font-semibold text-stone-700">{title}</span>
-				<span className="text-xs text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full">{clients.length}</span>
+				<span className="text-sm font-semibold text-warm-700">{title}</span>
+				<span className="text-xs text-warm-400 bg-warm-200 px-2 py-0.5 rounded-full">{clients.length}</span>
 			</div>
 			<Card>
 				<AdminTable headers={['Name', 'Preference', 'Stage', 'Deposit', 'Applied', '']}>
 					{clients.map((client) => {
 						const parsed = formatBreedSize(pbs(client));
 						return (
-							<tr key={client.id} className="border-b border-stone-100 hover:bg-stone-50 bg-white">
+							<tr key={client.id} className="border-b border-black/[0.05] hover:bg-warm-50 bg-white transition-colors">
 								<td className="py-3 px-4">
-									<p className="font-medium text-stone-900">{client.firstName} {client.lastName}</p>
-									<p className="text-xs text-stone-400">{client.email}</p>
+									<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
+									<p className="text-xs text-warm-400">{client.email}</p>
 								</td>
 								<td className="py-3 px-4">
 									{parsed ? (
 										<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
 											🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
 										</span>
-									) : <span className="text-stone-300 text-xs">—</span>}
+									) : <span className="text-warm-300 text-xs">—</span>}
 								</td>
 								<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
 								<td className="py-3 px-4">
@@ -324,10 +324,10 @@ export function ClientReadTable({ title, clients, onDepositUpdate }: {
 									) : client.depositStatus === 'pending' ? (
 										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Deposit — Selected</span>
 									) : (
-										<span className="text-stone-400 text-xs">No Deposit</span>
+										<span className="text-warm-400 text-xs">No Deposit</span>
 									)}
 								</td>
-								<td className="py-3 px-4 text-stone-400 text-xs whitespace-nowrap">
+								<td className="py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 									{new Date(client.createdAt).toLocaleDateString()}
 								</td>
 								<td className="py-3 px-4">
@@ -340,7 +340,7 @@ export function ClientReadTable({ title, clients, onDepositUpdate }: {
 					})}
 					{clients.length === 0 && (
 						<tr>
-							<td colSpan={6} className="py-3 px-4 text-sm text-stone-400 text-center">
+							<td colSpan={6} className="py-3 px-4 text-sm text-warm-400 text-center">
 								👥 No clients
 							</td>
 						</tr>

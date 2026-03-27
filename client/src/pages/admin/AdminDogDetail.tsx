@@ -122,26 +122,26 @@ export function AdminDogDetail() {
 
 	if (loading) return <LoadingPage />;
 
-	const inputCls = "w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300";
-	const selectCls = "w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300";
+	const inputCls = "w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300";
+	const selectCls = "w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300";
 
 	return (
 		<div className="p-8 max-w-3xl">
-			<Link to="/admin/dogs" className="text-sm text-stone-400 hover:text-stone-600 mb-6 inline-block">← Dogs</Link>
+			<Link to="/admin/dogs" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">← Dogs</Link>
 			<PageHeader title={(!id || id === 'new') ? (form.name?.trim() || 'New Dog') : (dog?.name ?? 'New Dog')} />
 
 			<Card className="overflow-hidden">
 				{/* Public facing section */}
-				<div className="px-5 py-3 bg-stone-100 border-b border-stone-200">
+				<div className="px-5 py-3 bg-warm-100 border-b border-warm-200">
 					<h2 className="text-xs font-semibold text-amber-700 uppercase tracking-widest">Public Facing</h2>
-					<p className="text-xs text-stone-500 mt-0.5">Visible to clients and on the public site</p>
+					<p className="text-xs text-warm-500 mt-0.5">Visible to clients and on the public site</p>
 				</div>
 				<div className="p-6 flex flex-col gap-4">
 					{/* Profile image */}
 					<div>
-						<label className="block text-xs font-medium text-stone-500 mb-2">Profile Image</label>
+						<label className="block text-xs font-medium text-warm-500 mb-2">Profile Image</label>
 						<div className="flex items-center gap-4">
-							<div className="w-20 h-20 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden flex items-center justify-center flex-shrink-0">
+							<div className="w-20 h-20 rounded-lg border border-warm-200 bg-warm-100 overflow-hidden flex items-center justify-center flex-shrink-0">
 								{previewUrl || form.profileImageUrl ? (
 									<img src={previewUrl ?? form.profileImageUrl!} alt="Profile" className="w-full h-full object-cover" />
 								) : (
@@ -149,7 +149,7 @@ export function AdminDogDetail() {
 								)}
 							</div>
 							<div className="flex flex-col gap-1.5">
-								<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs text-stone-600 hover:bg-stone-50 transition-colors">
+								<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-warm-200 bg-white text-xs text-warm-600 hover:bg-warm-50 transition-colors">
 									<span>Choose image</span>
 									<input
 										type="file"
@@ -162,39 +162,39 @@ export function AdminDogDetail() {
 									<button
 										type="button"
 										onClick={() => { setPendingImage(null); setPreviewUrl(null); set('profileImageUrl', null); }}
-										className="text-xs text-stone-400 hover:text-red-500 text-left transition-colors"
+										className="text-xs text-warm-400 hover:text-red-500 text-left transition-colors"
 									>
 										Remove image
 									</button>
 								)}
-								<p className="text-xs text-stone-400">JPEG, PNG, WebP, SVG or HEIC</p>
+								<p className="text-xs text-warm-400">JPEG, PNG, WebP, SVG or HEIC</p>
 							</div>
 						</div>
 					</div>
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Name<span className="text-red-400 ml-0.5">*</span></label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Name<span className="text-red-400 ml-0.5">*</span></label>
 							<input type="text" value={form.name ?? ''} onChange={(e) => set('name', e.target.value)} className={inputCls} />
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Breed<span className="text-red-400 ml-0.5">*</span></label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Breed<span className="text-red-400 ml-0.5">*</span></label>
 							<input type="text" list="breed-options" value={form.breed ?? ''} onChange={(e) => set('breed', e.target.value)} className={inputCls} />
 							<datalist id="breed-options">{knownBreeds.map((b) => <option key={b} value={b} />)}</datalist>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Colour<span className="text-red-400 ml-0.5">*</span></label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Colour<span className="text-red-400 ml-0.5">*</span></label>
 							<input type="text" list="colour-options" value={form.colour ?? ''} onChange={(e) => set('colour', e.target.value)} className={inputCls} />
 							<datalist id="colour-options">{knownColours.map((c) => <option key={c} value={c} />)}</datalist>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Sex</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Sex</label>
 							<select value={form.sex ?? 'male'} onChange={(e) => set('sex', e.target.value)} className={selectCls}>
 								<option value="male">Male</option>
 								<option value="female">Female</option>
 							</select>
 						</div>
 						<div className="col-span-2">
-							<label className="block text-xs font-medium text-stone-500 mb-1">Status</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Status</label>
 							<select value={form.status ?? 'active'} onChange={(e) => set('status', e.target.value)} className={selectCls}>
 								<option value="active">Active</option>
 								<option value="retired">Retired</option>
@@ -203,47 +203,47 @@ export function AdminDogDetail() {
 						</div>
 					</div>
 					<div>
-						<label className="block text-xs font-medium text-stone-500 mb-1">Description</label>
+						<label className="block text-xs font-medium text-warm-500 mb-1">Description</label>
 						<textarea
 							value={(form.notes as string) ?? ''}
 							onChange={(e) => set('notes', e.target.value)}
 							maxLength={600}
 							rows={3}
-							className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"
+							className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"
 						/>
-						<p className="text-xs text-stone-400 mt-1 text-right">{((form.notes as string) ?? '').length}/600</p>
+						<p className="text-xs text-warm-400 mt-1 text-right">{((form.notes as string) ?? '').length}/600</p>
 					</div>
 				</div>
 
 				{/* Internal/Admin section */}
-				<div className="px-5 py-3 bg-stone-100 border-y border-stone-200">
+				<div className="px-5 py-3 bg-warm-100 border-y border-warm-200">
 					<h2 className="text-xs font-semibold text-amber-700 uppercase tracking-widest">Internal / Admin</h2>
-					<p className="text-xs text-stone-500 mt-0.5">Not visible to clients</p>
+					<p className="text-xs text-warm-500 mt-0.5">Not visible to clients</p>
 				</div>
 				<div className="p-6 flex flex-col gap-4">
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Date of Birth<span className="text-red-400 ml-0.5">*</span></label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Date of Birth<span className="text-red-400 ml-0.5">*</span></label>
 							<input type="date" value={form.dob ?? ''} onChange={(e) => set('dob', e.target.value)} className={inputCls} />
 						</div>
 						<div className="flex flex-col justify-center">
-							<label className="block text-xs font-medium text-stone-500 mb-2">Microchipped</label>
+							<label className="block text-xs font-medium text-warm-500 mb-2">Microchipped</label>
 							<label className="flex items-center gap-2 cursor-pointer">
 								<input
 									type="checkbox"
 									checked={!!form.microchipNumber}
 									onChange={(e) => set('microchipNumber', e.target.checked ? 'yes' : null)}
-									className="w-4 h-4 rounded border-stone-300 text-brand-500 focus:ring-brand-300"
+									className="w-4 h-4 rounded border-warm-300 text-brand-500 focus:ring-brand-300"
 								/>
-								<span className="text-sm text-stone-600">{form.microchipNumber ? 'Yes' : 'No'}</span>
+								<span className="text-sm text-warm-600">{form.microchipNumber ? 'Yes' : 'No'}</span>
 							</label>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Reg Name</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Reg Name</label>
 							<input type="text" value={form.registeredName ?? ''} onChange={(e) => set('registeredName', e.target.value)} className={inputCls} />
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-stone-500 mb-1">Reg No</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Reg No</label>
 							<input type="text" value={form.registrationNumber ?? ''} onChange={(e) => set('registrationNumber', e.target.value)} className={inputCls} />
 						</div>
 					</div>

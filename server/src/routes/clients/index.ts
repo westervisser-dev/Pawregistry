@@ -101,6 +101,42 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		return client;
 	})
 
+	// ── Client portal: update own preferences ──
+	.patch(
+		'/me/preferences',
+		async ({ user, body, error }) => {
+			const client = await db.query.clients.findFirst({
+				where: eq(clients.userId, user.id),
+			});
+			if (!client) return error(404, { error: 'Not found', message: 'Client record not found' });
+
+			const currentApp = (client.applicationData ?? {}) as Record<string, unknown>;
+			const updatedApp = { ...currentApp, ...body };
+
+			const [updated] = await db
+				.update(clients)
+				.set({ applicationData: updatedApp, updatedAt: new Date() })
+				.where(eq(clients.id, client.id))
+				.returning();
+
+			return updated;
+		},
+		{
+			body: t.Partial(t.Object({
+				preferredBreedSize: t.Nullable(t.String()),
+				secondChoiceBreedSize: t.Nullable(t.String()),
+				preferredSex: t.Union([t.Literal('male'), t.Literal('female'), t.Literal('no_preference')]),
+				preferredColour: t.Nullable(t.String()),
+				considerOppositeSex: t.Boolean(),
+				considerOtherColour: t.Boolean(),
+				considerOtherBreedSize: t.Boolean(),
+				considerRehome: t.Boolean(),
+				readyTimeframe: t.Nullable(t.Union([t.Literal('asap'), t.Literal('6_months'), t.Literal('1_year')])),
+				puppyPurpose: t.Nullable(t.String()),
+			})),
+		}
+	)
+
 	// ── Admin routes ──
 	.use(adminPlugin)
 

@@ -27,24 +27,24 @@ export function LoginPage() {
 	}, []);
 
 	return (
-		<div className="min-h-screen bg-stone-50 flex items-center justify-center px-6">
+		<div className="min-h-screen bg-warm-50 flex items-center justify-center px-6">
 			<div className="w-full max-w-sm">
 				<div className="text-center mb-8">
 					<Link to="/" className="inline-flex items-center gap-2 mb-6">
 						<span className="text-3xl">🐾</span>
 					</Link>
-					<h1 className="font-serif text-2xl font-bold text-stone-900">Client Portal</h1>
-					<p className="text-stone-500 text-sm mt-2">
+					<h1 className="font-serif text-2xl font-bold text-warm-900">Client Portal</h1>
+					<p className="text-warm-500 text-sm mt-2">
 						Sign in to view your puppy updates and documents.
 					</p>
 				</div>
 
-				<div className="bg-white rounded-xl border border-stone-200 p-8">
+				<div className="bg-white rounded-xl border border-warm-200 p-8">
 					{sent ? (
 						<div className="text-center">
 							<div className="text-4xl mb-4">📬</div>
-							<h2 className="font-medium text-stone-900 mb-2">Check your email</h2>
-							<p className="text-stone-500 text-sm">
+							<h2 className="font-medium text-warm-900 mb-2">Check your email</h2>
+							<p className="text-warm-500 text-sm">
 								We sent a sign-in link to <strong>{email}</strong>.
 								Click the link in your email to access your portal.
 							</p>
@@ -52,7 +52,7 @@ export function LoginPage() {
 					) : (
 						<div className="flex flex-col gap-4">
 							<div>
-								<label htmlFor="login-email" className="block text-sm font-medium text-stone-700 mb-1">
+								<label htmlFor="login-email" className="block text-sm font-medium text-warm-700 mb-1">
 									Email address
 								</label>
 								<input
@@ -63,7 +63,7 @@ export function LoginPage() {
 									onKeyDown={(e) => e.key === 'Enter' && submit()}
 									placeholder="you@example.com"
 									autoComplete="email"
-									className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+									className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 								/>
 							</div>
 							{error && <p role="alert" className="text-red-600 text-sm">{error}</p>}
@@ -74,7 +74,7 @@ export function LoginPage() {
 							>
 								{loading ? 'Sending…' : 'Send sign-in link'}
 							</button>
-							<p className="text-xs text-stone-400 text-center">
+							<p className="text-xs text-warm-400 text-center">
 								Only clients with an approved application can sign in.{' '}
 								<Link to="/apply" className="text-brand-600 hover:underline">
 									Apply here.

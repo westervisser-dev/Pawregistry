@@ -27,7 +27,7 @@ export function AdminDogs() {
 	return (
 		<div className="p-8">
 			{toast && (
-				<div className="fixed bottom-6 right-6 z-50 bg-stone-800 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg">
+				<div className="fixed bottom-6 right-6 z-50 bg-warm-800 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg">
 					{toast}
 				</div>
 			)}
@@ -46,26 +46,26 @@ export function AdminDogs() {
 				<Card>
 					<AdminTable headers={['Dog', 'Breed', 'Sex', 'Colour', 'Status', '']}>
 						{dogs.map((dog) => (
-							<tr key={dog.id} className="border-b border-stone-100 hover:bg-stone-50">
+							<tr key={dog.id} className="border-b border-black/[0.05] hover:bg-warm-50">
 								<td className="py-3 px-4">
 									<div className="flex items-center gap-3">
-										<div className="w-9 h-9 rounded-full bg-stone-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
+										<div className="w-9 h-9 rounded-full bg-warm-100 overflow-hidden flex-shrink-0 flex items-center justify-center">
 											{dog.profileImageUrl
 												? <img src={dog.profileImageUrl} alt={dog.name} className="w-full h-full object-cover" />
 												: <span>🐕</span>
 											}
 										</div>
 										<div>
-											<p className="font-medium text-stone-900">{dog.name}</p>
-											{dog.registeredName && <p className="text-xs text-stone-400">{dog.registeredName}</p>}
+											<p className="font-medium text-warm-900">{dog.name}</p>
+											{dog.registeredName && <p className="text-xs text-warm-400">{dog.registeredName}</p>}
 										</div>
 									</div>
 								</td>
-								<td className="py-3 px-4 text-stone-600">{dog.breed}</td>
+								<td className="py-3 px-4 text-warm-600">{dog.breed}</td>
 								<td className="py-3 px-4">
 									<Badge variant={dog.sex === 'male' ? 'blue' : 'purple'}>{dog.sex}</Badge>
 								</td>
-								<td className="py-3 px-4 text-stone-600">{dog.colour}</td>
+								<td className="py-3 px-4 text-warm-600">{dog.colour}</td>
 								<td className="py-3 px-4">
 									<Badge variant={dog.status === 'active' ? 'green' : 'default'}>{dog.status}</Badge>
 								</td>

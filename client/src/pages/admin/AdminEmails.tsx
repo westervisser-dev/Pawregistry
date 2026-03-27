@@ -79,18 +79,18 @@ export function AdminEmails() {
 							onClick={() => select(t)}
 							className={`text-left px-4 py-3 rounded-lg text-sm transition-colors ${
 								selected?.id === t.id
-									? 'bg-stone-900 text-white'
-									: 'bg-white text-stone-700 hover:bg-stone-50 border border-stone-200'
+									? 'bg-warm-900 text-white'
+									: 'bg-white text-warm-700 hover:bg-warm-50 border border-warm-200'
 							}`}
 						>
 							<p className="font-medium">{TRIGGER_LABELS[t.trigger] ?? t.trigger}</p>
-							<p className={`text-xs mt-0.5 ${selected?.id === t.id ? 'text-stone-400' : 'text-stone-400'}`}>
+							<p className={`text-xs mt-0.5 ${selected?.id === t.id ? 'text-warm-400' : 'text-warm-400'}`}>
 								{t.enabled ? 'Active' : 'Disabled'}
 							</p>
 						</button>
 					))}
 					{templates.length === 0 && (
-						<p className="text-sm text-stone-400 px-1">No templates found. Run the SQL setup first.</p>
+						<p className="text-sm text-warm-400 px-1">No templates found. Run the SQL setup first.</p>
 					)}
 				</div>
 
@@ -100,45 +100,45 @@ export function AdminEmails() {
 						<Card className="p-6">
 							<div className="flex items-start justify-between mb-5">
 								<div>
-									<h2 className="font-medium text-stone-900">{TRIGGER_LABELS[selected.trigger] ?? selected.trigger}</h2>
-									<p className="text-xs text-stone-400 mt-0.5 font-mono">{selected.trigger}</p>
+									<h2 className="font-medium text-warm-900">{TRIGGER_LABELS[selected.trigger] ?? selected.trigger}</h2>
+									<p className="text-xs text-warm-400 mt-0.5 font-mono">{selected.trigger}</p>
 								</div>
 								<label className="flex items-center gap-2 cursor-pointer mt-0.5">
-									<span className="text-sm text-stone-600">Enabled</span>
+									<span className="text-sm text-warm-600">Enabled</span>
 									<input
 										type="checkbox"
 										checked={draft.enabled}
 										onChange={e => { setDraft(d => ({ ...d, enabled: e.target.checked })); setSaved(false); }}
-										className="w-4 h-4 rounded accent-stone-900"
+										className="w-4 h-4 rounded accent-warm-900"
 									/>
 								</label>
 							</div>
 
 							<div className="mb-4">
-								<label className="block text-xs font-medium text-stone-500 mb-1.5">Subject line</label>
+								<label className="block text-xs font-medium text-warm-500 mb-1.5">Subject line</label>
 								<input
 									type="text"
 									value={draft.subject}
 									onChange={e => { setDraft(d => ({ ...d, subject: e.target.value })); setSaved(false); }}
-									className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-stone-300"
+									className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 								/>
 							</div>
 
 							<div className="mb-4">
-								<label className="block text-xs font-medium text-stone-500 mb-1.5">Body</label>
+								<label className="block text-xs font-medium text-warm-500 mb-1.5">Body</label>
 								<textarea
 									value={draft.body}
 									onChange={e => { setDraft(d => ({ ...d, body: e.target.value })); setSaved(false); }}
 									rows={14}
-									className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-stone-300 resize-y"
+									className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-300 resize-y"
 								/>
 							</div>
 
 							<div className="mb-6">
-								<p className="text-xs text-stone-400 mb-2">Available variables</p>
+								<p className="text-xs text-warm-400 mb-2">Available variables</p>
 								<div className="flex flex-wrap gap-1.5">
 									{(TRIGGER_VARIABLES[selected.trigger] ?? []).map(v => (
-										<span key={v} className="px-2 py-0.5 bg-stone-100 text-stone-600 text-xs rounded font-mono">
+										<span key={v} className="px-2 py-0.5 bg-warm-100 text-warm-600 text-xs rounded font-mono">
 											{v}
 										</span>
 									))}
@@ -149,7 +149,7 @@ export function AdminEmails() {
 								<button
 									onClick={save}
 									disabled={saving}
-									className="px-5 py-2 bg-stone-900 text-white text-sm font-medium rounded-lg hover:bg-stone-700 disabled:opacity-50 transition-colors"
+									className="px-5 py-2 bg-warm-900 text-white text-sm font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 transition-colors"
 								>
 									{saving ? 'Saving…' : 'Save changes'}
 								</button>
@@ -158,7 +158,7 @@ export function AdminEmails() {
 						</Card>
 					</div>
 				) : (
-					<div className="md:col-span-2 flex items-center justify-center min-h-48 text-stone-400 text-sm">
+					<div className="md:col-span-2 flex items-center justify-center min-h-48 text-warm-400 text-sm">
 						Select a template to edit
 					</div>
 				)}

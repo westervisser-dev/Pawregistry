@@ -25,8 +25,8 @@ export function PortalLitters() {
 	return (
 		<div>
 			<div className="mb-8">
-				<h1 className="font-serif text-2xl font-bold text-stone-900">Litters</h1>
-				<p className="text-stone-500 text-sm mt-1">Our current and upcoming litters.</p>
+				<h1 className="font-serif text-2xl font-bold text-warm-900">Litters</h1>
+				<p className="text-warm-500 text-sm mt-1">Our current and upcoming litters.</p>
 			</div>
 
 			{litters.length === 0 ? (
@@ -40,11 +40,11 @@ export function PortalLitters() {
 							<Link
 								key={litter.id}
 								to={`/portal/litters/${litter.id}`}
-								className="group bg-white rounded-2xl border border-stone-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 flex flex-col"
+								className="group bg-white rounded-2xl border border-warm-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 flex flex-col"
 							>
 								<div className="p-5 flex flex-col flex-1 relative">
 									<div className="flex items-start justify-between gap-3 mb-2">
-										<h2 className="font-serif text-lg font-bold text-stone-900 group-hover:text-brand-600 transition-colors leading-snug">
+										<h2 className="font-serif text-lg font-bold text-warm-900 group-hover:text-brand-600 transition-colors leading-snug">
 											{litter.name}
 										</h2>
 										<div className="flex items-center gap-2 flex-shrink-0">
@@ -55,17 +55,17 @@ export function PortalLitters() {
 
 									<div className="flex flex-col gap-1 flex-1">
 										{(litter.sire?.name || litter.dam?.name) && (
-											<p className="text-sm text-stone-500">
+											<p className="text-sm text-warm-500">
 												{litter.sire?.name} × {litter.dam?.name}
 											</p>
 										)}
 										{litter.expectedDate && !litter.whelpDate && (
-											<p className="text-xs text-stone-400">
+											<p className="text-xs text-warm-400">
 												Expected {new Date(litter.expectedDate).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}
 											</p>
 										)}
 										{litter.whelpDate && (
-											<p className="text-xs text-stone-400">
+											<p className="text-xs text-warm-400">
 												Born {new Date(litter.whelpDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
 											</p>
 										)}
@@ -77,7 +77,7 @@ export function PortalLitters() {
 										</p>
 									)}
 
-									<span className="absolute bottom-4 right-5 text-xs text-stone-300 group-hover:text-stone-400 group-hover:translate-x-0.5 transition-all duration-150">
+									<span className="absolute bottom-4 right-5 text-xs text-warm-300 group-hover:text-warm-400 group-hover:translate-x-0.5 transition-all duration-150">
 										→
 									</span>
 								</div>
