@@ -346,6 +346,7 @@ export function PortalDashboard() {
 	const [showStages, setShowStages] = useState(false);
 	const [depositLoading, setDepositLoading] = useState(false);
 	const [showDepositConfirm, setShowDepositConfirm] = useState(false);
+	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
 
 	useEffect(() => {
 		document.title = 'Dashboard — My Portal';
@@ -354,7 +355,15 @@ export function PortalDashboard() {
 
 	useEffect(() => {
 		api.clients.me.get().then(({ data }) => {
-			if (data) setClient(data as Client);
+			if (data) {
+				setClient(data as Client);
+				if ((data as Client).stage === 'waitlisted') {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					(api.clients.me as any)['waitlist-position'].get().then(({ data: pos }: { data: { position: number | null; total: number | null } | null }) => {
+						if (pos) setWaitlistPosition(pos);
+					});
+				}
+			}
 			setLoading(false);
 		});
 	}, []);
@@ -401,8 +410,30 @@ export function PortalDashboard() {
 						</div>
 					</div>
 
+					{/* Waitlist position — only shown when waitlisted */}
+					{client.stage === 'waitlisted' && waitlistPosition?.position != null && (
+						<div className="mt-4 flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-200/70 px-4 py-3">
+							<div className="flex items-baseline gap-1 shrink-0">
+								<span className="font-serif text-[28px] leading-none text-amber-700 font-bold">
+									#{waitlistPosition.position}
+								</span>
+								{waitlistPosition.total != null && (
+									<span className="text-[11px] text-amber-500 font-medium">
+										of {waitlistPosition.total}
+									</span>
+								)}
+							</div>
+							<div className="min-w-0">
+								<p className="text-[12.5px] font-medium text-amber-800">Waiting list position</p>
+								<p className="text-[11px] text-amber-600/80 mt-0.5 leading-relaxed">
+									Your spot is reserved — we'll be in touch when a litter is available.
+								</p>
+							</div>
+						</div>
+					)}
+
 					{/* Spacer pushes progress bar toward bottom, capped so it doesn't over-expand */}
-					<div className="flex-1 min-h-[20px] max-h-[52px]" />
+					<div className={`flex-1 ${client.stage === 'waitlisted' ? 'min-h-[8px] max-h-[20px]' : 'min-h-[20px] max-h-[52px]'}`} />
 
 					{/* Full-width progress bar */}
 					<StageProgress currentStage={client.stage} />

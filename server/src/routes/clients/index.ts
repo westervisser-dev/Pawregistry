@@ -1,5 +1,5 @@
 import Elysia, { t } from 'elysia';
-import { eq, asc, desc } from 'drizzle-orm';
+import { eq, asc, desc, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { clients } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
@@ -99,6 +99,29 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		});
 		if (!client) return error(404, { error: 'Not found', message: 'Client record not found' });
 		return client;
+	})
+
+	// ── Client portal: waitlist position ──
+	.get('/me/waitlist-position', async ({ user, error }) => {
+		const client = await db.query.clients.findFirst({
+			where: eq(clients.userId, user.id),
+			columns: { id: true, stage: true },
+		});
+		if (!client) return error(404, { error: 'Not found', message: 'Client record not found' });
+		if (client.stage !== 'waitlisted') return { position: null, total: null };
+
+		const waitlisted = await db
+			.select({ id: clients.id })
+			.from(clients)
+			.where(eq(clients.stage, 'waitlisted'))
+			.orderBy(
+				sql`CASE WHEN ${clients.depositStatus} != 'none' THEN 0 ELSE 1 END`,
+				asc(clients.priority),
+				desc(clients.createdAt),
+			);
+
+		const position = waitlisted.findIndex(r => r.id === client.id) + 1;
+		return { position: position > 0 ? position : null, total: waitlisted.length };
 	})
 
 	// ── Client portal: update own preferences ──
