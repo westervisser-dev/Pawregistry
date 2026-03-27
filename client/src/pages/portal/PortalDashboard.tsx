@@ -329,7 +329,7 @@ export function PortalDashboard() {
 	const app = client.applicationData as unknown as ClientApplication | undefined;
 	const fullName = `${client.firstName} ${client.lastName}`;
 	const initials = `${client.firstName?.[0] ?? ''}${client.lastName?.[0] ?? ''}`.toUpperCase();
-	const stageLabel = client.stage.replaceAll('_', ' ');
+	const stageLabel = STAGES.find(s => s.key === client.stage)?.label ?? client.stage.replaceAll('_', ' ');
 
 	const firstChoice = formatBreedSize(app?.preferredBreedSize);
 	const secondChoice = formatBreedSize(app?.secondChoiceBreedSize);
@@ -344,8 +344,8 @@ export function PortalDashboard() {
 
 				{/* ── Application Stage card ── */}
 				<Card className="p-[22px]">
-					{/* Header row: label + stage pill */}
-					<div className="flex items-center justify-between mb-1">
+					{/* Header row: label + stage pill inline */}
+					<div className="flex items-center justify-between mb-8">
 						<p className="text-[10.5px] uppercase tracking-[0.07em] text-warm-400 font-medium">
 							Application Stage
 						</p>
