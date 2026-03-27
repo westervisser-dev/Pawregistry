@@ -438,6 +438,7 @@ export interface MatchingClient {
 	stage: ClientStage;
 	depositStatus: DepositStatus;
 	priority: number;
+	waitlistPosition: number | null;
 	preferredBreedSize: string | null;
 	secondChoiceBreedSize: string | null;
 	preferredSex: string | null;

@@ -155,3 +155,5 @@ Deploy from **repo root** (Railway needs full monorepo for `shared/`).
 - `DATABASE_URL`: Supabase Transaction pooler (port 6543)
 - After deploy: add Railway client URL to Supabase → Auth → Redirect URLs
 - Health check: `/health` | Secrets via Railway env UI — never hardcode | No Railway DB plugins
+
+Always ask clarifying questions to the user if assumptions need to be made 

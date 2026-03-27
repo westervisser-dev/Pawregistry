@@ -211,6 +211,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			where: eq(clients.stage, 'waitlisted'),
 			orderBy: [asc(clients.priority)],
 		});
+		const waitlistPositionMap = new Map(eligible.map((c, i) => [c.id, i + 1]));
 
 		const hasPuppies = litter.puppies.length > 0;
 		const puppySexes = hasPuppies ? [...new Set(litter.puppies.map((p) => p.sex))] : [];
@@ -291,6 +292,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					stage: client.stage,
 					depositStatus: client.depositStatus,
 					priority: client.priority,
+					waitlistPosition: waitlistPositionMap.get(client.id) ?? null,
 					preferredBreedSize: (app.preferredBreedSize as string | null) ?? null,
 					secondChoiceBreedSize: (app.secondChoiceBreedSize as string | null) ?? null,
 					preferredSex: prefSex,

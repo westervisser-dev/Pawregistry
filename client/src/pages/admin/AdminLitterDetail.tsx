@@ -795,7 +795,7 @@ export function AdminLitterDetail() {
 								>
 									<div className="flex items-start justify-between gap-3">
 										<div className="min-w-0 flex gap-3 items-start">
-											<span className="flex-shrink-0 mt-0.5 w-6 text-[11px] font-bold text-warm-400 text-right">#{i + 1}</span>
+											<span className="flex-shrink-0 mt-0.5 w-6 text-[11px] font-bold text-warm-400 text-right">#{mc.waitlistPosition ?? i + 1}</span>
 											<div className="min-w-0">
 												<div className="flex items-center gap-1.5 flex-wrap">
 													<span className="font-medium text-sm text-warm-900">{mc.firstName} {mc.lastName}</span>
