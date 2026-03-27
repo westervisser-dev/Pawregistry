@@ -1,9 +1,10 @@
 import Elysia, { t } from 'elysia';
 import { eq, asc, desc, sql } from 'drizzle-orm';
 import { db } from '../../db';
-import { clients } from '../../db/schema';
+import { clients, clientActivity } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { sendStageEmail } from '../../lib/email';
+import { logActivity } from '../../lib/activity';
 
 const applicationDataSchema = t.Object({
 	// ── Existing fields ──
@@ -74,6 +75,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				stage: 'enquired',
 			}).returning();
 			sendStageEmail(client.id, 'enquired').catch(console.error);
+			logActivity(client.id, 'application_submitted', 'Application submitted', 'client');
 			return { id: client.id, message: 'Application received. We will be in touch soon.' };
 		},
 		{
@@ -136,11 +138,23 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			const currentApp = (client.applicationData ?? {}) as Record<string, unknown>;
 			const updatedApp = { ...currentApp, ...body };
 
+			// Track what changed for the activity log
+			const changes: Record<string, { from: unknown; to: unknown }> = {};
+			for (const key of Object.keys(body) as (keyof typeof body)[]) {
+				if (currentApp[key] !== body[key]) {
+					changes[key] = { from: currentApp[key] ?? null, to: body[key] };
+				}
+			}
+
 			const [updated] = await db
 				.update(clients)
 				.set({ applicationData: updatedApp, updatedAt: new Date() })
 				.where(eq(clients.id, client.id))
 				.returning();
+
+			if (Object.keys(changes).length > 0) {
+				logActivity(client.id, 'preferences_updated', 'Preferences updated', 'client', { changes });
+			}
 
 			return updated;
 		},
@@ -176,6 +190,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				.set({ depositStatus: 'pending', updatedAt: new Date() })
 				.where(eq(clients.id, client.id))
 				.returning();
+			logActivity(client.id, 'deposit_changed', 'Deposit status changed from none to pending', 'client', { from: 'none', to: 'pending' });
 			return updated;
 		}
 	)
@@ -218,12 +233,23 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		return client;
 	})
 
+	.get('/admin/:id/activity', async ({ params }) => {
+		return db
+			.select()
+			.from(clientActivity)
+			.where(eq(clientActivity.clientId, params.id))
+			.orderBy(desc(clientActivity.createdAt));
+	})
+
 	.patch(
 		'/admin/:id',
 		async ({ params, body, error }) => {
-			// Fetch current stage only if a stage change is requested (avoid extra query otherwise)
-			const current = body.stage
-				? await db.query.clients.findFirst({ where: eq(clients.id, params.id), columns: { stage: true } })
+			// Fetch current values for change detection
+			const current = (body.stage || body.depositStatus !== undefined || body.adminNotes !== undefined)
+				? await db.query.clients.findFirst({
+					where: eq(clients.id, params.id),
+					columns: { stage: true, depositStatus: true, adminNotes: true },
+				})
 				: null;
 
 			const [updated] = await db
@@ -236,6 +262,13 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			// Fire stage email only when stage actually changed
 			if (body.stage && current && body.stage !== current.stage) {
 				sendStageEmail(params.id, body.stage).catch(console.error);
+				logActivity(params.id, 'stage_changed', `Stage changed from ${current.stage} to ${body.stage}`, 'admin', { from: current.stage, to: body.stage });
+			}
+			if (body.depositStatus && current && body.depositStatus !== current.depositStatus) {
+				logActivity(params.id, 'deposit_changed', `Deposit status changed from ${current.depositStatus} to ${body.depositStatus}`, 'admin', { from: current.depositStatus, to: body.depositStatus });
+			}
+			if (body.adminNotes !== undefined && current && body.adminNotes !== current.adminNotes) {
+				logActivity(params.id, 'notes_updated', 'Admin notes updated', 'admin');
 			}
 
 			return updated;

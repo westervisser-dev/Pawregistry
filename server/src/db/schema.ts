@@ -344,3 +344,19 @@ export const emailLogs = pgTable('email_logs', {
 export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
 	client: one(clients, { fields: [emailLogs.clientId], references: [clients.id] }),
 }));
+
+// ─── Client Activity ──────────────────────────────────────────────────────────
+
+export const clientActivity = pgTable('client_activity', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+	type: text('type').notNull(), // application_submitted, stage_changed, deposit_changed, preferences_updated, notes_updated, document_uploaded, document_signed
+	description: text('description').notNull(),
+	metadata: jsonb('metadata').notNull().default({}).$type<Record<string, unknown>>(),
+	actor: text('actor').notNull().default('system'), // client, admin, system
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const clientActivityRelations = relations(clientActivity, ({ one }) => ({
+	client: one(clients, { fields: [clientActivity.clientId], references: [clients.id] }),
+}));

@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { documents, clients } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
+import { logActivity } from '../../lib/activity';
 
 export const documentsRoutes = new Elysia({ prefix: '/documents' })
 	// ── Client: view own documents ──
@@ -35,6 +36,7 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
 				label: body.label,
 				fileUrl: url,
 			}).returning();
+			logActivity(params.clientId, 'document_uploaded', `Document uploaded: ${body.label}`, 'admin', { type: body.type, label: body.label });
 			return doc;
 		},
 		{
@@ -59,6 +61,7 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
 				.where(eq(documents.id, params.id))
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Document not found' });
+			logActivity(updated.clientId, 'document_signed', `Document signed: ${updated.label}`, 'admin', { type: updated.type, label: updated.label });
 			return updated;
 		}
 	);

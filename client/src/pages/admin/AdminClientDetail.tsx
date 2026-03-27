@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
-import type { Client, ClientStage, EmailLog } from '@paw-registry/shared';
+import type { Client, ClientStage, ClientActivity, EmailLog } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
@@ -90,6 +90,112 @@ function AppSection({ title, fields }: { title: string; fields: { label: string;
 	);
 }
 
+// ─── Activity timeline helpers ─────────────────────────────────────────────────
+
+const ACTIVITY_CONFIG: Record<string, { icon: string; label: string; colour: string }> = {
+	application_submitted: { icon: '📋', label: 'Application Submitted', colour: 'text-blue-600' },
+	stage_changed: { icon: '🔄', label: 'Stage Changed', colour: 'text-purple-600' },
+	deposit_changed: { icon: '💰', label: 'Deposit Updated', colour: 'text-green-600' },
+	preferences_updated: { icon: '✏️', label: 'Preferences Updated', colour: 'text-amber-600' },
+	notes_updated: { icon: '📝', label: 'Notes Updated', colour: 'text-warm-500' },
+	document_uploaded: { icon: '📄', label: 'Document Uploaded', colour: 'text-blue-500' },
+	document_signed: { icon: '✅', label: 'Document Signed', colour: 'text-green-500' },
+};
+
+const ACTOR_LABELS: Record<string, string> = {
+	client: 'Client',
+	admin: 'Admin',
+	system: 'System',
+};
+
+function PreferenceChanges({ changes }: { changes: Record<string, { from: unknown; to: unknown }> }) {
+	const FIELD_LABELS: Record<string, string> = {
+		preferredBreedSize: 'Breed/size',
+		secondChoiceBreedSize: 'Second choice',
+		preferredSex: 'Preferred sex',
+		preferredColour: 'Preferred colour',
+		considerOppositeSex: 'Open to opposite sex',
+		considerOtherColour: 'Open to other colour',
+		considerOtherBreedSize: 'Open to other breed/size',
+		considerRehome: 'Open to rehome',
+		readyTimeframe: 'Ready timeframe',
+		puppyPurpose: 'Purpose',
+	};
+
+	const formatVal = (v: unknown): string => {
+		if (v === null || v === undefined || v === '') return '—';
+		if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+		return String(v);
+	};
+
+	return (
+		<div className="mt-1.5 space-y-0.5">
+			{Object.entries(changes).map(([key, { from, to }]) => (
+				<p key={key} className="text-xs text-warm-400">
+					<span className="text-warm-500">{FIELD_LABELS[key] ?? key}:</span>{' '}
+					<span className="line-through">{formatVal(from)}</span>{' '}
+					<span className="text-warm-700">{formatVal(to)}</span>
+				</p>
+			))}
+		</div>
+	);
+}
+
+function ActivityTimeline({ activities }: { activities: ClientActivity[] }) {
+	if (activities.length === 0) {
+		return <p className="text-sm text-warm-400">No activity recorded yet.</p>;
+	}
+
+	return (
+		<div className="relative">
+			{/* Vertical line */}
+			<div className="absolute left-3.5 top-2 bottom-2 w-px bg-warm-200" />
+
+			<div className="space-y-4">
+				{activities.map((activity) => {
+					const config = ACTIVITY_CONFIG[activity.type] ?? { icon: '•', label: activity.type, colour: 'text-warm-500' };
+					const meta = activity.metadata as Record<string, unknown>;
+
+					return (
+						<div key={activity.id} className="relative pl-9">
+							{/* Dot */}
+							<span className="absolute left-1.5 top-0.5 flex h-4 w-4 items-center justify-center text-xs">
+								{config.icon}
+							</span>
+
+							<div>
+								<p className="text-sm text-warm-800">
+									<span className={`font-medium ${config.colour}`}>{config.label}</span>
+									{activity.type === 'stage_changed' && !!meta.from && !!meta.to && (
+										<span className="text-warm-400 font-normal"> {String(meta.from)} → {String(meta.to)}</span>
+									)}
+									{activity.type === 'deposit_changed' && !!meta.from && !!meta.to && (
+										<span className="text-warm-400 font-normal"> {String(meta.from)} → {String(meta.to)}</span>
+									)}
+									{activity.type === 'document_uploaded' && !!meta.label && (
+										<span className="text-warm-400 font-normal"> — {String(meta.label)}</span>
+									)}
+									{activity.type === 'document_signed' && !!meta.label && (
+										<span className="text-warm-400 font-normal"> — {String(meta.label)}</span>
+									)}
+								</p>
+								{activity.type === 'preferences_updated' && !!meta.changes && (
+									<PreferenceChanges changes={meta.changes as Record<string, { from: unknown; to: unknown }>} />
+								)}
+								<p className="text-xs text-warm-400 mt-0.5">
+									{ACTOR_LABELS[activity.actor] ?? activity.actor}
+									{' · '}
+									{new Date(activity.createdAt).toLocaleString()}
+								</p>
+							</div>
+						</div>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
 // ─── Client detail ────────────────────────────────────────────────────────────
 
 export function AdminClientDetail() {
@@ -101,6 +207,7 @@ export function AdminClientDetail() {
 	const [deleting, setDeleting] = useState(false);
 	const [impersonating, setImpersonating] = useState(false);
 	const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
+	const [activities, setActivities] = useState<ClientActivity[]>([]);
 
 	const load = () => {
 		if (!id) return;
@@ -111,6 +218,10 @@ export function AdminClientDetail() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.email as any).logs.get({ query: { clientId: id } }).then(({ data }: { data: EmailLog[] | null }) => {
 			if (data) setEmailLogs(data);
+		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.clients.admin({ id }) as any).activity.get().then(({ data }: { data: ClientActivity[] | null }) => {
+			if (data) setActivities(data);
 		});
 	};
 
@@ -356,6 +467,12 @@ export function AdminClientDetail() {
 						))}
 					</div>
 				)}
+			</Card>
+
+			{/* Activity timeline */}
+			<Card className="p-5 mb-6">
+				<h3 className="font-medium text-warm-900 mb-3">Activity Timeline</h3>
+				<ActivityTimeline activities={activities} />
 			</Card>
 
 			<button

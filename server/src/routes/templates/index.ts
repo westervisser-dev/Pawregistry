@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { documentTemplates, clientTemplateChecklist, clients } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
+import { logActivity } from '../../lib/activity';
 
 export const templatesRoutes = new Elysia({ prefix: '/templates' })
 	// ── Client: list templates with checklist status ──
@@ -52,6 +53,7 @@ export const templatesRoutes = new Elysia({ prefix: '/templates' })
 					.set({ checkedAt: new Date(), uploadedFileUrl: url })
 					.where(eq(clientTemplateChecklist.id, existing.id))
 					.returning();
+				logActivity(client.id, 'document_uploaded', `Template document uploaded`, 'client', { templateId: params.templateId });
 				return updated;
 			} else {
 				const [created] = await db.insert(clientTemplateChecklist).values({
@@ -60,6 +62,7 @@ export const templatesRoutes = new Elysia({ prefix: '/templates' })
 					checkedAt: new Date(),
 					uploadedFileUrl: url,
 				}).returning();
+				logActivity(client.id, 'document_uploaded', `Template document uploaded`, 'client', { templateId: params.templateId });
 				return created;
 			}
 		},

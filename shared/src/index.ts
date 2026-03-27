@@ -301,6 +301,29 @@ export interface EmailLog {
 	metadata: Record<string, unknown>;
 }
 
+// ─── Client Activity ─────────────────────────────────────────────────────────
+
+export type ClientActivityType =
+	| 'application_submitted'
+	| 'stage_changed'
+	| 'deposit_changed'
+	| 'preferences_updated'
+	| 'notes_updated'
+	| 'document_uploaded'
+	| 'document_signed';
+
+export type ClientActivityActor = 'client' | 'admin' | 'system';
+
+export interface ClientActivity {
+	id: string;
+	clientId: string;
+	type: ClientActivityType;
+	description: string;
+	metadata: Record<string, unknown>;
+	actor: ClientActivityActor;
+	createdAt: string;
+}
+
 // ─── API response helpers ────────────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {
