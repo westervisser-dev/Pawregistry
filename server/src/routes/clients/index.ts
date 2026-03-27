@@ -270,25 +270,6 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		}
 	)
 
-	// ── Admin: send portal invite email to client ──
-	.post(
-		'/admin/:id/send-invite',
-		async ({ params, error }) => {
-			const client = await db.query.clients.findFirst({ where: eq(clients.id, params.id) });
-			if (!client) return error(404, { error: 'Not found', message: 'Client not found' });
-
-			const { supabase } = await import('../../lib/supabase');
-			const { error: authError } = await supabase.auth.signInWithOtp({
-				email: client.email,
-				options: { emailRedirectTo: `${process.env.CLIENT_URL}/portal/callback` },
-			});
-
-			if (authError) return error(500, { error: 'Auth error', message: authError.message });
-
-			return { message: `Portal invite sent to ${client.email}.` };
-		}
-	)
-
 	// ── Admin: delete client ──
 	.delete(
 		'/admin/:id',

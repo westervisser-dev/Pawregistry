@@ -99,8 +99,7 @@ export function AdminClientDetail() {
 	const [loading, setLoading] = useState(true);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleting, setDeleting] = useState(false);
-	const [portalAction, setPortalAction] = useState<'impersonate' | 'invite' | null>(null);
-	const [portalMessage, setPortalMessage] = useState('');
+	const [impersonating, setImpersonating] = useState(false);
 	const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
 
 	const load = () => {
@@ -132,30 +131,12 @@ export function AdminClientDetail() {
 
 	const openAsClient = async () => {
 		if (!id) return;
-		setPortalAction('impersonate');
-		setPortalMessage('');
+		setImpersonating(true);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const { data, error } = await (api.clients.admin({ id }) as any)['impersonate'].post();
-		setPortalAction(null);
-		if (error || !data?.url) {
-			setPortalMessage('Failed to generate portal link.');
-			return;
-		}
+		setImpersonating(false);
+		if (error || !data?.url) return;
 		window.open(data.url, '_blank');
-	};
-
-	const sendInvite = async () => {
-		if (!id) return;
-		setPortalAction('invite');
-		setPortalMessage('');
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const { error } = await (api.clients.admin({ id }) as any)['send-invite'].post();
-		setPortalAction(null);
-		if (error) {
-			setPortalMessage('Failed to send invite.');
-			return;
-		}
-		setPortalMessage(`Invite sent to ${client?.email}.`);
 	};
 
 	const deleteClient = async () => {
@@ -343,26 +324,14 @@ export function AdminClientDetail() {
 			{/* Portal access */}
 			<Card className="p-5 mb-6">
 				<h3 className="font-medium text-warm-900 mb-1">Portal Access</h3>
-				<p className="text-sm text-warm-400 mb-4">Open the portal as this client, or send them a login link by email.</p>
-				<div className="flex flex-wrap items-center gap-3">
-					<button
-						onClick={openAsClient}
-						disabled={!!portalAction}
-						className="px-4 py-2 bg-warm-900 text-white text-sm font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 transition-colors"
-					>
-						{portalAction === 'impersonate' ? 'Opening…' : 'Open portal as client →'}
-					</button>
-					<button
-						onClick={sendInvite}
-						disabled={!!portalAction}
-						className="px-4 py-2 border border-warm-200 text-warm-700 text-sm font-medium rounded-lg hover:bg-warm-50 disabled:opacity-50 transition-colors"
-					>
-						{portalAction === 'invite' ? 'Sending…' : 'Send portal invite'}
-					</button>
-					{portalMessage && (
-						<p role="status" className="text-sm text-warm-500">{portalMessage}</p>
-					)}
-				</div>
+				<p className="text-sm text-warm-400 mb-4">Open the portal as this client.</p>
+				<button
+					onClick={openAsClient}
+					disabled={impersonating}
+					className="px-4 py-2 bg-warm-900 text-white text-sm font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 transition-colors"
+				>
+					{impersonating ? 'Opening…' : 'Open portal as client →'}
+				</button>
 			</Card>
 
 			{/* Email history */}
