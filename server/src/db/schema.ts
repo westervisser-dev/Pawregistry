@@ -192,7 +192,7 @@ export const clients = pgTable('clients', {
 	userId: text('user_id'), // Supabase auth uid
 	firstName: text('first_name').notNull(),
 	lastName: text('last_name').notNull(),
-	email: text('email').notNull(),
+	email: text('email').notNull().unique(),
 	phone: text('phone'),
 	city: text('city'),
 	country: text('country').notNull().default('ZA'),
