@@ -784,77 +784,36 @@ export function AdminLitterDetail() {
 				) : matchingClients.length === 0 ? (
 					<EmptyState icon="👥" title="No matching clients" />
 				) : (
-					<div className="grid grid-cols-2 gap-4">
-						{/* Left: Waitlist Order */}
-						<div>
-							<p className="text-[11px] font-semibold text-warm-500 uppercase tracking-wide mb-2">Waitlist Order</p>
-							<div className="space-y-2">
-								{[...matchingClients].sort((a, b) => a.priority - b.priority).map((mc, i) => {
-									const notifAt = notifiedMap[mc.id];
-									return (
-										<Link
-											key={mc.id}
-											to={`/admin/clients/${mc.id}`}
-											className="block p-3 rounded-lg border border-warm-200 hover:border-brand-300 hover:bg-brand-50/30 transition-colors"
-										>
-											<div className="flex items-center justify-between gap-2">
-												<div className="min-w-0">
-													<div className="flex items-center gap-1.5 flex-wrap">
-														<span className="text-[11px] font-semibold text-warm-400">#{i + 1}</span>
-														<span className="font-medium text-sm text-warm-900 truncate">{mc.firstName} {mc.lastName}</span>
-													</div>
-													<div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-														{mc.city && <span className="text-[11px] text-warm-400">{mc.city}</span>}
-														{notifAt && (
-															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
-																Notified {timeAgo(notifAt)}
-															</span>
-														)}
-													</div>
+					<div className="space-y-2">
+						{[...matchingClients].sort((a, b) => a.priority - b.priority).map((mc, i) => {
+							const notifAt = notifiedMap[mc.id];
+							return (
+								<Link
+									key={mc.id}
+									to={`/admin/clients/${mc.id}`}
+									className="block p-3.5 rounded-lg border border-warm-200 hover:border-brand-300 hover:bg-brand-50/30 transition-colors"
+								>
+									<div className="flex items-start justify-between gap-3">
+										<div className="min-w-0 flex gap-3 items-start">
+											<span className="flex-shrink-0 mt-0.5 w-6 text-[11px] font-bold text-warm-400 text-right">#{i + 1}</span>
+											<div className="min-w-0">
+												<div className="flex items-center gap-1.5 flex-wrap">
+													<span className="font-medium text-sm text-warm-900">{mc.firstName} {mc.lastName}</span>
+													{mc.depositStatus === 'paid' ? (
+														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Paid</span>
+													) : mc.depositStatus === 'pending' ? (
+														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Pending</span>
+													) : null}
+													{notifAt && (
+														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
+															Notified {timeAgo(notifAt)}
+														</span>
+													)}
 												</div>
-												<div className="flex-shrink-0 text-right">
-													<div className="text-sm font-bold text-brand-600">{mc.score}</div>
-													<div className="text-[10px] text-warm-400">pts</div>
-												</div>
-											</div>
-										</Link>
-									);
-								})}
-							</div>
-						</div>
-
-						{/* Right: Match Score Order */}
-						<div>
-							<p className="text-[11px] font-semibold text-warm-500 uppercase tracking-wide mb-2">Match Score</p>
-							<div className="space-y-2">
-								{[...matchingClients].sort((a, b) => b.score - a.score).map((mc) => {
-									const notifAt = notifiedMap[mc.id];
-									return (
-										<Link
-											key={mc.id}
-											to={`/admin/clients/${mc.id}`}
-											className="block p-3 rounded-lg border border-warm-200 hover:border-brand-300 hover:bg-brand-50/30 transition-colors"
-										>
-											<div className="flex items-start justify-between gap-2">
-												<div className="min-w-0">
-													<div className="flex items-center gap-1.5 flex-wrap">
-														<span className="font-medium text-sm text-warm-900 truncate">{mc.firstName} {mc.lastName}</span>
-														{mc.depositStatus === 'paid' ? (
-															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Paid</span>
-														) : mc.depositStatus === 'pending' ? (
-															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Pending</span>
-														) : null}
-													</div>
-													<div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-														{mc.city && <span className="text-[11px] text-warm-400">{mc.city}</span>}
-														{notifAt && (
-															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
-																Notified {timeAgo(notifAt)}
-															</span>
-														)}
-													</div>
+												{mc.city && <p className="text-[11px] text-warm-400 mt-0.5">{mc.city}</p>}
+												{mc.matchReasons.length > 0 && (
 													<div className="flex flex-wrap gap-1 mt-1.5">
-														{mc.matchReasons.slice(0, 2).map((reason) => (
+														{mc.matchReasons.slice(0, 3).map((reason) => (
 															<span
 																key={reason}
 																className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
@@ -870,17 +829,17 @@ export function AdminLitterDetail() {
 															</span>
 														))}
 													</div>
-												</div>
-												<div className="flex-shrink-0 text-right">
-													<div className="text-sm font-bold text-brand-600">{mc.score}</div>
-													<div className="text-[10px] text-warm-400">rank #{mc.priority}</div>
-												</div>
+												)}
 											</div>
-										</Link>
-									);
-								})}
-							</div>
-						</div>
+										</div>
+										<div className="flex-shrink-0 text-right">
+											<div className="text-sm font-bold text-brand-600">{mc.score}</div>
+											<div className="text-[10px] text-warm-400">pts</div>
+										</div>
+									</div>
+								</Link>
+							);
+						})}
 					</div>
 				)}
 			</Card>
