@@ -137,6 +137,26 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		}
 	)
 
+	// ── Client portal: opt in to deposit (pending only — admin confirms to paid) ──
+	.patch(
+		'/me/deposit',
+		async ({ user, error }) => {
+			const client = await db.query.clients.findFirst({
+				where: eq(clients.userId, user.id),
+			});
+			if (!client) return error(404, { error: 'Not found', message: 'Client record not found' });
+			if (client.depositStatus !== 'none') {
+				return error(400, { error: 'Bad request', message: 'Deposit status can only be set from none to pending' });
+			}
+			const [updated] = await db
+				.update(clients)
+				.set({ depositStatus: 'pending', updatedAt: new Date() })
+				.where(eq(clients.id, client.id))
+				.returning();
+			return updated;
+		}
+	)
+
 	// ── Admin routes ──
 	.use(adminPlugin)
 

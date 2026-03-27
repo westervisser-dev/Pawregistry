@@ -344,6 +344,8 @@ export function PortalDashboard() {
 	const [client, setClient] = useState<Client | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [showStages, setShowStages] = useState(false);
+	const [depositLoading, setDepositLoading] = useState(false);
+	const [showDepositConfirm, setShowDepositConfirm] = useState(false);
 
 	useEffect(() => {
 		document.title = 'Dashboard — My Portal';
@@ -356,6 +358,16 @@ export function PortalDashboard() {
 			setLoading(false);
 		});
 	}, []);
+
+	async function handleConfirmDeposit() {
+		if (!client || depositLoading) return;
+		setDepositLoading(true);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { data } = await (api.clients.me as any).deposit.patch();
+		if (data) setClient(data as Client);
+		setDepositLoading(false);
+		setShowDepositConfirm(false);
+	}
 
 	if (loading) return <LoadingPage />;
 	if (!client) return <div className="text-warm-500">No client record linked to your account.</div>;
@@ -487,18 +499,29 @@ export function PortalDashboard() {
 						</div>
 					))}
 
-					{/* Deposit Paid */}
+					{/* Deposit Selected */}
 					<div className="py-3.5">
 						<dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.07em] text-warm-400 font-medium mb-1">
-							Deposit Paid
+							Deposit Selected?
 							<Tooltip />
 						</dt>
-						<dd className="text-sm text-warm-800">
-							{client.depositStatus === 'paid'
-								? 'Yes'
-								: client.depositStatus === 'pending'
-									? 'Pending'
-									: 'No'}
+						<dd className="flex items-center gap-3 mt-1">
+							<span className="text-sm text-warm-800">
+								{client.depositStatus === 'paid'
+									? 'Yes — Received'
+									: client.depositStatus === 'pending'
+										? 'Yes — Reviewing payment'
+										: 'No'}
+							</span>
+							{client.depositStatus === 'none' && (
+								<button
+									type="button"
+									onClick={() => setShowDepositConfirm(true)}
+									className="text-xs text-brand-500 hover:text-brand-600 cursor-pointer transition-colors"
+								>
+									Change selection →
+								</button>
+							)}
 						</dd>
 					</div>
 				</dl>
@@ -506,6 +529,59 @@ export function PortalDashboard() {
 
 			{showStages && (
 				<StagesModal currentStage={client.stage} onClose={() => setShowStages(false)} />
+			)}
+
+			{showDepositConfirm && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center p-4"
+					style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+					onClick={() => !depositLoading && setShowDepositConfirm(false)}
+				>
+					<div
+						role="dialog"
+						aria-modal="true"
+						aria-labelledby="deposit-modal-title"
+						className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<div>
+							<h2 id="deposit-modal-title" className="font-serif text-[17px] text-warm-900 mb-1.5">
+								Change deposit selection?
+							</h2>
+							<p className="text-[13px] text-warm-600 leading-relaxed">
+								You are about to mark your deposit as <span className="font-medium text-warm-800">Yes — Reviewing</span>. Please ensure you have made payment to the following account:
+							</p>
+							<div className="mt-3 rounded-xl bg-warm-50 border border-black/[0.06] px-4 py-3 text-[12.5px] text-warm-700 space-y-2">
+								<p><span className="block text-[10px] font-medium text-warm-400 uppercase tracking-wide mb-0.5">Bank</span>First National Bank</p>
+								<p><span className="block text-[10px] font-medium text-warm-400 uppercase tracking-wide mb-0.5">Account name</span>Paw Registry (Pty) Ltd</p>
+								<p><span className="block text-[10px] font-medium text-warm-400 uppercase tracking-wide mb-0.5">Account number</span>62847301928</p>
+								<p><span className="block text-[10px] font-medium text-warm-400 uppercase tracking-wide mb-0.5">Reference</span>{client.firstName} {client.lastName}</p>
+							</div>
+							<p className="mt-3 text-[12.5px] text-warm-500 leading-relaxed">
+								We will review your payment shortly afterwards and confirm your deposit status.
+							</p>
+						</div>
+
+						<div className="flex gap-2 pt-1">
+							<button
+								type="button"
+								onClick={() => setShowDepositConfirm(false)}
+								disabled={depositLoading}
+								className="flex-1 py-2.5 text-sm text-warm-600 font-medium rounded-lg border border-black/[0.1] hover:bg-warm-50 transition-colors cursor-pointer disabled:opacity-50"
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								onClick={handleConfirmDeposit}
+								disabled={depositLoading}
+								className="flex-1 py-2.5 bg-warm-900 text-white text-sm font-medium rounded-lg hover:bg-warm-800 transition-colors cursor-pointer disabled:opacity-50"
+							>
+								{depositLoading ? 'Saving…' : 'Confirm'}
+							</button>
+						</div>
+					</div>
+				</div>
 			)}
 		</div>
 	);
