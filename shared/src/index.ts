@@ -350,6 +350,16 @@ export interface PuppyInterestWithClient extends PuppyInterest {
 	};
 }
 
+// ─── Litter Notification ──────────────────────────────────────────────────────
+
+export interface LitterNotification {
+	id: string;
+	litterId: string;
+	clientId: string;
+	notifiedAt: string;
+	createdAt: string;
+}
+
 // ─── Breed & Size Constants ──────────────────────────────────────────────────
 
 export interface BreedOption {

@@ -13,6 +13,7 @@ export function PortalLitterDetail() {
 	const [myInterestPuppyIds, setMyInterestPuppyIds] = useState<Set<string>>(new Set());
 	const [submittingInterest, setSubmittingInterest] = useState<string | null>(null);
 	const [interestMessage, setInterestMessage] = useState<Record<string, string>>({});
+	const [eligibility, setEligibility] = useState<{ isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null>(null);
 
 	useEffect(() => {
 		if (!id) return;
@@ -25,8 +26,11 @@ export function PortalLitterDetail() {
 	useEffect(() => {
 		if (!id || !user) return;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: Array<{ puppyId: string; status: string }> | null }) => {
-			if (data) setMyInterestPuppyIds(new Set(data.map((i) => i.puppyId)));
+		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: { interests: Array<{ puppyId: string; status: string }>; isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null }) => {
+			if (data) {
+				setMyInterestPuppyIds(new Set(data.interests.map((i) => i.puppyId)));
+				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo });
+			}
 		}).catch(() => {});
 	}, [id, user]);
 
@@ -107,6 +111,22 @@ export function PortalLitterDetail() {
 					<h2 className="font-serif text-xl font-bold text-warm-900 mb-4">
 						Puppies ({litter.puppies.length})
 					</h2>
+
+					{/* Waitlist eligibility notice */}
+					{user && eligibility && !eligibility.isNotified && eligibility.position !== null && (
+						<div className="mb-4 p-4 rounded-xl border border-amber-200 bg-amber-50">
+							<p className="text-sm font-medium text-amber-800">You're on the waitlist</p>
+							<p className="text-sm text-amber-700 mt-0.5">
+								You're currently in position <strong>#{eligibility.position}</strong>.
+								{eligibility.notifiedUpTo !== null && eligibility.notifiedUpTo > 0
+									? ` The top ${eligibility.notifiedUpTo} client${eligibility.notifiedUpTo !== 1 ? 's' : ''} have been invited to select a puppy first.`
+									: ''
+								}
+								{' '}We'll reach out when it's your turn.
+							</p>
+						</div>
+					)}
+
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
 						{litter.puppies.map((puppy) => (
 							<div key={puppy.id} className="bg-white rounded-xl border border-warm-200 p-4 text-center">
@@ -130,6 +150,8 @@ export function PortalLitterDetail() {
 											<span className="text-xs text-green-600 font-medium">Interest registered ✓</span>
 										) : interestMessage[puppy.id] ? (
 											<span className="text-xs text-warm-500">{interestMessage[puppy.id]}</span>
+										) : eligibility && !eligibility.isNotified ? (
+											<span className="text-xs text-warm-400 italic">Not yet eligible</span>
 										) : (
 											<button
 												onClick={() => expressInterest(puppy.id)}

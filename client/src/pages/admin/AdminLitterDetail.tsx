@@ -26,6 +26,13 @@ export function AdminLitterDetail() {
 	const [expandedPuppy, setExpandedPuppy] = useState<string | null>(null);
 	const [updatingPuppyId, setUpdatingPuppyId] = useState<string | null>(null);
 	const [approvingInterestId, setApprovingInterestId] = useState<string | null>(null);
+	const [notifications, setNotifications] = useState<Array<{
+		id: string; litterId: string; clientId: string; notifiedAt: string; createdAt: string;
+		client: { id: string; firstName: string; lastName: string; email: string; city: string | null; priority: number; depositStatus: string };
+	}>>([]);
+	const [notifyCount, setNotifyCount] = useState(1);
+	const [notifyConfirming, setNotifyConfirming] = useState(false);
+	const [notifying, setNotifying] = useState(false);
 
 	// New-litter form state
 	const [dogs, setDogs] = useState<Dog[]>([]);
@@ -68,6 +75,11 @@ export function AdminLitterDetail() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.litters.admin as any).interests({ litterId: id }).get().then(({ data }: { data: typeof litterInterests | null }) => {
 			if (data) setLitterInterests(data);
+		}).catch(() => {});
+		// Fetch litter notifications
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.litters.admin as any).notifications({ litterId: id }).get().then(({ data }: { data: typeof notifications | null }) => {
+			if (data) setNotifications(data);
 		}).catch(() => {});
 	}, [id]);
 
@@ -187,6 +199,32 @@ export function AdminLitterDetail() {
 			}
 		}
 		setApprovingInterestId(null);
+	};
+
+	const timeAgo = (dateStr: string) => {
+		const diff = Date.now() - new Date(dateStr).getTime();
+		const mins = Math.floor(diff / 60000);
+		if (mins < 60) return `${mins}m ago`;
+		const hrs = Math.floor(mins / 60);
+		if (hrs < 24) return `${hrs}h ago`;
+		return `${Math.floor(hrs / 24)}d ago`;
+	};
+
+	const notifiedMap = Object.fromEntries(notifications.map((n) => [n.clientId, n.notifiedAt]));
+
+	const handleNotify = async () => {
+		if (!id) return;
+		setNotifying(true);
+		try {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			await (api.litters.admin as any).notifications({ litterId: id }).post({ count: notifyCount });
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(api.litters.admin as any).notifications({ litterId: id }).get().then(({ data: fresh }: { data: typeof notifications | null }) => {
+				if (fresh) setNotifications(fresh);
+			});
+		} catch { /* ignore */ }
+		setNotifying(false);
+		setNotifyConfirming(false);
 	};
 
 	if (loading) return <LoadingPage />;
@@ -687,12 +725,58 @@ export function AdminLitterDetail() {
 
 			{/* Potential Clients */}
 			<Card className="p-6 mb-6">
-				<div className="flex items-center justify-between mb-4">
+				<div className="flex items-center justify-between mb-3">
 					<h3 className="font-semibold text-warm-800">Potential Clients</h3>
 					{matchingClients.length > 0 && (
 						<span className="text-xs text-warm-400">{matchingClients.length} match{matchingClients.length !== 1 ? 'es' : ''}</span>
 					)}
 				</div>
+
+				{/* Notification controls */}
+				{!matchingLoading && matchingClients.length > 0 && (
+					<div className="mb-4 p-3 rounded-lg bg-warm-50 border border-warm-200 flex items-center justify-between gap-3">
+						<p className="text-xs text-warm-600">
+							{notifications.length > 0
+								? `${notifications.length} client${notifications.length !== 1 ? 's' : ''} notified about this litter`
+								: 'No clients notified yet — notify by waitlist position'}
+						</p>
+						{!notifyConfirming ? (
+							<button
+								onClick={() => { setNotifyCount(1); setNotifyConfirming(true); }}
+								className="flex-shrink-0 px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
+							>
+								{notifications.length > 0 ? 'Extend to next…' : 'Notify top…'}
+							</button>
+						) : (
+							<div className="flex items-center gap-2 flex-shrink-0">
+								<span className="text-xs text-warm-600">Notify</span>
+								<input
+									type="number"
+									min={1}
+									max={matchingClients.length}
+									value={notifyCount}
+									onChange={(e) => setNotifyCount(Math.max(1, parseInt(e.target.value) || 1))}
+									className="w-14 px-2 py-1 text-xs border border-warm-300 rounded-md text-center"
+								/>
+								<span className="text-xs text-warm-600">clients</span>
+								<button
+									onClick={handleNotify}
+									disabled={notifying}
+									className="px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 disabled:opacity-50 transition-colors"
+								>
+									{notifying ? 'Sending…' : 'Confirm'}
+								</button>
+								<button
+									onClick={() => setNotifyConfirming(false)}
+									className="px-3 py-1.5 text-xs border border-warm-300 text-warm-600 rounded-md hover:bg-warm-100 transition-colors"
+								>
+									Cancel
+								</button>
+							</div>
+						)}
+					</div>
+				)}
+
 				{matchingLoading ? (
 					<p className="text-sm text-warm-400">Loading matches…</p>
 				) : !litter.breed ? (
@@ -700,55 +784,103 @@ export function AdminLitterDetail() {
 				) : matchingClients.length === 0 ? (
 					<EmptyState icon="👥" title="No matching clients" />
 				) : (
-					<div className="space-y-3">
-						{matchingClients.map((mc) => (
-							<Link
-								key={mc.id}
-								to={`/admin/clients/${mc.id}`}
-								className="block p-4 rounded-lg border border-warm-200 hover:border-brand-300 hover:bg-brand-50/30 transition-colors"
-							>
-								<div className="flex items-start justify-between gap-3">
-									<div className="min-w-0">
-										<div className="flex items-center gap-2">
-											<span className="font-medium text-sm text-warm-900">{mc.firstName} {mc.lastName}</span>
-											{mc.depositStatus === 'paid' ? (
-												<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Paid</span>
-											) : mc.depositStatus === 'pending' ? (
-												<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Pending</span>
-											) : null}
-										</div>
-										{mc.city && <p className="text-xs text-warm-400 mt-0.5">{mc.city}</p>}
-										<div className="flex flex-wrap gap-1 mt-2">
-											{mc.matchReasons.map((reason) => (
-												<span
-													key={reason}
-													className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-														reason.startsWith('First choice') ? 'bg-green-100 text-green-700' :
-														reason.startsWith('Second choice') ? 'bg-blue-100 text-blue-700' :
-														reason.includes('Sex') || reason.includes('sex') ? 'bg-purple-100 text-purple-700' :
-														reason.includes('olour') ? 'bg-pink-100 text-pink-700' :
-														reason.includes('Deposit') ? 'bg-amber-100 text-amber-700' :
-														'bg-warm-100 text-warm-600'
-													}`}
-												>
-													{reason}
-												</span>
-											))}
-										</div>
-									</div>
-									<div className="flex flex-col items-end gap-1 flex-shrink-0">
-										<span className="text-lg font-bold text-brand-600">{mc.score}</span>
-										<span className="text-[10px] text-warm-400 uppercase tracking-wide">pts</span>
-									</div>
-								</div>
-								<div className="mt-2 pt-2 border-t border-black/[0.05] flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-warm-400">
-									<span>1st: {getBreedSizeLabel(mc.preferredBreedSize)}</span>
-									{mc.secondChoiceBreedSize && <span>2nd: {getBreedSizeLabel(mc.secondChoiceBreedSize)}</span>}
-									{mc.preferredSex && mc.preferredSex !== 'no_preference' && <span className="capitalize">Sex: {mc.preferredSex}</span>}
-									{mc.preferredColour && <span>Colour: {mc.preferredColour}</span>}
-								</div>
-							</Link>
-						))}
+					<div className="grid grid-cols-2 gap-4">
+						{/* Left: Waitlist Order */}
+						<div>
+							<p className="text-[11px] font-semibold text-warm-500 uppercase tracking-wide mb-2">Waitlist Order</p>
+							<div className="space-y-2">
+								{[...matchingClients].sort((a, b) => a.priority - b.priority).map((mc, i) => {
+									const notifAt = notifiedMap[mc.id];
+									return (
+										<Link
+											key={mc.id}
+											to={`/admin/clients/${mc.id}`}
+											className="block p-3 rounded-lg border border-warm-200 hover:border-brand-300 hover:bg-brand-50/30 transition-colors"
+										>
+											<div className="flex items-center justify-between gap-2">
+												<div className="min-w-0">
+													<div className="flex items-center gap-1.5 flex-wrap">
+														<span className="text-[11px] font-semibold text-warm-400">#{i + 1}</span>
+														<span className="font-medium text-sm text-warm-900 truncate">{mc.firstName} {mc.lastName}</span>
+													</div>
+													<div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+														{mc.city && <span className="text-[11px] text-warm-400">{mc.city}</span>}
+														{notifAt && (
+															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
+																Notified {timeAgo(notifAt)}
+															</span>
+														)}
+													</div>
+												</div>
+												<div className="flex-shrink-0 text-right">
+													<div className="text-sm font-bold text-brand-600">{mc.score}</div>
+													<div className="text-[10px] text-warm-400">pts</div>
+												</div>
+											</div>
+										</Link>
+									);
+								})}
+							</div>
+						</div>
+
+						{/* Right: Match Score Order */}
+						<div>
+							<p className="text-[11px] font-semibold text-warm-500 uppercase tracking-wide mb-2">Match Score</p>
+							<div className="space-y-2">
+								{[...matchingClients].sort((a, b) => b.score - a.score).map((mc) => {
+									const notifAt = notifiedMap[mc.id];
+									return (
+										<Link
+											key={mc.id}
+											to={`/admin/clients/${mc.id}`}
+											className="block p-3 rounded-lg border border-warm-200 hover:border-brand-300 hover:bg-brand-50/30 transition-colors"
+										>
+											<div className="flex items-start justify-between gap-2">
+												<div className="min-w-0">
+													<div className="flex items-center gap-1.5 flex-wrap">
+														<span className="font-medium text-sm text-warm-900 truncate">{mc.firstName} {mc.lastName}</span>
+														{mc.depositStatus === 'paid' ? (
+															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Paid</span>
+														) : mc.depositStatus === 'pending' ? (
+															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Pending</span>
+														) : null}
+													</div>
+													<div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+														{mc.city && <span className="text-[11px] text-warm-400">{mc.city}</span>}
+														{notifAt && (
+															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
+																Notified {timeAgo(notifAt)}
+															</span>
+														)}
+													</div>
+													<div className="flex flex-wrap gap-1 mt-1.5">
+														{mc.matchReasons.slice(0, 2).map((reason) => (
+															<span
+																key={reason}
+																className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+																	reason.startsWith('First choice') ? 'bg-green-100 text-green-700' :
+																	reason.startsWith('Second choice') ? 'bg-blue-100 text-blue-700' :
+																	reason.includes('Sex') || reason.includes('sex') ? 'bg-purple-100 text-purple-700' :
+																	reason.includes('olour') ? 'bg-pink-100 text-pink-700' :
+																	reason.includes('Deposit') ? 'bg-amber-100 text-amber-700' :
+																	'bg-warm-100 text-warm-600'
+																}`}
+															>
+																{reason}
+															</span>
+														))}
+													</div>
+												</div>
+												<div className="flex-shrink-0 text-right">
+													<div className="text-sm font-bold text-brand-600">{mc.score}</div>
+													<div className="text-[10px] text-warm-400">rank #{mc.priority}</div>
+												</div>
+											</div>
+										</Link>
+									);
+								})}
+							</div>
+						</div>
 					</div>
 				)}
 			</Card>

@@ -144,6 +144,7 @@ export const littersRelations = relations(litters, ({ one, many }) => ({
 	puppies: many(puppies),
 	updates: many(updates),
 	images: many(litterImages),
+	notifications: many(litterNotifications),
 }));
 
 // ─── Puppies ─────────────────────────────────────────────────────────────────
@@ -232,6 +233,7 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
 	updates: many(updates),
 	checklist: one(goHomeChecklists, { fields: [clients.id], references: [goHomeChecklists.clientId] }),
 	interests: many(puppyInterests),
+	notifications: many(litterNotifications),
 }));
 
 // ─── Updates ─────────────────────────────────────────────────────────────────
@@ -378,4 +380,19 @@ export const clientActivity = pgTable('client_activity', {
 
 export const clientActivityRelations = relations(clientActivity, ({ one }) => ({
 	client: one(clients, { fields: [clientActivity.clientId], references: [clients.id] }),
+}));
+
+// ─── Litter Notifications ─────────────────────────────────────────────────────
+
+export const litterNotifications = pgTable('litter_notifications', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	litterId: text('litter_id').notNull().references(() => litters.id, { onDelete: 'cascade' }),
+	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+	notifiedAt: timestamp('notified_at', { withTimezone: true }).notNull().defaultNow(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const litterNotificationsRelations = relations(litterNotifications, ({ one }) => ({
+	litter: one(litters, { fields: [litterNotifications.litterId], references: [litters.id] }),
+	client: one(clients, { fields: [litterNotifications.clientId], references: [clients.id] }),
 }));

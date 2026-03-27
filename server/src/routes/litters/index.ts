@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc, asc, inArray, and, ne } from 'drizzle-orm';
+import { eq, desc, asc, inArray, and, ne, notInArray } from 'drizzle-orm';
 import { db } from '../../db';
-import { litters, puppies, litterImages, clients, updates, puppyInterests, clientActivity } from '../../db/schema';
+import { litters, puppies, litterImages, clients, updates, puppyInterests, clientActivity, litterNotifications } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { parseBreedSize } from '@paw-registry/shared';
@@ -47,6 +47,30 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			if (!puppy) return error(404, { error: 'Not found', message: 'Puppy not found' });
 			if (puppy.status !== 'available') return error(400, { error: 'Unavailable', message: 'This puppy is no longer available' });
 
+			// Check notification eligibility: if a batch exists, client must be in it
+			const batchRecords = await db.query.litterNotifications.findMany({
+				where: eq(litterNotifications.litterId, puppy.litterId),
+				columns: { clientId: true },
+			});
+			if (batchRecords.length > 0) {
+				const isNotified = batchRecords.some((n) => n.clientId === client.id);
+				if (!isNotified) {
+					// Find client's rank among all waitlisted clients sorted by priority
+					const allWaitlisted = await db.query.clients.findMany({
+						where: eq(clients.stage, 'waitlisted'),
+						columns: { id: true, priority: true },
+						orderBy: [asc(clients.priority)],
+					});
+					const position = allWaitlisted.findIndex((c) => c.id === client.id) + 1;
+					return error(403, {
+						error: 'NotEligible',
+						message: `This litter is currently open to the top ${batchRecords.length} waitlisted clients. You are currently #${position || '?'}.`,
+						position,
+						notifiedUpTo: batchRecords.length,
+					});
+				}
+			}
+
 			// Check for existing interest
 			const existing = await db.query.puppyInterests.findFirst({
 				where: and(eq(puppyInterests.puppyId, params.puppyId), eq(puppyInterests.clientId, client.id)),
@@ -71,36 +95,56 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		}
 	)
 
-	// Client: get own interests for a litter (returns array of puppyIds)
+	// Client: get own interests + eligibility for a litter
 	.get(
 		'/:id/my-interests',
 		async ({ params, user }) => {
-			if (!user) return [];
+			const empty = { interests: [], isNotified: false, position: null as number | null, notifiedUpTo: null as number | null };
+			if (!user) return empty;
 
 			const client = await db.query.clients.findFirst({
 				where: eq(clients.userId, user.id),
 				columns: { id: true },
 			});
-			if (!client) return [];
+			if (!client) return empty;
 
 			const litter = await db.query.litters.findFirst({
 				where: eq(litters.id, params.id),
 				with: { puppies: { columns: { id: true } } },
 			});
-			if (!litter) return [];
+			if (!litter) return empty;
 
 			const puppyIds = litter.puppies.map((p) => p.id);
-			if (puppyIds.length === 0) return [];
+			const interests = puppyIds.length > 0
+				? await db.query.puppyInterests.findMany({
+					where: and(eq(puppyInterests.clientId, client.id), inArray(puppyInterests.puppyId, puppyIds)),
+					columns: { puppyId: true, status: true },
+				})
+				: [];
 
-			const interests = await db.query.puppyInterests.findMany({
-				where: and(
-					eq(puppyInterests.clientId, client.id),
-					inArray(puppyInterests.puppyId, puppyIds)
-				),
-				columns: { puppyId: true, status: true },
+			// Eligibility check
+			const batchRecords = await db.query.litterNotifications.findMany({
+				where: eq(litterNotifications.litterId, params.id),
+				columns: { clientId: true },
 			});
 
-			return interests;
+			const isNotified = batchRecords.length === 0 || batchRecords.some((n) => n.clientId === client.id);
+			let position: number | null = null;
+			if (!isNotified) {
+				const allWaitlisted = await db.query.clients.findMany({
+					where: eq(clients.stage, 'waitlisted'),
+					columns: { id: true },
+					orderBy: [asc(clients.priority)],
+				});
+				position = allWaitlisted.findIndex((c) => c.id === client.id) + 1 || null;
+			}
+
+			return {
+				interests,
+				isNotified,
+				position,
+				notifiedUpTo: batchRecords.length > 0 ? batchRecords.length : null,
+			};
 		}
 	)
 
@@ -288,6 +332,74 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 		return interests;
 	})
+
+	// ── Admin: get notifications for a litter (who was notified + when) ──
+	.get('/admin/notifications/:litterId', async ({ params }) => {
+		return db.query.litterNotifications.findMany({
+			where: eq(litterNotifications.litterId, params.litterId),
+			with: {
+				client: {
+					columns: { id: true, firstName: true, lastName: true, email: true, city: true, priority: true, depositStatus: true },
+				},
+			},
+			orderBy: [asc(litterNotifications.notifiedAt)],
+		});
+	})
+
+	// ── Admin: notify next N breed-matched waitlisted clients by priority ──
+	.post(
+		'/admin/notifications/:litterId',
+		async ({ params, body, error }) => {
+			const litter = await db.query.litters.findFirst({
+				where: eq(litters.id, params.litterId),
+			});
+			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
+			if (!litter.breed) return error(400, { error: 'Bad request', message: 'Set a breed on this litter first' });
+
+			// Already-notified client IDs
+			const alreadyNotified = await db.query.litterNotifications.findMany({
+				where: eq(litterNotifications.litterId, params.litterId),
+				columns: { clientId: true },
+			});
+			const notifiedIds = new Set(alreadyNotified.map((n) => n.clientId));
+
+			// Breed-matched waitlisted clients sorted by priority, excluding already-notified
+			const litterBS = parseBreedSize(litter.breed);
+			const allWaitlisted = await db.query.clients.findMany({
+				where: notifiedIds.size > 0
+					? and(eq(clients.stage, 'waitlisted'), notInArray(clients.id, [...notifiedIds]))
+					: eq(clients.stage, 'waitlisted'),
+				orderBy: [asc(clients.priority)],
+			});
+
+			const matched = allWaitlisted.filter((c) => {
+				if (!litterBS) return false;
+				const app = (c.applicationData ?? {}) as Record<string, unknown>;
+				const p1 = parseBreedSize(app.preferredBreedSize as string | null);
+				const p2 = parseBreedSize(app.secondChoiceBreedSize as string | null);
+				const openSize = !!(app.considerOtherBreedSize);
+				return (
+					(p1 && p1.breed === litterBS.breed && p1.size === litterBS.size) ||
+					(p2 && p2.breed === litterBS.breed && p2.size === litterBS.size) ||
+					(p1 && p1.breed === litterBS.breed && openSize) ||
+					(p2 && p2.breed === litterBS.breed && openSize)
+				);
+			}).slice(0, body.count);
+
+			if (matched.length === 0) return error(400, { error: 'No candidates', message: 'No more matching waitlisted clients to notify' });
+
+			const created = await db
+				.insert(litterNotifications)
+				.values(matched.map((c) => ({ litterId: params.litterId, clientId: c.id })))
+				.returning();
+
+			// TODO: send emails via Resend to each matched client
+			// matched.forEach(c => sendNotificationEmail(c, litter))
+
+			return { notified: created.length, clients: matched.map((c) => ({ id: c.id, firstName: c.firstName, lastName: c.lastName, priority: c.priority })) };
+		},
+		{ body: t.Object({ count: t.Number() }) }
+	)
 
 	// ── Admin: approve or reject an interest ──
 	.patch(
