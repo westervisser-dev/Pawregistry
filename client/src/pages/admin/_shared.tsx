@@ -233,11 +233,12 @@ export function SortableClientRow({ client, index, onDepositUpdate }: {
 
 // ─── Client DnD table ─────────────────────────────────────────────────────────
 
-export function ClientDndTable({ title, clients, onReorder, onDepositUpdate }: {
+export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, startIndex = 0 }: {
 	title: string;
 	clients: Client[];
 	onReorder: (newOrder: Client[]) => void;
 	onDepositUpdate: (c: Client) => void;
+	startIndex?: number;
 }) {
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -265,7 +266,7 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate }: {
 								<SortableClientRow
 									key={client.id}
 									client={client}
-									index={i}
+									index={startIndex + i}
 									onDepositUpdate={onDepositUpdate}
 								/>
 							))}

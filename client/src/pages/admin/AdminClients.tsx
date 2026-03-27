@@ -100,6 +100,7 @@ export function AdminClients() {
 						clients={noDepositQueueClients}
 						onReorder={handleNoDepositReorder}
 						onDepositUpdate={handleDepositUpdate}
+						startIndex={depositQueueClients.length}
 					/>
 					<ClientReadTable
 						title="Not Yet Waitlisted"
