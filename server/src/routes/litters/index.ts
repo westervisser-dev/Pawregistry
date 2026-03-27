@@ -35,6 +35,43 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		});
 	})
 
+	// ── Admin: matching client counts for all litters ──
+	.get('/admin/matching-counts', async () => {
+		const allLitters = await db.query.litters.findMany({
+			columns: { id: true, breed: true },
+			with: { puppies: { columns: { sex: true, colour: true } } },
+		});
+		const eligible = await db.query.clients.findMany({
+			where: eq(clients.stage, 'waitlisted'),
+			columns: { applicationData: true },
+		});
+
+		const counts: Record<string, number> = {};
+		for (const lit of allLitters) {
+			if (!lit.breed) { counts[lit.id] = 0; continue; }
+			const litterBS = parseBreedSize(lit.breed);
+			if (!litterBS) { counts[lit.id] = 0; continue; }
+
+			let count = 0;
+			for (const client of eligible) {
+				const app = (client.applicationData ?? {}) as Record<string, unknown>;
+				const p1 = parseBreedSize(app.preferredBreedSize as string | null);
+				const p2 = parseBreedSize(app.secondChoiceBreedSize as string | null);
+				const openSize = !!(app.considerOtherBreedSize);
+
+				const match =
+					(p1 && p1.breed === litterBS.breed && p1.size === litterBS.size) ||
+					(p2 && p2.breed === litterBS.breed && p2.size === litterBS.size) ||
+					(p1 && p1.breed === litterBS.breed && p1.size !== litterBS.size && openSize) ||
+					(p2 && p2.breed === litterBS.breed && p2.size !== litterBS.size && openSize);
+
+				if (match) count++;
+			}
+			counts[lit.id] = count;
+		}
+		return counts;
+	})
+
 	// ── Admin: matching clients for a litter ──
 	.get('/:id/matching-clients', async ({ params, error }) => {
 		const litter = await db.query.litters.findFirst({
