@@ -2,8 +2,6 @@
 
 Expert full-stack developer. High-quality, production-ready code. Favour simplicity and native integrations over abstractions.
 
----
-
 ## Stack & Structure
 
 **Frontend:** React 18, Vite, Tailwind CSS v4, Eden treaty | **Backend:** ElysiaJS, Bun, TypeScript | **DB:** Supabase Postgres + Drizzle ORM | **Auth:** Supabase Auth | **Deploy:** Railway + Supabase | **Tooling:** pnpm, Prettier, ESLint, Sentry (optional)
@@ -24,15 +22,11 @@ pnpm db:studio             # Drizzle Studio
 
 No local DB — connects directly to hosted Supabase. Swagger: `http://localhost:3000/swagger`
 
----
-
 ## Coding Conventions
 
 - **Indent:** Tabs (width 4). **Types:** Strict, never `any`. Use Elysia `t` schema for runtime + static inference.
 - **State:** Local by default; Zustand only for true global state (keep stores small).
 - **Errors:** Fail gracefully, capture via Sentry at outermost boundary.
-
----
 
 ## Key Patterns
 
@@ -71,8 +65,6 @@ client/src/pages/admin/
 ```
 Same pattern for `portal/`.
 
----
-
 ## Frontend
 
 - **Tailwind v4:** `@import "tailwindcss";` in `index.css`, `@tailwindcss/vite` in `vite.config.ts`. No `tailwind.config.js`.
@@ -86,15 +78,11 @@ Same pattern for `portal/`.
   ```
 - **A11y:** Skip nav + `id="main-content"` on all layouts. `role="status"` on Spinner, `role="alert"` on errors, `role="dialog" aria-modal="true" aria-labelledby="modal-title"` on modals, `aria-hidden="true"` on decorative icons.
 
----
-
 ## Backend
 
 - Heavy Elysia/TypeBox schema validation on all requests + responses.
 - Always export `export type App = typeof app;` at end of `server/src/index.ts`.
 - File uploads via `@supabase/supabase-js`. JWT validation server-side via Elysia plugin.
-
----
 
 ## TypeScript Gotchas
 
@@ -102,8 +90,6 @@ Same pattern for `portal/`.
 - **`applicationData` cast:** `client.applicationData as unknown as Record<string, unknown>` — direct cast fails.
 - **Eden tsc noise:** `'Please install Elysia before using Eden'` errors are expected when running standalone `tsc`. Build uses `vite build`.
 - **`fetchPriority`:** Not supported on `<img>` in React 18 — remove it.
-
----
 
 ## Important Rules
 
@@ -127,8 +113,6 @@ Always let user run SQL scripts.
 ## Storage Buckets
 
 `dog-images` | `litter-media` | `update-media` | `client-documents` | `health-certs` | `document-templates`
-
----
 
 ## Domain Model — Client Lifecycle
 
@@ -157,14 +141,10 @@ Always let user run SQL scripts.
 
 Stages `placed`, `match_requested`, `matched`, `matched_paid` managed in litter/matching flow.
 
----
-
 ## Auth Model
 
 - **Clients:** magic link. Email must pre-exist in `clients` table.
 - **Admins:** Supabase UUID in `ADMIN_USER_IDS` env. Server always re-validates — `VITE_ADMIN_EMAILS` is UI hint only.
-
----
 
 ## Deployment
 

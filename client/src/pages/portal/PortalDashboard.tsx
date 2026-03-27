@@ -1,8 +1,42 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, Badge } from '@/components/ui';
 import type { Client, ClientApplication } from '@paw-registry/shared';
+
+// ─── Tooltip ─────────────────────────────────────────────────────────────────
+
+function Tooltip({ text }: { text: string }) {
+	const [visible, setVisible] = useState(false);
+	const ref = useRef<HTMLSpanElement>(null);
+
+	return (
+		<span className="relative inline-flex items-center" ref={ref}>
+			<button
+				type="button"
+				aria-label="More information"
+				onMouseEnter={() => setVisible(true)}
+				onMouseLeave={() => setVisible(false)}
+				onFocus={() => setVisible(true)}
+				onBlur={() => setVisible(false)}
+				className="inline-flex items-center justify-center w-[14px] h-[14px] rounded-full bg-warm-200 text-warm-500 text-[9px] font-bold cursor-default hover:bg-warm-300 transition-colors leading-none"
+				aria-describedby="deposit-tooltip"
+			>
+				?
+			</button>
+			{visible && (
+				<span
+					id="deposit-tooltip"
+					role="tooltip"
+					className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] w-[210px] bg-warm-900 text-[#F0EDEA] text-[11px] leading-relaxed px-3 py-2 rounded-lg shadow-lg z-50 pointer-events-none"
+				>
+					Your deposit affects your waiting list placing order. You can always adjust your deposit preference at any time.
+					<span className="absolute left-1/2 -translate-x-1/2 top-full border-[5px] border-transparent border-t-warm-900" />
+				</span>
+			)}
+		</span>
+	);
+}
 
 // ─── Stage Data ──────────────────────────────────────────────────────────────
 
@@ -443,15 +477,30 @@ export function PortalDashboard() {
 						{ label: 'Phone', value: client.phone ?? '—' },
 						{ label: 'City', value: client.city ?? '—' },
 						{ label: 'Country', value: client.country ?? '—' },
-					].map(({ label, value }, i) => (
+					].map(({ label, value }) => (
 						<div
 							key={label}
-							className={`py-3.5 ${i < 2 ? 'border-b border-black/[0.06]' : ''}`}
+							className="py-3.5 border-b border-black/[0.06]"
 						>
 							<dt className="text-[11px] uppercase tracking-[0.07em] text-warm-400 font-medium mb-1">{label}</dt>
 							<dd className="text-sm text-warm-800">{value}</dd>
 						</div>
 					))}
+
+					{/* Deposit Paid */}
+					<div className="py-3.5">
+						<dt className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.07em] text-warm-400 font-medium mb-1">
+							Deposit Paid
+							<Tooltip />
+						</dt>
+						<dd className="text-sm text-warm-800">
+							{client.depositStatus === 'paid'
+								? 'Yes'
+								: client.depositStatus === 'pending'
+									? 'Pending'
+									: 'No'}
+						</dd>
+					</div>
 				</dl>
 			</Card>
 
