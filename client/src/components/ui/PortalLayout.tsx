@@ -51,7 +51,7 @@ function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
 							`flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13.5px] transition-colors ${
 								isActive
 									? 'bg-brand-500 text-white font-medium'
-									: 'text-[rgba(240,237,234,0.5)] hover:bg-white/[0.06] hover:text-[rgba(240,237,234,0.85)]'
+									: 'text-[rgba(240,237,234,0.75)] hover:bg-white/[0.06] hover:text-[rgba(240,237,234,1)]'
 							}`
 						}
 					>
@@ -67,11 +67,11 @@ function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
 					<div className="w-[30px] h-[30px] rounded-full bg-brand-500 flex items-center justify-center text-xs font-medium text-white shrink-0">
 						{initials}
 					</div>
-					<p className="text-[11.5px] text-[rgba(240,237,234,0.4)] truncate">{email}</p>
+					<p className="text-[11.5px] text-[rgba(240,237,234,0.6)] truncate">{email}</p>
 				</div>
 				<button
 					onClick={signOut}
-					className="flex items-center gap-1.5 mt-2.5 text-xs text-[rgba(240,237,234,0.3)] hover:text-[rgba(240,237,234,0.6)] transition-colors cursor-pointer py-1.5"
+					className="flex items-center gap-1.5 mt-2.5 text-xs text-[rgba(240,237,234,0.5)] hover:text-[rgba(240,237,234,0.8)] transition-colors cursor-pointer py-1.5"
 				>
 					↩ Sign out
 				</button>
@@ -150,7 +150,7 @@ export function PortalLayout() {
 							end={end}
 							className={({ isActive }) =>
 								`flex flex-col items-center justify-center gap-0.5 text-center transition-colors ${
-									isActive ? 'text-brand-400' : 'text-[rgba(240,237,234,0.4)]'
+									isActive ? 'text-brand-400' : 'text-[rgba(240,237,234,0.7)]'
 								}`
 							}
 						>
