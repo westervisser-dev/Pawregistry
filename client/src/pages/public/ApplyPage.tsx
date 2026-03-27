@@ -160,10 +160,12 @@ function StepIndicator({ current }: { current: Step }) {
 	);
 }
 
-function Input({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+function Input({ label, required, ...props }: { label: string; required?: boolean } & React.InputHTMLAttributes<HTMLInputElement>) {
 	return (
 		<div>
-			<label className="block text-sm font-medium text-warm-700 mb-1">{label}</label>
+			<label className="block text-sm font-medium text-warm-700 mb-1">
+				{label}{required && <span className="text-red-500 ml-0.5">*</span>}
+			</label>
 			<input
 				{...props}
 				className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400"
@@ -172,10 +174,12 @@ function Input({ label, ...props }: { label: string } & React.InputHTMLAttribute
 	);
 }
 
-function Textarea({ label, ...props }: { label: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+function Textarea({ label, required, ...props }: { label: string; required?: boolean } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
 	return (
 		<div>
-			<label className="block text-sm font-medium text-warm-700 mb-1">{label}</label>
+			<label className="block text-sm font-medium text-warm-700 mb-1">
+				{label}{required && <span className="text-red-500 ml-0.5">*</span>}
+			</label>
 			<textarea
 				{...props}
 				rows={3}
@@ -185,7 +189,7 @@ function Textarea({ label, ...props }: { label: string } & React.TextareaHTMLAtt
 	);
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ label, checked, onChange, required }: { label: string; checked: boolean; onChange: (v: boolean) => void; required?: boolean }) {
 	return (
 		<label className="flex items-center gap-3 cursor-pointer">
 			<input
@@ -200,7 +204,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 			>
 				<div className={`w-4 h-4 rounded-full bg-white shadow mx-1 transition-transform ${checked ? 'translate-x-4' : ''}`} />
 			</div>
-			<span className="text-sm text-warm-700">{label}</span>
+			<span className="text-sm text-warm-700">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</span>
 		</label>
 	);
 }
@@ -211,12 +215,14 @@ function ButtonGroup<T extends string>({
 	value,
 	onChange,
 	cols = 2,
+	required,
 }: {
 	label: string;
 	options: { value: T; label: string }[];
 	value: T | '';
 	onChange: (v: T) => void;
 	cols?: number;
+	required?: boolean;
 }) {
 	// On mobile always use 2 cols max; on sm+ use the specified cols
 	const gridClass = cols === 3
@@ -224,7 +230,9 @@ function ButtonGroup<T extends string>({
 		: 'grid grid-cols-2 gap-2';
 	return (
 		<div>
-			<label className="block text-sm font-medium text-warm-700 mb-2">{label}</label>
+			<label className="block text-sm font-medium text-warm-700 mb-2">
+				{label}{required && <span className="text-red-500 ml-0.5">*</span>}
+			</label>
 			<div className={gridClass}>
 				{options.map((opt) => (
 					<button
@@ -254,8 +262,23 @@ export function ApplyPage() {
 	const set = (key: keyof FormData, value: FormData[keyof FormData]) =>
 		setForm((f) => ({ ...f, [key]: value }));
 
-	const next = () => setStep(steps[steps.indexOf(step) + 1] as Step);
-	const back = () => setStep(steps[steps.indexOf(step) - 1] as Step);
+	const next = () => { setError(''); setStep(steps[steps.indexOf(step) + 1] as Step); };
+	const back = () => { setError(''); setStep(steps[steps.indexOf(step) - 1] as Step); };
+
+	const firstInvalidStep = (f: FormData): Step | null => {
+		if (!f.firstName.trim() || !f.lastName.trim() || !f.email.trim() || !f.phone.trim() || !f.city.trim())
+			return 'personal';
+		const sizes = BREED_SIZES[f.preferredBreed] ?? [];
+		if (
+			!f.puppyPurpose.trim() ||
+			!f.readyTimeframe ||
+			!f.preferredBreed ||
+			(sizes.length > 1 && !f.preferredSize) ||
+			!f.preferredColour.trim() ||
+			!f.agreedToContract
+		) return 'preferences';
+		return null;
+	};
 
 	const handleBreedChange = (breed: string) => {
 		const sizes = BREED_SIZES[breed] ?? [];
@@ -270,7 +293,12 @@ export function ApplyPage() {
 	};
 
 	const submit = async () => {
-		if (!form.agreedToContract) { setError('You must agree to the terms.'); return; }
+		const invalidStep = firstInvalidStep(form);
+		if (invalidStep) {
+			setError('Please fill in all required fields before submitting.');
+			setStep(invalidStep);
+			return;
+		}
 		setSubmitting(true);
 		const depositStatus = form.depositIntent ? 'pending' : 'none';
 		const preferredBreedSize = form.preferredSize
@@ -401,13 +429,13 @@ export function ApplyPage() {
 					<div className="flex flex-col gap-4">
 						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Personal Details</h2>
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-							<Input label="First name" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
-							<Input label="Last name" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
+							<Input required label="First name" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} />
+							<Input required label="Last name" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} />
 						</div>
-						<Input label="Email" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
-						<Input label="Phone" type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+						<Input required label="Email" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} />
+						<Input required label="Phone" type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-							<Input label="City" value={form.city} onChange={(e) => set('city', e.target.value)} />
+							<Input required label="City" value={form.city} onChange={(e) => set('city', e.target.value)} />
 							<Input label="Country" value={form.country} onChange={(e) => set('country', e.target.value)} />
 						</div>
 						<Input
@@ -437,7 +465,7 @@ export function ApplyPage() {
 						/>
 
 						<div>
-							<label className="block text-sm font-medium text-warm-700 mb-2">Type of home</label>
+							<label className="block text-sm font-medium text-warm-700 mb-2">Type of home<span className="text-red-500 ml-0.5">*</span></label>
 							<div className="grid grid-cols-3 gap-2">
 								{(['house', 'townhouse', 'apartment', 'farm', 'other'] as const).map((t) => (
 									<button
@@ -620,14 +648,16 @@ export function ApplyPage() {
 						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Puppy Preferences</h2>
 
 						<Textarea
-							label="For what purpose(s) are you purchasing a puppy?"
+							required
+						label="For what purpose(s) are you purchasing a puppy?"
 							value={form.puppyPurpose}
 							onChange={(e) => set('puppyPurpose', e.target.value)}
 							placeholder="e.g. family companion, therapy dog…"
 						/>
 
 						<ButtonGroup
-							label="When would you be ready to adopt a puppy?"
+							required
+						label="When would you be ready to adopt a puppy?"
 							options={[
 								{ value: 'asap', label: 'As soon as possible' },
 								{ value: '6_months', label: 'In about 6 months' },
@@ -640,7 +670,7 @@ export function ApplyPage() {
 
 						{/* Breed selector */}
 						<div>
-							<label className="block text-sm font-medium text-warm-700 mb-2">Preferred breed</label>
+							<label className="block text-sm font-medium text-warm-700 mb-2">Preferred breed<span className="text-red-500 ml-0.5">*</span></label>
 							<div className="flex flex-col gap-2">
 								{BREEDS.map((b) => (
 									<button
@@ -663,7 +693,7 @@ export function ApplyPage() {
 						{/* Size selector — shown after breed is chosen, hidden if only one (auto-selected) */}
 						{form.preferredBreed && sizeOptions.length > 1 && (
 							<div>
-								<label className="block text-sm font-medium text-warm-700 mb-2">Preferred size</label>
+								<label className="block text-sm font-medium text-warm-700 mb-2">Preferred size<span className="text-red-500 ml-0.5">*</span></label>
 								<div className="flex flex-col gap-2">
 									{sizeOptions.map((s) => (
 										<button
@@ -797,7 +827,7 @@ export function ApplyPage() {
 						)}
 
 						<div>
-							<label className="block text-sm font-medium text-warm-700 mb-2">Preferred sex</label>
+							<label className="block text-sm font-medium text-warm-700 mb-2">Preferred sex<span className="text-red-500 ml-0.5">*</span></label>
 							<div className="flex gap-2">
 								{(['male', 'female', 'no_preference'] as const).map((s) => (
 									<button
@@ -823,7 +853,8 @@ export function ApplyPage() {
 						/>
 
 						<Input
-							label="Preferred colour (optional)"
+							required
+							label="Preferred colour"
 							value={form.preferredColour}
 							onChange={(e) => set('preferredColour', e.target.value)}
 							placeholder="e.g. cream, apricot, chocolate and white…"
@@ -847,11 +878,11 @@ export function ApplyPage() {
 							Our dogs are sold as pets only and not for breeding purposes.
 						</div>
 						<Toggle
+							required
 							label="I agree to the terms above"
 							checked={form.agreedToContract}
 							onChange={(v) => set('agreedToContract', v)}
 						/>
-						{error && <p className="text-red-600 text-sm">{error}</p>}
 					</div>
 				)}
 
@@ -868,6 +899,7 @@ export function ApplyPage() {
 							<span className="font-semibold">How the waiting list works:</span> Once approved, clients are placed on our waiting list in order of application. Clients who have paid a deposit are given priority over those who haven’t — they move to the top of the list and are matched first when a litter becomes available.
 						</div>
 
+						<p className="text-sm font-medium text-warm-700 mb-3">Your deposit preference<span className="text-red-500 ml-0.5">*</span></p>
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							{/* Pay Deposit option */}
 							<button
@@ -923,6 +955,10 @@ export function ApplyPage() {
 							</button>
 						</div>
 					</div>
+				)}
+
+				{error && (
+					<p role="alert" className="text-red-600 text-sm px-1">{error}</p>
 				)}
 
 				{/* Navigation */}
