@@ -389,9 +389,9 @@ export function PortalDashboard() {
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-5">
 
 				{/* ── Application Stage card ── */}
-				<Card className="p-[22px]">
+				<Card className="p-[22px] flex flex-col">
 					{/* Header row: label + stage pill inline */}
-					<div className="flex items-center justify-between mb-8">
+					<div className="flex items-center justify-between">
 						<p className="text-[10.5px] uppercase tracking-[0.07em] text-warm-400 font-medium">
 							Application Stage
 						</p>
@@ -400,6 +400,9 @@ export function PortalDashboard() {
 							{stageLabel}
 						</div>
 					</div>
+
+					{/* Spacer pushes progress bar toward bottom, capped so it doesn't over-expand */}
+					<div className="flex-1 min-h-[20px] max-h-[52px]" />
 
 					{/* Full-width progress bar */}
 					<StageProgress currentStage={client.stage} />
