@@ -58,7 +58,7 @@ function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 								`flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13.5px] transition-colors ${
 									isActive
 										? 'bg-brand-500 text-white font-medium'
-										: 'text-white/50 hover:bg-white/[0.06] hover:text-white/85'
+										: 'text-white/75 hover:bg-white/[0.06] hover:text-white'
 								}`
 							}
 						>
@@ -75,11 +75,11 @@ function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 					<div className="w-[30px] h-[30px] rounded-full bg-brand-500 flex items-center justify-center text-xs font-medium text-white shrink-0">
 						{initials}
 					</div>
-					<p className="text-[11.5px] text-white/40 truncate">{email}</p>
+					<p className="text-[11.5px] text-white/60 truncate">{email}</p>
 				</div>
 				<button
 					onClick={signOut}
-					className="flex items-center gap-1.5 mt-2.5 text-xs text-white/30 hover:text-white/60 transition-colors py-1.5"
+					className="flex items-center gap-1.5 mt-2.5 text-xs text-white/50 hover:text-white/80 transition-colors py-1.5"
 				>
 					<span>↩</span> Sign out
 				</button>
