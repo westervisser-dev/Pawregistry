@@ -812,10 +812,12 @@ export function AdminLitterDetail() {
 												<div className="flex items-center gap-1.5 flex-wrap">
 													<span className="font-medium text-sm text-warm-900">{mc.firstName} {mc.lastName}</span>
 													{mc.depositStatus === 'paid' ? (
-														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Paid</span>
+														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Deposit · Paid</span>
 													) : mc.depositStatus === 'pending' ? (
-														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Pending</span>
-													) : null}
+														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Deposit · Pending</span>
+													) : (
+														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500">No Deposit</span>
+													)}
 													{notifAt && (
 														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
 															Notified {timeAgo(notifAt)}
@@ -825,7 +827,7 @@ export function AdminLitterDetail() {
 												{mc.city && <p className="text-[11px] text-warm-400 mt-0.5">{mc.city}</p>}
 												{mc.matchReasons.length > 0 && (
 													<div className="flex flex-wrap gap-1 mt-1.5">
-														{mc.matchReasons.slice(0, 3).map((reason) => (
+														{mc.matchReasons.filter((r) => !r.startsWith('Deposit')).slice(0, 3).map((reason) => (
 															<span
 																key={reason}
 																className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
