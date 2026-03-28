@@ -30,9 +30,12 @@ export function AdminLitterDetail() {
 		id: string; litterId: string; clientId: string; notifiedAt: string; createdAt: string;
 		client: { id: string; firstName: string; lastName: string; email: string; city: string | null; priority: number; depositStatus: string };
 	}>>([]);
-	const [notifyCount, setNotifyCount] = useState(1);
-	const [notifyConfirming, setNotifyConfirming] = useState(false);
+	const [notifyOpen, setNotifyOpen] = useState(false);
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [notifying, setNotifying] = useState(false);
+	const [masterListClients, setMasterListClients] = useState<Array<{ id: string; firstName: string; lastName: string; priority: number }>>([]);
+	const [masterListOpen, setMasterListOpen] = useState(false);
+	const [masterListLoading, setMasterListLoading] = useState(false);
 
 	// New-litter form state
 	const [dogs, setDogs] = useState<Dog[]>([]);
@@ -215,18 +218,39 @@ export function AdminLitterDetail() {
 	const notifiedMap = Object.fromEntries(notifications.map((n) => [n.clientId, n.notifiedAt]));
 
 	const handleNotify = async () => {
-		if (!id) return;
+		if (!id || selectedIds.size === 0) return;
 		setNotifying(true);
 		try {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			await (api.litters.admin as any).notifications({ litterId: id }).post({ count: notifyCount });
+			await (api.litters.admin as any).notifications({ litterId: id }).post({ clientIds: [...selectedIds] });
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(api.litters.admin as any).notifications({ litterId: id }).get().then(({ data: fresh }: { data: typeof notifications | null }) => {
 				if (fresh) setNotifications(fresh);
 			});
 		} catch { /* ignore */ }
 		setNotifying(false);
-		setNotifyConfirming(false);
+		setNotifyOpen(false);
+		setSelectedIds(new Set());
+		setMasterListOpen(false);
+	};
+
+	const openNotifyPanel = async () => {
+		setNotifyOpen(true);
+		if (masterListClients.length > 0) return;
+		setMasterListLoading(true);
+		try {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const { data } = await (api.clients as any).admin.get({ query: { stage: 'waitlisted' } });
+			if (data) {
+				const matchingIds = new Set(matchingClients.map((mc) => mc.id));
+				setMasterListClients(
+					(data as Array<{ id: string; firstName: string; lastName: string; priority: number }>)
+						.filter((c) => !matchingIds.has(c.id))
+						.sort((a, b) => a.priority - b.priority)
+				);
+			}
+		} catch { /* ignore */ }
+		setMasterListLoading(false);
 	};
 
 	if (loading) return <LoadingPage />;
@@ -742,44 +766,147 @@ export function AdminLitterDetail() {
 
 				{/* Notification controls */}
 				{!matchingLoading && matchingClients.length > 0 && (
-					<div className="mb-4 p-3 rounded-lg bg-warm-50 border border-warm-200 flex items-center justify-between gap-3">
-						<p className="text-xs text-warm-600">
-							{notifications.length > 0
-								? `${notifications.length} client${notifications.length !== 1 ? 's' : ''} notified about this litter`
-								: 'No clients notified yet — notify by waitlist position'}
-						</p>
-						{!notifyConfirming ? (
-							<button
-								onClick={() => { setNotifyCount(1); setNotifyConfirming(true); }}
-								className="flex-shrink-0 px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
-							>
-								{notifications.length > 0 ? 'Extend to next…' : 'Notify top…'}
-							</button>
-						) : (
-							<div className="flex items-center gap-2 flex-shrink-0">
-								<span className="text-xs text-warm-600">Notify</span>
-								<input
-									type="number"
-									min={1}
-									max={matchingClients.length}
-									value={notifyCount}
-									onChange={(e) => setNotifyCount(Math.max(1, parseInt(e.target.value) || 1))}
-									className="w-14 px-2 py-1 text-xs border border-warm-300 rounded-md text-center"
-								/>
-								<span className="text-xs text-warm-600">clients</span>
+					<div className="mb-4 rounded-lg border border-warm-200 overflow-hidden">
+						<div className="p-3 bg-warm-50 flex items-center justify-between gap-3">
+							<p className="text-xs text-warm-600">
+								{notifications.length > 0
+									? `${notifications.length} client${notifications.length !== 1 ? 's' : ''} notified about this litter`
+									: 'No clients notified yet'}
+							</p>
+							{!notifyOpen ? (
 								<button
-									onClick={handleNotify}
-									disabled={notifying}
-									className="px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 disabled:opacity-50 transition-colors"
+									onClick={openNotifyPanel}
+									className="flex-shrink-0 px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
 								>
-									{notifying ? 'Sending…' : 'Confirm'}
+									Notify
 								</button>
+							) : (
 								<button
-									onClick={() => setNotifyConfirming(false)}
-									className="px-3 py-1.5 text-xs border border-warm-300 text-warm-600 rounded-md hover:bg-warm-100 transition-colors"
+									onClick={() => { setNotifyOpen(false); setSelectedIds(new Set()); setMasterListOpen(false); }}
+									className="flex-shrink-0 px-3 py-1.5 text-xs border border-warm-300 text-warm-600 rounded-md hover:bg-warm-100 transition-colors"
 								>
 									Cancel
 								</button>
+							)}
+						</div>
+
+						{notifyOpen && (
+							<div className="border-t border-warm-200 bg-white">
+								{/* Select all matching */}
+								<div className="px-3 py-2 border-b border-warm-100 flex items-center gap-2">
+									<input
+										type="checkbox"
+										id="notify-select-all-matching"
+										checked={matchingClients.length > 0 && matchingClients.every((mc) => selectedIds.has(mc.id))}
+										onChange={(e) => {
+											const next = new Set(selectedIds);
+											matchingClients.forEach((mc) => { e.target.checked ? next.add(mc.id) : next.delete(mc.id); });
+											setSelectedIds(next);
+										}}
+										className="rounded border-warm-300 text-brand-500"
+									/>
+									<label htmlFor="notify-select-all-matching" className="text-xs font-medium text-warm-700 cursor-pointer select-none">
+										Select all matching clients ({matchingClients.length})
+									</label>
+								</div>
+
+								{/* Matching clients list */}
+								<div className="max-h-48 overflow-y-auto divide-y divide-warm-100">
+									{[...matchingClients].sort((a, b) => a.priority - b.priority).map((mc) => (
+										<label
+											key={mc.id}
+											className="flex items-center gap-2.5 px-3 py-2 hover:bg-warm-50 cursor-pointer"
+										>
+											<input
+												type="checkbox"
+												checked={selectedIds.has(mc.id)}
+												onChange={(e) => {
+													const next = new Set(selectedIds);
+													e.target.checked ? next.add(mc.id) : next.delete(mc.id);
+													setSelectedIds(next);
+												}}
+												className="rounded border-warm-300 text-brand-500 flex-shrink-0"
+											/>
+											<span className="text-xs text-warm-400 w-6 text-right flex-shrink-0">#{mc.waitlistPosition ?? '—'}</span>
+											<span className="text-sm text-warm-800">{mc.firstName} {mc.lastName}</span>
+										</label>
+									))}
+								</div>
+
+								{/* Platform waitlist dropdown */}
+								<div className="border-t border-warm-200">
+									<button
+										onClick={() => setMasterListOpen((o) => !o)}
+										className="w-full px-3 py-2 flex items-center justify-between text-xs font-medium text-warm-600 hover:bg-warm-50 transition-colors"
+									>
+										<span>Add from platform waitlist</span>
+										<span className="text-warm-400">{masterListOpen ? '▲' : '▼'}</span>
+									</button>
+
+									{masterListOpen && (
+										<div className="border-t border-warm-100">
+											{masterListLoading ? (
+												<p className="px-3 py-2 text-xs text-warm-400">Loading…</p>
+											) : masterListClients.length === 0 ? (
+												<p className="px-3 py-2 text-xs text-warm-400">No other waitlisted clients</p>
+											) : (
+												<>
+													{/* Select all on platform */}
+													<div className="px-3 py-2 border-b border-warm-100 flex items-center gap-2 bg-warm-50">
+														<input
+															type="checkbox"
+															id="notify-select-all-platform"
+															checked={masterListClients.length > 0 && masterListClients.every((c) => selectedIds.has(c.id))}
+															onChange={(e) => {
+																const next = new Set(selectedIds);
+																masterListClients.forEach((c) => { e.target.checked ? next.add(c.id) : next.delete(c.id); });
+																setSelectedIds(next);
+															}}
+															className="rounded border-warm-300 text-brand-500"
+														/>
+														<label htmlFor="notify-select-all-platform" className="text-xs font-medium text-warm-700 cursor-pointer select-none">
+															Select all on platform ({masterListClients.length})
+														</label>
+													</div>
+													<div className="max-h-40 overflow-y-auto divide-y divide-warm-100">
+														{masterListClients.map((c) => (
+															<label
+																key={c.id}
+																className="flex items-center gap-2.5 px-3 py-2 hover:bg-warm-50 cursor-pointer"
+															>
+																<input
+																	type="checkbox"
+																	checked={selectedIds.has(c.id)}
+																	onChange={(e) => {
+																		const next = new Set(selectedIds);
+																		e.target.checked ? next.add(c.id) : next.delete(c.id);
+																		setSelectedIds(next);
+																	}}
+																	className="rounded border-warm-300 text-brand-500 flex-shrink-0"
+																/>
+																<span className="text-sm text-warm-800">{c.firstName} {c.lastName}</span>
+															</label>
+														))}
+													</div>
+												</>
+											)}
+										</div>
+									)}
+								</div>
+
+								{/* Footer */}
+								<div className="border-t border-warm-200 px-3 py-2.5 flex items-center justify-between bg-warm-50">
+									<span className="text-xs text-warm-500">
+										{selectedIds.size > 0 ? `${selectedIds.size} client${selectedIds.size !== 1 ? 's' : ''} selected` : 'No clients selected'}
+									</span>
+									<button
+										onClick={handleNotify}
+										disabled={notifying || selectedIds.size === 0}
+										className="px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 disabled:opacity-50 transition-colors"
+									>
+										{notifying ? 'Sending…' : 'Confirm'}
+									</button>
+								</div>
 							</div>
 						)}
 					</div>

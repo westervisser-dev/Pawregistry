@@ -348,7 +348,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		});
 	})
 
-	// ── Admin: notify next N breed-matched waitlisted clients by priority ──
+	// ── Admin: notify selected clients by ID ──
 	.post(
 		'/admin/notifications/:litterId',
 		async ({ params, body, error }) => {
@@ -356,51 +356,32 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				where: eq(litters.id, params.litterId),
 			});
 			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
-			if (!litter.breed) return error(400, { error: 'Bad request', message: 'Set a breed on this litter first' });
 
-			// Already-notified client IDs
 			const alreadyNotified = await db.query.litterNotifications.findMany({
 				where: eq(litterNotifications.litterId, params.litterId),
 				columns: { clientId: true },
 			});
 			const notifiedIds = new Set(alreadyNotified.map((n) => n.clientId));
 
-			// Breed-matched waitlisted clients sorted by priority, excluding already-notified
-			const litterBS = parseBreedSize(litter.breed);
-			const allWaitlisted = await db.query.clients.findMany({
-				where: notifiedIds.size > 0
-					? and(eq(clients.stage, 'waitlisted'), notInArray(clients.id, [...notifiedIds]))
-					: eq(clients.stage, 'waitlisted'),
-				orderBy: [asc(clients.priority)],
-			});
-
-			const matched = allWaitlisted.filter((c) => {
-				if (!litterBS) return false;
-				const app = (c.applicationData ?? {}) as Record<string, unknown>;
-				const p1 = parseBreedSize(app.preferredBreedSize as string | null);
-				const p2 = parseBreedSize(app.secondChoiceBreedSize as string | null);
-				const openSize = !!(app.considerOtherBreedSize);
-				return (
-					(p1 && p1.breed === litterBS.breed && p1.size === litterBS.size) ||
-					(p2 && p2.breed === litterBS.breed && p2.size === litterBS.size) ||
-					(p1 && p1.breed === litterBS.breed && openSize) ||
-					(p2 && p2.breed === litterBS.breed && openSize)
-				);
-			}).slice(0, body.count);
-
-			if (matched.length === 0) return error(400, { error: 'No candidates', message: 'No more matching waitlisted clients to notify' });
+			const toNotify = body.clientIds.filter((id) => !notifiedIds.has(id));
+			if (toNotify.length === 0) return error(400, { error: 'No candidates', message: 'All selected clients have already been notified' });
 
 			const created = await db
 				.insert(litterNotifications)
-				.values(matched.map((c) => ({ litterId: params.litterId, clientId: c.id })))
+				.values(toNotify.map((clientId) => ({ litterId: params.litterId, clientId })))
 				.returning();
 
 			// TODO: send emails via Resend to each matched client
-			// matched.forEach(c => sendNotificationEmail(c, litter))
+			// toNotify.forEach(id => sendNotificationEmail(id, litter))
 
-			return { notified: created.length, clients: matched.map((c) => ({ id: c.id, firstName: c.firstName, lastName: c.lastName, priority: c.priority })) };
+			const notifiedClients = await db.query.clients.findMany({
+				where: inArray(clients.id, toNotify),
+				columns: { id: true, firstName: true, lastName: true, priority: true },
+			});
+
+			return { notified: created.length, clients: notifiedClients };
 		},
-		{ body: t.Object({ count: t.Number() }) }
+		{ body: t.Object({ clientIds: t.Array(t.String()) }) }
 	)
 
 	// ── Admin: approve or reject an interest ──
