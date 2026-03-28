@@ -58,7 +58,7 @@ export interface HealthCert {
 
 // ─── Litter ──────────────────────────────────────────────────────────────────
 
-export type LitterStatus = 'planned' | 'confirmed' | 'born' | 'weaning' | 'ready' | 'completed';
+export type LitterStatus = 'planned' | 'confirmed' | 'born' | 'weaning' | 'available' | 'completed';
 
 export interface Litter {
 	id: string;

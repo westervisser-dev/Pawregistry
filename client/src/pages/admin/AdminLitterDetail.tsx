@@ -97,7 +97,7 @@ export function AdminLitterDetail() {
 				...(breedValue ? { breed: breedValue } : {}),
 				sireId: newForm.sireId,
 				damId: newForm.damId,
-				status: newForm.status as 'planned' | 'confirmed' | 'born' | 'weaning' | 'ready' | 'completed',
+				status: newForm.status as 'planned' | 'confirmed' | 'born' | 'weaning' | 'available' | 'completed',
 				...(newForm.expectedDate ? { expectedDate: newForm.expectedDate } : {}),
 				...(newForm.notes ? { notes: newForm.notes } : {}),
 				isPublic: newForm.isPublic,
@@ -123,8 +123,10 @@ export function AdminLitterDetail() {
 	const updateStatus = async (status: string) => {
 		if (!id) return;
 		setSaving(true);
-		const { data } = await api.litters({ id }).patch({ status } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
-		if (data) setLitter(data as typeof litter);
+		await api.litters({ id }).patch({ status } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+		// Re-fetch full litter to pick up any synced puppy statuses
+		const { data: fresh } = await api.litters({ id }).get();
+		if (fresh) setLitter(fresh as typeof litter);
 		setSaving(false);
 	};
 
@@ -317,7 +319,7 @@ export function AdminLitterDetail() {
 								onChange={(e) => setF('status', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							>
-								{['planned', 'confirmed', 'born', 'weaning', 'ready', 'completed'].map((s) => (
+								{['planned', 'confirmed', 'born', 'weaning', 'available', 'completed'].map((s) => (
 									<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
 								))}
 							</select>
@@ -458,7 +460,7 @@ export function AdminLitterDetail() {
 	const fmtDate = (d: Date | string | null | undefined) =>
 		d ? new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
-	const statuses = ['planned', 'confirmed', 'born', 'weaning', 'ready', 'completed'];
+	const statuses = ['planned', 'confirmed', 'born', 'weaning', 'available', 'completed'];
 
 	return (
 		<div className="p-8 max-w-4xl">
@@ -691,35 +693,41 @@ export function AdminLitterDetail() {
 				)}
 
 				<div className="mt-4 pt-4 border-t border-black/[0.05]">
-					<p className="text-xs font-medium text-warm-500 uppercase tracking-wide mb-3">Add puppy</p>
-					<div className="flex gap-2">
-						<input
-							placeholder="Collar colour"
-							value={newPuppy.collarColour}
-							onChange={(e) => setNewPuppy((p) => ({ ...p, collarColour: e.target.value }))}
-							className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
-						/>
-						<input
-							placeholder="Coat colour"
-							value={newPuppy.colour}
-							onChange={(e) => setNewPuppy((p) => ({ ...p, colour: e.target.value }))}
-							className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
-						/>
-						<select
-							value={newPuppy.sex}
-							onChange={(e) => setNewPuppy((p) => ({ ...p, sex: e.target.value as 'male' | 'female' }))}
-							className="px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
-						>
-							<option value="male">M</option>
-							<option value="female">F</option>
-						</select>
-						<button
-							onClick={addPuppy}
-							className="px-4 py-2 bg-brand-500 text-white text-sm rounded-lg hover:bg-brand-600 transition-colors"
-						>
-							Add
-						</button>
-					</div>
+					{['planned', 'confirmed'].includes(litter.status) ? (
+						<p className="text-xs text-warm-400">Puppies can be added once the litter is born.</p>
+					) : (
+						<>
+							<p className="text-xs font-medium text-warm-500 uppercase tracking-wide mb-3">Add puppy</p>
+							<div className="flex gap-2">
+								<input
+									placeholder="Collar colour"
+									value={newPuppy.collarColour}
+									onChange={(e) => setNewPuppy((p) => ({ ...p, collarColour: e.target.value }))}
+									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+								/>
+								<input
+									placeholder="Coat colour"
+									value={newPuppy.colour}
+									onChange={(e) => setNewPuppy((p) => ({ ...p, colour: e.target.value }))}
+									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+								/>
+								<select
+									value={newPuppy.sex}
+									onChange={(e) => setNewPuppy((p) => ({ ...p, sex: e.target.value as 'male' | 'female' }))}
+									className="px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+								>
+									<option value="male">M</option>
+									<option value="female">F</option>
+								</select>
+								<button
+									onClick={addPuppy}
+									className="px-4 py-2 bg-brand-500 text-white text-sm rounded-lg hover:bg-brand-600 transition-colors"
+								>
+									Add
+								</button>
+							</div>
+						</>
+					)}
 				</div>
 			</Card>
 

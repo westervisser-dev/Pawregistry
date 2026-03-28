@@ -240,7 +240,7 @@ const LITTERS = [
 		breed: 'f1_goldendoodle - standard',
 		sireId: 'dog-p-001',
 		damId: 'dog-gr-002',
-		status: 'ready',
+		status: 'available',
 		whelpDate: '2025-12-01',
 		expectedDate: '2025-11-28',
 		puppyCount: 7,
@@ -389,7 +389,7 @@ const LITTERS = [
 ];
 
 // ─── Puppy data ───────────────────────────────────────────────────────────────
-// Only for litters with status born, weaning, ready, or completed
+// Only for litters with status born, weaning, available, or completed
 
 const PUPPIES = [
 	// litter-f1gd-001 (completed, 6 pups – all placed)
@@ -400,7 +400,7 @@ const PUPPIES = [
 	{ id: 'puppy-005', litterId: 'litter-f1gd-001', collarColour: 'Purple', sex: 'female', colour: 'Cream', status: 'placed', birthWeight: 330, currentWeight: 12300, notes: null },
 	{ id: 'puppy-006', litterId: 'litter-f1gd-001', collarColour: 'Orange', sex: 'male', colour: 'Golden', status: 'placed', birthWeight: 370, currentWeight: 14500, notes: null },
 
-	// litter-f1gd-002 (ready, 7 pups – 3 reserved, 1 retained, 3 available)
+	// litter-f1gd-002 (available, 7 pups – 3 reserved, 1 retained, 3 available)
 	{ id: 'puppy-007', litterId: 'litter-f1gd-002', collarColour: 'Red', sex: 'female', colour: 'Apricot', status: 'reserved', birthWeight: 310, currentWeight: 5200, notes: 'Reserved by Sophia Nkosi' },
 	{ id: 'puppy-008', litterId: 'litter-f1gd-002', collarColour: 'Blue', sex: 'male', colour: 'Cream', status: 'reserved', birthWeight: 350, currentWeight: 5800, notes: 'Reserved' },
 	{ id: 'puppy-009', litterId: 'litter-f1gd-002', collarColour: 'Green', sex: 'female', colour: 'Golden', status: 'available', birthWeight: 325, currentWeight: 5400, notes: null },

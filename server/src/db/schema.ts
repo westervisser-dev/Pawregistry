@@ -36,7 +36,7 @@ export const litterStatusEnum = pgEnum('litter_status', [
 	'confirmed',
 	'born',
 	'weaning',
-	'ready',
+	'available',
 	'completed',
 ]);
 export const puppyStatusEnum = pgEnum('puppy_status', [

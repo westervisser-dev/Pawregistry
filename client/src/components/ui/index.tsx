@@ -278,7 +278,7 @@ const litterStatusVariant: Record<string, BadgeVariant> = {
 	confirmed: 'blue',
 	born: 'green',
 	weaning: 'amber',
-	ready: 'purple',
+	available: 'purple',
 	completed: 'default',
 };
 
