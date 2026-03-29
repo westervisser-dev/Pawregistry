@@ -60,7 +60,6 @@ export function AdminLitterDetail() {
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [notifying, setNotifying] = useState(false);
 	const [masterListClients, setMasterListClients] = useState<Array<{ id: string; firstName: string; lastName: string; priority: number }>>([]);
-	const [masterListOpen, setMasterListOpen] = useState(false);
 	const [masterListLoading, setMasterListLoading] = useState(false);
 
 	// New-litter form state
@@ -93,12 +92,20 @@ export function AdminLitterDetail() {
 			}
 			setLoading(false);
 		});
-		// Fetch matching clients
+		// Fetch matching clients, then eagerly load platform waitlist
 		setMatchingLoading(true);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.litters({ id }) as any)['matching-clients'].get().then(({ data }: { data: MatchingClient[] | null }) => {
+			const matched = data ?? [];
 			if (data) setMatchingClients(data);
 			setMatchingLoading(false);
+			setMasterListLoading(true);
+			const matchingIds = new Set(matched.map((mc) => mc.id));
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(api.clients as any).admin.get({ query: { stage: 'waitlisted' } }).then(({ data: wl }: { data: Array<{ id: string; firstName: string; lastName: string; priority: number }> | null }) => {
+				if (wl) setMasterListClients(wl.filter((c) => !matchingIds.has(c.id)).sort((a, b) => a.priority - b.priority));
+				setMasterListLoading(false);
+			}).catch(() => setMasterListLoading(false));
 		}).catch(() => setMatchingLoading(false));
 		// Fetch puppy interests
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -257,26 +264,36 @@ export function AdminLitterDetail() {
 		setNotifying(false);
 		setNotifyOpen(false);
 		setSelectedIds(new Set());
-		setMasterListOpen(false);
 	};
 
-	const openNotifyPanel = async () => {
-		setNotifyOpen(true);
-		if (masterListClients.length > 0) return;
-		setMasterListLoading(true);
-		try {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const { data } = await (api.clients as any).admin.get({ query: { stage: 'waitlisted' } });
-			if (data) {
-				const matchingIds = new Set(matchingClients.map((mc) => mc.id));
-				setMasterListClients(
-					(data as Array<{ id: string; firstName: string; lastName: string; priority: number }>)
-						.filter((c) => !matchingIds.has(c.id))
-						.sort((a, b) => a.priority - b.priority)
-				);
-			}
-		} catch { /* ignore */ }
-		setMasterListLoading(false);
+	const openNotifyPanel = () => setNotifyOpen(true);
+
+	const toggleSelection = (clientId: string) => {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			next.has(clientId) ? next.delete(clientId) : next.add(clientId);
+			return next;
+		});
+	};
+
+	const selectTopThree = () => {
+		const eligible = [...matchingClients]
+			.filter((mc) => !notifiedMap[mc.id])
+			.sort((a, b) => a.priority - b.priority)
+			.slice(0, 3);
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			eligible.forEach((mc) => next.add(mc.id));
+			return next;
+		});
+	};
+
+	const selectAllPlatform = () => {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			masterListClients.filter((c) => !notifiedMap[c.id]).forEach((c) => next.add(c.id));
+			return next;
+		});
 	};
 
 	if (loading) return <LoadingPage />;
@@ -785,157 +802,58 @@ export function AdminLitterDetail() {
 			<Card className="p-6 mb-6">
 				<div className="flex items-center justify-between mb-3">
 					<h3 className="font-semibold text-warm-800">Potential Clients</h3>
-					{matchingClients.length > 0 && (
-						<span className="text-xs text-warm-400">{matchingClients.length} match{matchingClients.length !== 1 ? 'es' : ''}</span>
+					{(matchingClients.length > 0 || masterListClients.length > 0) && (
+						<span className="text-xs text-warm-400">{matchingClients.length + masterListClients.length} match{matchingClients.length + masterListClients.length !== 1 ? 'es' : ''}</span>
 					)}
 				</div>
 
-				{/* Notification controls */}
-				{!matchingLoading && matchingClients.length > 0 && (
-					<div className="mb-4 rounded-lg border border-warm-200 overflow-hidden">
-						<div className="p-3 bg-warm-50 flex items-center justify-between gap-3">
-							<p className={`text-xs ${notifications.length > 0 ? 'text-blue-600 font-medium' : 'text-warm-600'}`}>
+				{/* Notify bar */}
+				{!matchingLoading && (matchingClients.length > 0 || notifications.length > 0) && (
+					<>
+						<div className={`mb-4 rounded-lg border p-3 flex items-center justify-between gap-3 transition-colors ${notifyOpen ? 'bg-amber-50 border-amber-300' : 'bg-warm-50 border-warm-200'}`}>
+							<p className={`text-xs ${notifications.length > 0 ? 'text-blue-600 font-medium' : 'text-warm-500'}`}>
 								{notifications.length > 0
-									? `${notifications.length} client${notifications.length !== 1 ? 's' : ''} notified about this litter`
+									? `${notifications.length} client${notifications.length !== 1 ? 's' : ''} already notified about this litter`
 									: 'No clients notified yet'}
 							</p>
-							{!notifyOpen ? (
-								<button
-									onClick={openNotifyPanel}
-									className="flex-shrink-0 px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
-								>
-									Notify
-								</button>
-							) : (
-								<button
-									onClick={() => { setNotifyOpen(false); setSelectedIds(new Set()); setMasterListOpen(false); }}
-									className="flex-shrink-0 px-3 py-1.5 text-xs border border-warm-300 text-warm-600 rounded-md hover:bg-warm-100 transition-colors"
-								>
-									Cancel
-								</button>
-							)}
-						</div>
-
-						{notifyOpen && (
-							<div className="border-t border-warm-200 bg-white">
-								{/* Select all matching */}
-								<div className="px-3 py-2 border-b border-warm-100 flex items-center gap-2">
-									<input
-										type="checkbox"
-										id="notify-select-all-matching"
-										checked={matchingClients.length > 0 && matchingClients.every((mc) => selectedIds.has(mc.id))}
-										onChange={(e) => {
-											const next = new Set(selectedIds);
-											matchingClients.forEach((mc) => { e.target.checked ? next.add(mc.id) : next.delete(mc.id); });
-											setSelectedIds(next);
-										}}
-										className="rounded border-warm-300 text-brand-500"
-									/>
-									<label htmlFor="notify-select-all-matching" className="text-xs font-medium text-warm-700 cursor-pointer select-none">
-										Select all matching clients ({matchingClients.length})
-									</label>
-								</div>
-
-								{/* Matching clients list */}
-								<div className="max-h-48 overflow-y-auto divide-y divide-warm-100">
-									{[...matchingClients].sort((a, b) => a.priority - b.priority).map((mc) => (
-										<label
-											key={mc.id}
-											className="flex items-center gap-2.5 px-3 py-2 hover:bg-warm-50 cursor-pointer"
-										>
-											<input
-												type="checkbox"
-												checked={selectedIds.has(mc.id)}
-												onChange={(e) => {
-													const next = new Set(selectedIds);
-													e.target.checked ? next.add(mc.id) : next.delete(mc.id);
-													setSelectedIds(next);
-												}}
-												className="rounded border-warm-300 text-brand-500 flex-shrink-0"
-											/>
-											<span className="text-xs text-warm-400 w-6 text-right flex-shrink-0">#{mc.waitlistPosition ?? '—'}</span>
-											<span className="text-sm text-warm-800">{mc.firstName} {mc.lastName}</span>
-										</label>
-									))}
-								</div>
-
-								{/* Platform waitlist dropdown */}
-								<div className="border-t border-warm-200">
-									<button
-										onClick={() => setMasterListOpen((o) => !o)}
-										className="w-full px-3 py-2 flex items-center justify-between text-xs font-medium text-warm-600 hover:bg-warm-50 transition-colors"
-									>
-										<span>Add from platform waitlist</span>
-										<span className="text-warm-400">{masterListOpen ? '▲' : '▼'}</span>
-									</button>
-
-									{masterListOpen && (
-										<div className="border-t border-warm-100">
-											{masterListLoading ? (
-												<p className="px-3 py-2 text-xs text-warm-400">Loading…</p>
-											) : masterListClients.length === 0 ? (
-												<p className="px-3 py-2 text-xs text-warm-400">No other waitlisted clients</p>
-											) : (
-												<>
-													{/* Select all on platform */}
-													<div className="px-3 py-2 border-b border-warm-100 flex items-center gap-2 bg-warm-50">
-														<input
-															type="checkbox"
-															id="notify-select-all-platform"
-															checked={masterListClients.length > 0 && masterListClients.every((c) => selectedIds.has(c.id))}
-															onChange={(e) => {
-																const next = new Set(selectedIds);
-																masterListClients.forEach((c) => { e.target.checked ? next.add(c.id) : next.delete(c.id); });
-																setSelectedIds(next);
-															}}
-															className="rounded border-warm-300 text-brand-500"
-														/>
-														<label htmlFor="notify-select-all-platform" className="text-xs font-medium text-warm-700 cursor-pointer select-none">
-															Select all on platform ({masterListClients.length})
-														</label>
-													</div>
-													<div className="max-h-40 overflow-y-auto divide-y divide-warm-100">
-														{masterListClients.map((c) => (
-															<label
-																key={c.id}
-																className="flex items-center gap-2.5 px-3 py-2 hover:bg-warm-50 cursor-pointer"
-															>
-																<input
-																	type="checkbox"
-																	checked={selectedIds.has(c.id)}
-																	onChange={(e) => {
-																		const next = new Set(selectedIds);
-																		e.target.checked ? next.add(c.id) : next.delete(c.id);
-																		setSelectedIds(next);
-																	}}
-																	className="rounded border-warm-300 text-brand-500 flex-shrink-0"
-																/>
-																<span className="text-sm text-warm-800">{c.firstName} {c.lastName}</span>
-															</label>
-														))}
-													</div>
-												</>
-											)}
-										</div>
-									)}
-								</div>
-
-								{/* Footer */}
-								<div className="border-t border-warm-200 px-3 py-2.5 flex items-center justify-between bg-warm-50">
-									<span className="text-xs text-warm-500">
-										{selectedIds.size > 0 ? `${selectedIds.size} client${selectedIds.size !== 1 ? 's' : ''} selected` : 'No clients selected'}
+							<div className="flex items-center gap-2 flex-shrink-0">
+								{notifyOpen && (
+									<span className="text-xs text-amber-700 font-medium">
+										{selectedIds.size === 0 ? 'Select clients below' : `${selectedIds.size} selected`}
 									</span>
+								)}
+								{notifyOpen ? (
+									<button
+										onClick={() => { setNotifyOpen(false); setSelectedIds(new Set()); }}
+										className="px-3 py-1.5 text-xs border border-warm-300 text-warm-600 rounded-md hover:bg-warm-100 transition-colors"
+									>
+										Cancel
+									</button>
+								) : (
+									<button
+										onClick={openNotifyPanel}
+										className="px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
+									>
+										Send litter notification
+									</button>
+								)}
+								{notifyOpen && (
 									<button
 										onClick={handleNotify}
 										disabled={notifying || selectedIds.size === 0}
-										className="px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 disabled:opacity-50 transition-colors"
+										className="px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 									>
-										{notifying ? 'Sending…' : 'Confirm'}
+										{notifying ? 'Sending…' : selectedIds.size > 0 ? `Notify ${selectedIds.size} client${selectedIds.size !== 1 ? 's' : ''}` : 'Notify selected'}
 									</button>
-								</div>
+								)}
+							</div>
+						</div>
+						{notifyOpen && selectedIds.size > 3 && (
+							<div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
+								Notifying more than 3 clients for one litter may create false demand.
 							</div>
 						)}
-					</div>
+					</>
 				)}
 
 				{matchingLoading ? (
@@ -945,64 +863,180 @@ export function AdminLitterDetail() {
 				) : matchingClients.length === 0 ? (
 					<EmptyState icon="👥" title="No matching clients" />
 				) : (
-					<div className="space-y-2">
-						{[...matchingClients].sort((a, b) => a.priority - b.priority).map((mc, i) => {
-							const notifAt = notifiedMap[mc.id];
-							return (
-								<Link
-									key={mc.id}
-									to={`/admin/clients/${mc.id}`}
-									className={`block p-3.5 rounded-lg border transition-colors ${notifAt ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}`}
-								>
-									<div className="flex items-start justify-between gap-3">
-										<div className="min-w-0 flex gap-3 items-start">
-											<div className="flex-shrink-0 flex flex-col items-center gap-0.5 w-8">
-												<span className="text-sm font-bold text-warm-700">#{mc.waitlistPosition ?? i + 1}</span>
-												<span className="text-[9px] font-medium text-warm-400 uppercase tracking-wide leading-none">wait</span>
-												<span className="text-[9px] font-medium text-warm-400 uppercase tracking-wide leading-none">list</span>
-											</div>
-											<div className="min-w-0">
-												<div className="flex items-center gap-1.5 flex-wrap">
-													<span className="font-medium text-sm text-warm-900">{mc.firstName} {mc.lastName}</span>
-													{mc.depositStatus === 'paid' ? (
-														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Deposit · Paid</span>
-													) : mc.depositStatus === 'pending' ? (
-														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Deposit · Pending</span>
-													) : (
-														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500">No Deposit</span>
+					<div>
+						{/* Your waitlist */}
+						<div className="flex items-center justify-between py-1 mb-2">
+							<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">Your waitlist</span>
+							{notifyOpen && (
+								<button onClick={selectTopThree} className="text-[11px] text-brand-500 font-medium hover:text-brand-600">
+									Select top 3
+								</button>
+							)}
+						</div>
+						<div className="space-y-2 mb-4">
+							{[...matchingClients].sort((a, b) => a.priority - b.priority).map((mc, i) => {
+								const notifAt = notifiedMap[mc.id];
+								const isNotified = !!notifAt;
+								const isSelected = selectedIds.has(mc.id);
+
+								const cardInner = (
+									<div className="flex items-start gap-3">
+										{notifyOpen && (
+											<div className="flex-shrink-0 pt-0.5">
+												<div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+													isNotified ? 'bg-warm-100 border-warm-200' :
+													isSelected ? 'bg-brand-500 border-brand-500' :
+													'border-warm-300 bg-white'
+												}`}>
+													{isSelected && (
+														<svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+															<path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+														</svg>
 													)}
-													{notifAt && <NotifyTimer since={notifAt} />}
 												</div>
-												{mc.city && <p className="text-[11px] text-warm-400 mt-0.5">{mc.city}</p>}
-												{mc.matchReasons.length > 0 && (
-													<div className="flex flex-wrap gap-1 mt-1.5">
-														{mc.matchReasons.filter((r) => !r.startsWith('Deposit')).slice(0, 3).map((reason) => (
-															<span
-																key={reason}
-																className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
-																	reason.startsWith('First choice') ? 'bg-green-100 text-green-700' :
-																	reason.startsWith('Second choice') ? 'bg-blue-100 text-blue-700' :
-																	reason.includes('Sex') || reason.includes('sex') ? 'bg-purple-100 text-purple-700' :
-																	reason.includes('olour') ? 'bg-pink-100 text-pink-700' :
-																	reason.includes('Deposit') ? 'bg-amber-100 text-amber-700' :
-																	'bg-warm-100 text-warm-600'
-																}`}
-															>
-																{reason}
-															</span>
-														))}
-													</div>
-												)}
 											</div>
+										)}
+										<div className="flex-shrink-0 flex flex-col items-center gap-0.5 w-8">
+											<span className="text-sm font-bold text-warm-700">#{mc.waitlistPosition ?? i + 1}</span>
+											<span className="text-[9px] font-medium text-warm-400 uppercase tracking-wide leading-none">wait</span>
+											<span className="text-[9px] font-medium text-warm-400 uppercase tracking-wide leading-none">list</span>
+										</div>
+										<div className="min-w-0 flex-1">
+											<div className="flex items-center gap-1.5 flex-wrap">
+												<span className="font-medium text-sm text-warm-900">{mc.firstName} {mc.lastName}</span>
+												{mc.depositStatus === 'paid' ? (
+													<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Deposit · Paid</span>
+												) : mc.depositStatus === 'pending' ? (
+													<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Deposit · Pending</span>
+												) : (
+													<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500">No Deposit</span>
+												)}
+												{notifAt && <NotifyTimer since={notifAt} />}
+												{isNotified && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
+											</div>
+											{mc.city && <p className="text-[11px] text-warm-400 mt-0.5">{mc.city}</p>}
+											{isNotified && <p className="text-[11px] text-warm-400 italic mt-1">Already notified — awaiting response</p>}
+											{mc.matchReasons.length > 0 && (
+												<div className="flex flex-wrap gap-1 mt-1.5">
+													{mc.matchReasons.filter((r) => !r.startsWith('Deposit')).slice(0, 3).map((reason) => (
+														<span
+															key={reason}
+															className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+																reason.startsWith('First choice') ? 'bg-green-100 text-green-700' :
+																reason.startsWith('Second choice') ? 'bg-blue-100 text-blue-700' :
+																reason.includes('Sex') || reason.includes('sex') ? 'bg-purple-100 text-purple-700' :
+																reason.includes('olour') ? 'bg-pink-100 text-pink-700' :
+																'bg-warm-100 text-warm-600'
+															}`}
+														>
+															{reason}
+														</span>
+													))}
+												</div>
+											)}
 										</div>
 										<div className="flex-shrink-0 text-right">
 											<div className="text-sm font-bold text-brand-600">{mc.score}</div>
 											<div className="text-[10px] text-warm-400">pts</div>
 										</div>
 									</div>
-								</Link>
-							);
-						})}
+								);
+
+								const cardClass = `block p-3.5 rounded-lg border transition-all ${
+									isNotified && notifyOpen ? 'opacity-50 cursor-default border-warm-200' :
+									notifyOpen ? `cursor-pointer ${isSelected ? 'border-brand-400 bg-brand-50/50' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}` :
+									notifAt ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' :
+									'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'
+								}`;
+
+								if (notifyOpen) {
+									return (
+										<div key={mc.id} className={cardClass} onClick={() => { if (!isNotified) toggleSelection(mc.id); }}>
+											{cardInner}
+										</div>
+									);
+								}
+								return (
+									<Link key={mc.id} to={`/admin/clients/${mc.id}`} className={cardClass}>
+										{cardInner}
+									</Link>
+								);
+							})}
+						</div>
+
+						{/* Platform waitlist */}
+						{(masterListClients.length > 0 || masterListLoading) && (
+							<>
+								<div className="flex items-center justify-between py-1 mb-2">
+									<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">Platform waitlist</span>
+									{notifyOpen && masterListClients.length > 0 && (
+										<button onClick={selectAllPlatform} className="text-[11px] text-brand-500 font-medium hover:text-brand-600">
+											Select all
+										</button>
+									)}
+								</div>
+								{masterListLoading ? (
+									<p className="text-xs text-warm-400 py-2">Loading…</p>
+								) : (
+									<div className="space-y-2">
+										{masterListClients.map((c) => {
+											const notifAt = notifiedMap[c.id];
+											const isNotified = !!notifAt;
+											const isSelected = selectedIds.has(c.id);
+
+											const cardInner = (
+												<div className="flex items-center gap-3">
+													{notifyOpen && (
+														<div className="flex-shrink-0">
+															<div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+																isNotified ? 'bg-warm-100 border-warm-200' :
+																isSelected ? 'bg-brand-500 border-brand-500' :
+																'border-warm-300 bg-white'
+															}`}>
+																{isSelected && (
+																	<svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+																		<path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+																	</svg>
+																)}
+															</div>
+														</div>
+													)}
+													<div className="min-w-0 flex-1">
+														<div className="flex items-center gap-1.5 flex-wrap">
+															<span className="font-medium text-sm text-warm-900">{c.firstName} {c.lastName}</span>
+															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-600">Platform</span>
+															{notifAt && <NotifyTimer since={notifAt} />}
+															{isNotified && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
+														</div>
+														{isNotified && <p className="text-[11px] text-warm-400 italic mt-1">Already notified — awaiting response</p>}
+													</div>
+												</div>
+											);
+
+											const cardClass = `block p-3.5 rounded-lg border transition-all ${
+												isNotified && notifyOpen ? 'opacity-50 cursor-default border-warm-200' :
+												notifyOpen ? `cursor-pointer ${isSelected ? 'border-brand-400 bg-brand-50/50' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}` :
+												notifAt ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' :
+												'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'
+											}`;
+
+											if (notifyOpen) {
+												return (
+													<div key={c.id} className={cardClass} onClick={() => { if (!isNotified) toggleSelection(c.id); }}>
+														{cardInner}
+													</div>
+												);
+											}
+											return (
+												<Link key={c.id} to={`/admin/clients/${c.id}`} className={cardClass}>
+													{cardInner}
+												</Link>
+											);
+										})}
+									</div>
+								)}
+							</>
+						)}
 					</div>
 				)}
 			</Card>
