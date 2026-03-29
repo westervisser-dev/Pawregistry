@@ -952,7 +952,7 @@ export function AdminLitterDetail() {
 								<Link
 									key={mc.id}
 									to={`/admin/clients/${mc.id}`}
-									className="block p-3.5 rounded-lg border border-warm-200 hover:border-brand-300 hover:bg-brand-50/30 transition-colors"
+									className={`block p-3.5 rounded-lg border transition-colors ${notifAt ? 'bg-blue-50/50 border-blue-200 hover:border-blue-300 hover:bg-blue-50' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}`}
 								>
 									<div className="flex items-start justify-between gap-3">
 										<div className="min-w-0 flex gap-3 items-start">
