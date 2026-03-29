@@ -794,7 +794,7 @@ export function AdminLitterDetail() {
 				{!matchingLoading && matchingClients.length > 0 && (
 					<div className="mb-4 rounded-lg border border-warm-200 overflow-hidden">
 						<div className="p-3 bg-warm-50 flex items-center justify-between gap-3">
-							<p className="text-xs text-warm-600">
+							<p className={`text-xs ${notifications.length > 0 ? 'text-blue-600 font-medium' : 'text-warm-600'}`}>
 								{notifications.length > 0
 									? `${notifications.length} client${notifications.length !== 1 ? 's' : ''} notified about this litter`
 									: 'No clients notified yet'}
@@ -952,7 +952,7 @@ export function AdminLitterDetail() {
 								<Link
 									key={mc.id}
 									to={`/admin/clients/${mc.id}`}
-									className={`block p-3.5 rounded-lg border transition-colors ${notifAt ? 'bg-blue-50/50 border-blue-200 hover:border-blue-300 hover:bg-blue-50' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}`}
+									className={`block p-3.5 rounded-lg border transition-colors ${notifAt ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}`}
 								>
 									<div className="flex items-start justify-between gap-3">
 										<div className="min-w-0 flex gap-3 items-start">
