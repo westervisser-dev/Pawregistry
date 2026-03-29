@@ -276,14 +276,10 @@ export function AdminLitterDetail() {
 		});
 	};
 
-	const selectTopThree = () => {
-		const eligible = [...matchingClients]
-			.filter((mc) => !notifiedMap[mc.id])
-			.sort((a, b) => a.priority - b.priority)
-			.slice(0, 3);
+	const selectAllWaitlist = () => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
-			eligible.forEach((mc) => next.add(mc.id));
+			matchingClients.filter((mc) => !notifiedMap[mc.id]).forEach((mc) => next.add(mc.id));
 			return next;
 		});
 	};
@@ -868,9 +864,23 @@ export function AdminLitterDetail() {
 						<div className="flex items-center justify-between py-1 mb-2">
 							<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">Your waitlist</span>
 							{notifyOpen && (
-								<button onClick={selectTopThree} className="text-[11px] text-brand-500 font-medium hover:text-brand-600">
-									Select top 3
-								</button>
+								<div className="flex items-center gap-2">
+									{matchingClients.some((mc) => selectedIds.has(mc.id)) && (
+										<button
+											onClick={() => setSelectedIds((prev) => {
+												const next = new Set(prev);
+												matchingClients.forEach((mc) => next.delete(mc.id));
+												return next;
+											})}
+											className="text-[11px] text-warm-400 font-medium hover:text-warm-600"
+										>
+											Clear
+										</button>
+									)}
+									<button onClick={selectAllWaitlist} className="text-[11px] text-brand-500 font-medium hover:text-brand-600">
+										Select all
+									</button>
+								</div>
 							)}
 						</div>
 						<div className="space-y-2 mb-4">
@@ -970,9 +980,23 @@ export function AdminLitterDetail() {
 								<div className="flex items-center justify-between py-1 mb-2">
 									<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">Platform waitlist</span>
 									{notifyOpen && masterListClients.length > 0 && (
-										<button onClick={selectAllPlatform} className="text-[11px] text-brand-500 font-medium hover:text-brand-600">
-											Select all
-										</button>
+										<div className="flex items-center gap-2">
+											{masterListClients.some((c) => selectedIds.has(c.id)) && (
+												<button
+													onClick={() => setSelectedIds((prev) => {
+														const next = new Set(prev);
+														masterListClients.forEach((c) => next.delete(c.id));
+														return next;
+													})}
+													className="text-[11px] text-warm-400 font-medium hover:text-warm-600"
+												>
+													Clear
+												</button>
+											)}
+											<button onClick={selectAllPlatform} className="text-[11px] text-brand-500 font-medium hover:text-brand-600">
+												Select all
+											</button>
+										</div>
 									)}
 								</div>
 								{masterListLoading ? (
