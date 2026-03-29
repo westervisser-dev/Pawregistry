@@ -59,7 +59,7 @@ export function AdminLitterDetail() {
 	const [notifyOpen, setNotifyOpen] = useState(false);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [notifying, setNotifying] = useState(false);
-	const [masterListClients, setMasterListClients] = useState<Array<{ id: string; firstName: string; lastName: string; priority: number; depositStatus: string }>>([]);
+	const [masterListClients, setMasterListClients] = useState<Array<{ id: string; firstName: string; lastName: string; priority: number; depositStatus: string; waitlistPosition: number }>>([]);
 	const [masterListLoading, setMasterListLoading] = useState(false);
 
 	// New-litter form state
@@ -102,8 +102,11 @@ export function AdminLitterDetail() {
 			setMasterListLoading(true);
 			const matchingIds = new Set(matched.map((mc) => mc.id));
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(api.clients as any).admin.get({ query: { stage: 'waitlisted' } }).then(({ data: wl }: { data: Array<{ id: string; firstName: string; lastName: string; priority: number }> | null }) => {
-				if (wl) setMasterListClients((wl as Array<{ id: string; firstName: string; lastName: string; priority: number; depositStatus: string }>).filter((c) => !matchingIds.has(c.id)).sort((a, b) => a.priority - b.priority));
+			(api.clients as any).admin.get({ query: { stage: 'waitlisted' } }).then(({ data: wl }: { data: Array<{ id: string; firstName: string; lastName: string; priority: number; depositStatus: string }> | null }) => {
+				if (wl) {
+					const withPositions = wl.map((c, idx) => ({ ...c, waitlistPosition: idx + 1 }));
+					setMasterListClients(withPositions.filter((c) => !matchingIds.has(c.id)));
+				}
 				setMasterListLoading(false);
 			}).catch(() => setMasterListLoading(false));
 		}).catch(() => setMatchingLoading(false));
@@ -860,9 +863,9 @@ export function AdminLitterDetail() {
 					<EmptyState icon="👥" title="No matching clients" />
 				) : (
 					<div>
-						{/* Matched waitlist */}
-						<div className="flex items-center justify-between py-1 mb-2">
-							<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">Matched Waitlist</span>
+						{/* Litter Matched Waitlist */}
+						<div className="flex items-center justify-between px-1 py-2 mb-2 border-b border-warm-200">
+							<span className="text-sm font-semibold text-warm-800">Litter Matched Waitlist</span>
 							{notifyOpen && (
 								<div className="flex items-center gap-2">
 									{matchingClients.some((mc) => selectedIds.has(mc.id)) && (
@@ -974,11 +977,11 @@ export function AdminLitterDetail() {
 							})}
 						</div>
 
-						{/* No breed match */}
+						{/* Global Waitlist */}
 						{(masterListClients.length > 0 || masterListLoading) && (
 							<>
-								<div className="flex items-center justify-between py-1 mb-2">
-									<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">No breed match</span>
+								<div className="flex items-center justify-between px-1 py-2 mb-2 border-b border-warm-200">
+									<span className="text-sm font-semibold text-warm-800">Global Waitlist</span>
 									{notifyOpen && masterListClients.length > 0 && (
 										<div className="flex items-center gap-2">
 											{masterListClients.some((c) => selectedIds.has(c.id)) && (
@@ -1009,9 +1012,9 @@ export function AdminLitterDetail() {
 											const isSelected = selectedIds.has(c.id);
 
 											const cardInner = (
-												<div className="flex items-center gap-3">
+												<div className="flex items-start gap-3">
 													{notifyOpen && (
-														<div className="flex-shrink-0">
+														<div className="flex-shrink-0 pt-0.5">
 															<div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
 																isNotified ? 'bg-warm-100 border-warm-200' :
 																isSelected ? 'bg-brand-500 border-brand-500' :
@@ -1025,6 +1028,11 @@ export function AdminLitterDetail() {
 															</div>
 														</div>
 													)}
+													<div className="flex-shrink-0 flex flex-col items-center gap-0.5 w-8">
+														<span className="text-sm font-bold text-warm-700">#{c.waitlistPosition}</span>
+														<span className="text-[9px] font-medium text-warm-400 uppercase tracking-wide leading-none">wait</span>
+														<span className="text-[9px] font-medium text-warm-400 uppercase tracking-wide leading-none">list</span>
+													</div>
 													<div className="min-w-0 flex-1">
 														<div className="flex items-center gap-1.5 flex-wrap">
 															<span className="font-medium text-sm text-warm-900">{c.firstName} {c.lastName}</span>
