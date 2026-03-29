@@ -1,10 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, PuppyStatusBadge, EmptyState } from '@/components/ui';
 import type { Dog, Litter, LitterImage, MatchingClient } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES, buildBreedSize, parseBreedSize, getBreedSizeLabel } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
+
+function NotifyTimer({ since }: { since: string }) {
+	const [elapsed, setElapsed] = useState(() => Date.now() - new Date(since).getTime());
+	const rafRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+	useEffect(() => {
+		setElapsed(Date.now() - new Date(since).getTime());
+		rafRef.current = setInterval(() => {
+			setElapsed(Date.now() - new Date(since).getTime());
+		}, 1000);
+		return () => { if (rafRef.current) clearInterval(rafRef.current); };
+	}, [since]);
+
+	const totalSecs = Math.floor(elapsed / 1000);
+	const hh = Math.floor(totalSecs / 3600);
+	const mm = Math.floor((totalSecs % 3600) / 60);
+	const display = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+	const isRecent = hh === 0 && mm < 60;
+
+	return (
+		<span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
+			<span className={`w-1 h-1 rounded-full ${isRecent ? 'bg-blue-400 animate-pulse' : 'bg-blue-300'}`} />
+			<span className="font-mono tracking-tight">{display}</span>
+		</span>
+	);
+}
 
 export function AdminLitterDetail() {
 	const { id } = useParams<{ id: string }>();
@@ -945,11 +971,7 @@ export function AdminLitterDetail() {
 													) : (
 														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500">No Deposit</span>
 													)}
-													{notifAt && (
-														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
-															Notified {timeAgo(notifAt)}
-														</span>
-													)}
+													{notifAt && <NotifyTimer since={notifAt} />}
 												</div>
 												{mc.city && <p className="text-[11px] text-warm-400 mt-0.5">{mc.city}</p>}
 												{mc.matchReasons.length > 0 && (
