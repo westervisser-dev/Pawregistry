@@ -59,7 +59,7 @@ export function AdminLitterDetail() {
 	const [notifyOpen, setNotifyOpen] = useState(false);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [notifying, setNotifying] = useState(false);
-	const [masterListClients, setMasterListClients] = useState<Array<{ id: string; firstName: string; lastName: string; priority: number }>>([]);
+	const [masterListClients, setMasterListClients] = useState<Array<{ id: string; firstName: string; lastName: string; priority: number; depositStatus: string }>>([]);
 	const [masterListLoading, setMasterListLoading] = useState(false);
 
 	// New-litter form state
@@ -103,7 +103,7 @@ export function AdminLitterDetail() {
 			const matchingIds = new Set(matched.map((mc) => mc.id));
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(api.clients as any).admin.get({ query: { stage: 'waitlisted' } }).then(({ data: wl }: { data: Array<{ id: string; firstName: string; lastName: string; priority: number }> | null }) => {
-				if (wl) setMasterListClients(wl.filter((c) => !matchingIds.has(c.id)).sort((a, b) => a.priority - b.priority));
+				if (wl) setMasterListClients((wl as Array<{ id: string; firstName: string; lastName: string; priority: number; depositStatus: string }>).filter((c) => !matchingIds.has(c.id)).sort((a, b) => a.priority - b.priority));
 				setMasterListLoading(false);
 			}).catch(() => setMasterListLoading(false));
 		}).catch(() => setMatchingLoading(false));
@@ -860,9 +860,9 @@ export function AdminLitterDetail() {
 					<EmptyState icon="👥" title="No matching clients" />
 				) : (
 					<div>
-						{/* Your waitlist */}
+						{/* Matched waitlist */}
 						<div className="flex items-center justify-between py-1 mb-2">
-							<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">Your waitlist</span>
+							<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">Matched Waitlist</span>
 							{notifyOpen && (
 								<div className="flex items-center gap-2">
 									{matchingClients.some((mc) => selectedIds.has(mc.id)) && (
@@ -974,11 +974,11 @@ export function AdminLitterDetail() {
 							})}
 						</div>
 
-						{/* Platform waitlist */}
+						{/* No breed match */}
 						{(masterListClients.length > 0 || masterListLoading) && (
 							<>
 								<div className="flex items-center justify-between py-1 mb-2">
-									<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">Platform waitlist</span>
+									<span className="text-[10px] font-medium text-warm-400 uppercase tracking-wider">No breed match</span>
 									{notifyOpen && masterListClients.length > 0 && (
 										<div className="flex items-center gap-2">
 											{masterListClients.some((c) => selectedIds.has(c.id)) && (
@@ -1028,7 +1028,13 @@ export function AdminLitterDetail() {
 													<div className="min-w-0 flex-1">
 														<div className="flex items-center gap-1.5 flex-wrap">
 															<span className="font-medium text-sm text-warm-900">{c.firstName} {c.lastName}</span>
-															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-600">Platform</span>
+															{c.depositStatus === 'paid' ? (
+																<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Deposit · Paid</span>
+															) : c.depositStatus === 'pending' ? (
+																<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Deposit · Pending</span>
+															) : (
+																<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500">No Deposit</span>
+															)}
 															{notifAt && <NotifyTimer since={notifAt} />}
 															{isNotified && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
 														</div>
