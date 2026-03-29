@@ -800,9 +800,9 @@ export function AdminLitterDetail() {
 			{/* Potential Clients */}
 			<Card className="p-6 mb-6">
 				<div className="flex items-center justify-between mb-3">
-					<h3 className="font-semibold text-warm-800">Potential Clients</h3>
+					<h3 className="text-base font-bold text-warm-900">Potential Clients</h3>
 					{(matchingClients.length > 0 || masterListClients.length > 0) && (
-						<span className="text-xs text-warm-400">{matchingClients.length + masterListClients.length} match{matchingClients.length + masterListClients.length !== 1 ? 'es' : ''}</span>
+						<span className="text-xs font-medium text-warm-500">{matchingClients.length + masterListClients.length} match{matchingClients.length + masterListClients.length !== 1 ? 'es' : ''}</span>
 					)}
 				</div>
 
@@ -864,8 +864,9 @@ export function AdminLitterDetail() {
 				) : (
 					<div>
 						{/* Litter Matched Waitlist */}
-						<div className="flex items-center justify-between px-1 py-2 mb-2 border-b border-warm-200">
-							<span className="text-sm font-semibold text-warm-800">Litter Matched Waitlist</span>
+						<div className="flex items-center gap-3 mb-3">
+							<span className="text-xs font-semibold uppercase tracking-wider text-warm-600 flex-shrink-0">Litter Matched Waitlist</span>
+							<div className="h-px flex-1 bg-warm-300" />
 							{notifyOpen && (
 								<div className="flex items-center gap-2">
 									{matchingClients.some((mc) => selectedIds.has(mc.id)) && (
@@ -980,8 +981,9 @@ export function AdminLitterDetail() {
 						{/* Global Waitlist */}
 						{(masterListClients.length > 0 || masterListLoading) && (
 							<>
-								<div className="flex items-center justify-between px-1 py-2 mb-2 border-b border-warm-200">
-									<span className="text-sm font-semibold text-warm-800">Global Waitlist</span>
+								<div className="flex items-center gap-3 mb-3 mt-5">
+									<span className="text-xs font-semibold uppercase tracking-wider text-warm-600 flex-shrink-0">Global Waitlist</span>
+									<div className="h-px flex-1 bg-warm-300" />
 									{notifyOpen && masterListClients.length > 0 && (
 										<div className="flex items-center gap-2">
 											{masterListClients.some((c) => selectedIds.has(c.id)) && (
