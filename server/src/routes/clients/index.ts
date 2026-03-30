@@ -1,5 +1,5 @@
 import Elysia, { t } from 'elysia';
-import { eq, asc, sql } from 'drizzle-orm';
+import { eq, asc, max, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { clients, clientActivity } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
@@ -252,9 +252,20 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				})
 				: null;
 
+			// When entering the waitlist, place client at the bottom by assigning
+			// a priority one step below the current maximum
+			let newPriority: number | undefined;
+			if (body.stage === 'waitlisted' && current?.stage !== 'waitlisted') {
+				const [{ maxPriority }] = await db
+					.select({ maxPriority: max(clients.priority) })
+					.from(clients)
+					.where(eq(clients.stage, 'waitlisted'));
+				newPriority = (maxPriority ?? 0) + 10;
+			}
+
 			const [updated] = await db
 				.update(clients)
-				.set({ ...body, updatedAt: new Date() })
+				.set({ ...body, ...(newPriority !== undefined ? { priority: newPriority } : {}), updatedAt: new Date() })
 				.where(eq(clients.id, params.id))
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Client not found' });
