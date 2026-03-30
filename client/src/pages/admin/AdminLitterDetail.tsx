@@ -459,52 +459,58 @@ export function AdminLitterDetail() {
 					{/* Puppies */}
 					<div>
 						<label className="block text-xs font-medium text-warm-500 mb-2">Puppies</label>
-						{pendingPuppies.length > 0 && (
-							<div className="space-y-1 mb-3">
-								{pendingPuppies.map((p, i) => (
-									<div key={i} className="flex items-center gap-3 py-1.5 px-3 bg-warm-50 rounded-lg text-sm">
-										<span className="w-3 h-3 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
-										<span className="text-warm-700">{p.colour} {p.sex}</span>
-										<button
-											type="button"
-											onClick={() => setPendingPuppies((list) => list.filter((_, j) => j !== i))}
-											className="ml-auto text-warm-400 hover:text-red-500 text-xs"
-										>Remove</button>
+						{['planned', 'confirmed'].includes(newForm.status) ? (
+							<p className="text-xs text-warm-400">Puppies can be added once the litter is born.</p>
+						) : (
+							<>
+								{pendingPuppies.length > 0 && (
+									<div className="space-y-1 mb-3">
+										{pendingPuppies.map((p, i) => (
+											<div key={i} className="flex items-center gap-3 py-1.5 px-3 bg-warm-50 rounded-lg text-sm">
+												<span className="w-3 h-3 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
+												<span className="text-warm-700">{p.colour} {p.sex}</span>
+												<button
+													type="button"
+													onClick={() => setPendingPuppies((list) => list.filter((_, j) => j !== i))}
+													className="ml-auto text-warm-400 hover:text-red-500 text-xs"
+												>Remove</button>
+											</div>
+										))}
 									</div>
-								))}
-							</div>
+								)}
+								<div className="flex gap-2">
+									<input
+										placeholder="Collar colour"
+										value={newPuppyDraft.collarColour}
+										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, collarColour: e.target.value }))}
+										className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+									/>
+									<input
+										placeholder="Coat colour"
+										value={newPuppyDraft.colour}
+										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, colour: e.target.value }))}
+										className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+									/>
+									<select
+										value={newPuppyDraft.sex}
+										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, sex: e.target.value as 'male' | 'female' }))}
+										className="px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+									>
+										<option value="male">M</option>
+										<option value="female">F</option>
+									</select>
+									<button
+										type="button"
+										onClick={() => {
+											if (!newPuppyDraft.collarColour || !newPuppyDraft.colour) return;
+											setPendingPuppies((p) => [...p, newPuppyDraft]);
+											setNewPuppyDraft({ collarColour: '', sex: 'male', colour: '' });
+										}}
+										className="px-4 py-2 bg-warm-100 text-warm-700 text-sm rounded-lg hover:bg-warm-200 transition-colors"
+									>Add</button>
+								</div>
+							</>
 						)}
-						<div className="flex gap-2">
-							<input
-								placeholder="Collar colour"
-								value={newPuppyDraft.collarColour}
-								onChange={(e) => setNewPuppyDraft((p) => ({ ...p, collarColour: e.target.value }))}
-								className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
-							/>
-							<input
-								placeholder="Coat colour"
-								value={newPuppyDraft.colour}
-								onChange={(e) => setNewPuppyDraft((p) => ({ ...p, colour: e.target.value }))}
-								className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
-							/>
-							<select
-								value={newPuppyDraft.sex}
-								onChange={(e) => setNewPuppyDraft((p) => ({ ...p, sex: e.target.value as 'male' | 'female' }))}
-								className="px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
-							>
-								<option value="male">M</option>
-								<option value="female">F</option>
-							</select>
-							<button
-								type="button"
-								onClick={() => {
-									if (!newPuppyDraft.collarColour || !newPuppyDraft.colour) return;
-									setPendingPuppies((p) => [...p, newPuppyDraft]);
-									setNewPuppyDraft({ collarColour: '', sex: 'male', colour: '' });
-								}}
-								className="px-4 py-2 bg-warm-100 text-warm-700 text-sm rounded-lg hover:bg-warm-200 transition-colors"
-							>Add</button>
-						</div>
 					</div>
 
 					{formError && <p className="text-sm text-red-600">{formError}</p>}
