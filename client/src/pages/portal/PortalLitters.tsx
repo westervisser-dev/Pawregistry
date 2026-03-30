@@ -1,12 +1,36 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
-import type { LitterWithDogs } from '@paw-registry/shared';
+import type { LitterWithDogs, LitterMatchResult, LitterMatchTier } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, EmptyState, BreedBadge } from '@/components/ui';
+import { useAuthStore } from '@/stores/authStore';
+
+const tierDot: Record<LitterMatchTier, string> = {
+	great:   'bg-green-500',
+	good:    'bg-teal-500',
+	partial: 'bg-amber-400',
+	low:     'bg-warm-300',
+};
+
+const tierText: Record<LitterMatchTier, string> = {
+	great:   'text-green-700',
+	good:    'text-teal-700',
+	partial: 'text-amber-700',
+	low:     'text-warm-400',
+};
+
+const tierLabel: Record<LitterMatchTier, string> = {
+	great:   'Great match',
+	good:    'Good match',
+	partial: 'Partial match',
+	low:     'Low match',
+};
 
 export function PortalLitters() {
 	const [litters, setLitters] = useState<LitterWithDogs[]>([]);
+	const [matches, setMatches] = useState<Record<string, LitterMatchResult>>({});
 	const [loading, setLoading] = useState(true);
+	const { user } = useAuthStore();
 
 	useEffect(() => {
 		document.title = 'Litters — My Portal';
@@ -14,13 +38,31 @@ export function PortalLitters() {
 	}, []);
 
 	useEffect(() => {
-		api.litters.get().then(({ data }) => {
-			if (data) setLitters(data as LitterWithDogs[]);
+		const fetchAll = async () => {
+			const [littersRes, matchesRes] = await Promise.all([
+				api.litters.get(),
+				user
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					? (api.litters.portal as any)['my-matches'].get()
+					: Promise.resolve({ data: null }),
+			]);
+
+			if (littersRes.data) setLitters(littersRes.data as LitterWithDogs[]);
+
+			if (matchesRes.data) {
+				const map: Record<string, LitterMatchResult> = {};
+				(matchesRes.data as LitterMatchResult[]).forEach((m) => { map[m.litterId] = m; });
+				setMatches(map);
+			}
+
 			setLoading(false);
-		});
-	}, []);
+		};
+		fetchAll();
+	}, [user]);
 
 	if (loading) return <LoadingPage />;
+
+	const hasMatches = Object.keys(matches).length > 0;
 
 	return (
 		<div>
@@ -35,6 +77,7 @@ export function PortalLitters() {
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 					{litters.map((litter) => {
 						const hasAvailable = (litter.availableCount ?? 0) > 0;
+						const match = matches[litter.id] as LitterMatchResult | undefined;
 
 						return (
 							<Link
@@ -71,11 +114,25 @@ export function PortalLitters() {
 										)}
 									</div>
 
-									{hasAvailable && (
-										<p className="mt-3 text-sm font-semibold text-brand-600 pr-6">
-											{litter.availableCount} {litter.availableCount === 1 ? 'puppy' : 'puppies'} available
-										</p>
-									)}
+									<div className="flex items-end justify-between mt-3 pr-6">
+										{hasAvailable ? (
+											<p className="text-sm font-semibold text-brand-600">
+												{litter.availableCount} {litter.availableCount === 1 ? 'puppy' : 'puppies'} available
+											</p>
+										) : <span />}
+
+										{hasMatches && match && (
+											<div className="flex items-center gap-1.5">
+												<div
+													aria-hidden="true"
+													className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tierDot[match.tier]}`}
+												/>
+												<span className={`text-xs font-medium ${tierText[match.tier]}`}>
+													{tierLabel[match.tier]}
+												</span>
+											</div>
+										)}
+									</div>
 
 									<span className="absolute bottom-4 right-5 text-xs text-warm-300 group-hover:text-warm-400 group-hover:translate-x-0.5 transition-all duration-150">
 										→

@@ -1,9 +1,48 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '@/lib/api';
-import type { LitterWithDogs } from '@paw-registry/shared';
+import type { LitterWithDogs, LitterMatchResult, LitterMatchTier } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
+
+// ─── Match tier presentation ──────────────────────────────────────────────────
+
+const tierCard: Record<LitterMatchTier, string> = {
+	great:   'bg-green-50 border-green-200',
+	good:    'bg-teal-50 border-teal-200',
+	partial: 'bg-amber-50 border-amber-200',
+	low:     'bg-warm-100 border-warm-200',
+};
+
+const tierDot: Record<LitterMatchTier, string> = {
+	great:   'bg-green-500',
+	good:    'bg-teal-500',
+	partial: 'bg-amber-400',
+	low:     'bg-warm-300',
+};
+
+const tierHeading: Record<LitterMatchTier, string> = {
+	great:   'Great match for you',
+	good:    'Good match for you',
+	partial: 'Partial match',
+	low:     'Low match',
+};
+
+const tierHeadingColor: Record<LitterMatchTier, string> = {
+	great:   'text-green-800',
+	good:    'text-teal-800',
+	partial: 'text-amber-800',
+	low:     'text-warm-600',
+};
+
+const tierPill: Record<LitterMatchTier, string> = {
+	great:   'bg-green-100 text-green-700',
+	good:    'bg-teal-100 text-teal-700',
+	partial: 'bg-amber-100 text-amber-700',
+	low:     'bg-warm-200 text-warm-500',
+};
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function PortalLitterDetail() {
 	const { id } = useParams<{ id: string }>();
@@ -14,6 +53,7 @@ export function PortalLitterDetail() {
 	const [submittingInterest, setSubmittingInterest] = useState<string | null>(null);
 	const [interestMessage, setInterestMessage] = useState<Record<string, string>>({});
 	const [eligibility, setEligibility] = useState<{ isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null>(null);
+	const [myMatch, setMyMatch] = useState<LitterMatchResult | null>(null);
 
 	useEffect(() => {
 		if (!id) return;
@@ -25,11 +65,20 @@ export function PortalLitterDetail() {
 
 	useEffect(() => {
 		if (!id || !user) return;
+
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: { interests: Array<{ puppyId: string; status: string }>; isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null }) => {
 			if (data) {
 				setMyInterestPuppyIds(new Set(data.interests.map((i) => i.puppyId)));
 				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo });
+			}
+		}).catch(() => {});
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.litters.portal as any)['my-matches'].get().then(({ data }: { data: LitterMatchResult[] | null }) => {
+			if (data) {
+				const match = data.find((m) => m.litterId === id);
+				if (match) setMyMatch(match);
 			}
 		}).catch(() => {});
 	}, [id, user]);
@@ -63,7 +112,7 @@ export function PortalLitterDetail() {
 			</Link>
 
 			{/* Header */}
-			<div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-8">
+			<div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-6">
 				<div>
 					<div className="flex items-center gap-3 mb-1.5">
 						<h1 className="font-serif text-2xl font-bold text-warm-900">{litter.name}</h1>
@@ -80,6 +129,42 @@ export function PortalLitterDetail() {
 					</div>
 				</div>
 			</div>
+
+			{/* Match card */}
+			{myMatch && (
+				<div
+					className={`mb-8 p-4 rounded-xl border flex items-start gap-3 ${tierCard[myMatch.tier]}`}
+					role="status"
+					aria-label={`Litter match: ${tierHeading[myMatch.tier]}`}
+				>
+					<div
+						aria-hidden="true"
+						className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${tierDot[myMatch.tier]}`}
+					/>
+					<div>
+						<p className={`text-sm font-semibold ${tierHeadingColor[myMatch.tier]}`}>
+							{tierHeading[myMatch.tier]}
+						</p>
+						{myMatch.matchReasons.length > 0 && (
+							<div className="flex flex-wrap gap-1.5 mt-2">
+								{myMatch.matchReasons.map((reason) => (
+									<span
+										key={reason}
+										className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${tierPill[myMatch.tier]}`}
+									>
+										{reason}
+									</span>
+								))}
+							</div>
+						)}
+						{myMatch.tier === 'low' && (
+							<p className="text-xs text-warm-500 mt-1.5">
+								This litter doesn't match your breed preference, but you're welcome to browse.
+							</p>
+						)}
+					</div>
+				</div>
+			)}
 
 			{/* Parents */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">

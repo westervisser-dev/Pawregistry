@@ -148,6 +148,97 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		}
 	)
 
+	// Client: get match tier for every public litter based on own preferences
+	.get('/portal/my-matches', async ({ user, error }) => {
+		if (!user) return error(401, { error: 'Unauthorized', message: 'Not authenticated' });
+
+		const client = await db.query.clients.findFirst({
+			where: eq(clients.userId, user.id),
+			columns: { applicationData: true },
+		});
+		if (!client) return error(403, { error: 'Forbidden', message: 'No client account found' });
+
+		const app = (client.applicationData ?? {}) as Record<string, unknown>;
+		const pref1 = parseBreedSize(app.preferredBreedSize as string | null);
+		const pref2 = parseBreedSize(app.secondChoiceBreedSize as string | null);
+
+		// No breed preferences set — nothing to match against
+		if (!pref1 && !pref2) return [];
+
+		const prefSex = (app.preferredSex as string | null) ?? null;
+		const prefColour = ((app.preferredColour as string | null) ?? '').toLowerCase().trim();
+		const openToOppositeSex = !!(app.considerOppositeSex);
+		const openToOtherColour = !!(app.considerOtherColour);
+		const openToOtherBreedSize = !!(app.considerOtherBreedSize);
+
+		const allLitters = await db.query.litters.findMany({
+			where: eq(litters.isPublic, true),
+			columns: { id: true, breed: true },
+			with: { puppies: { columns: { sex: true, colour: true } } },
+		});
+
+		return allLitters.map((litter) => {
+			if (!litter.breed) return { litterId: litter.id, tier: 'low' as const, matchReasons: [] };
+
+			const litterBreedSize = parseBreedSize(litter.breed);
+			if (!litterBreedSize) return { litterId: litter.id, tier: 'low' as const, matchReasons: [] };
+
+			const hasPuppies = litter.puppies.length > 0;
+			const puppySexes = hasPuppies ? [...new Set(litter.puppies.map((p) => p.sex))] : [];
+			const puppyColours = hasPuppies ? [...new Set(litter.puppies.map((p) => p.colour.toLowerCase()))] : [];
+
+			let score = 0;
+			const reasons: string[] = [];
+
+			const exactMatch1 = pref1 && pref1.breed === litterBreedSize.breed && pref1.size === litterBreedSize.size;
+			const exactMatch2 = pref2 && pref2.breed === litterBreedSize.breed && pref2.size === litterBreedSize.size;
+			const breedOnlyMatch1 = pref1 && pref1.breed === litterBreedSize.breed && pref1.size !== litterBreedSize.size;
+			const breedOnlyMatch2 = pref2 && pref2.breed === litterBreedSize.breed && pref2.size !== litterBreedSize.size;
+
+			if (exactMatch1) {
+				score += 50;
+				reasons.push('Your first choice breed');
+			} else if (exactMatch2) {
+				score += 35;
+				reasons.push('Your second choice breed');
+			} else if (breedOnlyMatch1 && openToOtherBreedSize) {
+				score += 25;
+				reasons.push('Your preferred breed, different size');
+			} else if (breedOnlyMatch2 && openToOtherBreedSize) {
+				score += 20;
+				reasons.push('Your second choice breed, different size');
+			}
+
+			if (hasPuppies && prefSex) {
+				if (prefSex === 'no_preference') {
+					score += 20;
+				} else if (puppySexes.includes(prefSex as 'male' | 'female')) {
+					score += 20;
+					reasons.push(`${prefSex === 'male' ? 'Male' : 'Female'} puppies available`);
+				} else if (openToOppositeSex) {
+					score += 10;
+				}
+			}
+
+			if (hasPuppies && prefColour) {
+				if (puppyColours.some((c) => c.includes(prefColour) || prefColour.includes(c))) {
+					score += 15;
+					reasons.push('Your preferred colour available');
+				} else if (openToOtherColour) {
+					score += 8;
+				}
+			}
+
+			let tier: 'great' | 'good' | 'partial' | 'low';
+			if (score >= 60) tier = 'great';
+			else if (score >= 35) tier = 'good';
+			else if (score > 0) tier = 'partial';
+			else tier = 'low';
+
+			return { litterId: litter.id, tier, matchReasons: reasons };
+		});
+	})
+
 	// ── Admin routes ──
 	.use(adminPlugin)
 

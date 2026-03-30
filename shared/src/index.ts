@@ -451,6 +451,16 @@ export interface MatchingClient {
 	matchReasons: string[];
 }
 
+// ─── Client-facing litter match ──────────────────────────────────────────────
+
+export type LitterMatchTier = 'great' | 'good' | 'partial' | 'low';
+
+export interface LitterMatchResult {
+	litterId: string;
+	tier: LitterMatchTier;
+	matchReasons: string[];
+}
+
 // ─── API response helpers ────────────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {
