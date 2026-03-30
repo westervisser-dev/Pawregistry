@@ -50,18 +50,18 @@ export function AdminClients() {
 	const notYetWaitlistedClients = clients.filter((c) => (PRE_WAITLIST_STAGES as string[]).includes(c.stage));
 
 	const handleDepositReorder = async (newOrder: Client[]) => {
-		const combined = [...newOrder, ...noDepositQueueClients, ...notYetWaitlistedClients];
-		setClients(combined);
+		const waitlistOnly = [...newOrder, ...noDepositQueueClients];
+		setClients([...waitlistOnly, ...notYetWaitlistedClients]);
 		await api.clients.admin.waitlist.reorder.patch({
-			order: combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
+			order: waitlistOnly.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
 		});
 	};
 
 	const handleNoDepositReorder = async (newOrder: Client[]) => {
-		const combined = [...depositQueueClients, ...newOrder, ...notYetWaitlistedClients];
-		setClients(combined);
+		const waitlistOnly = [...depositQueueClients, ...newOrder];
+		setClients([...waitlistOnly, ...notYetWaitlistedClients]);
 		await api.clients.admin.waitlist.reorder.patch({
-			order: combined.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
+			order: waitlistOnly.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
 		});
 	};
 
