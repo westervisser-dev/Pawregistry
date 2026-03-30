@@ -14,7 +14,7 @@ export function AdminDogs() {
 	useEffect(() => {
 		setLoading(true);
 		api.dogs.get({ query: {} }).then(({ data }) => {
-			if (data) setDogs(data as Dog[]);
+			if (data) setDogs((data as Dog[]).sort((a, b) => a.name.localeCompare(b.name)));
 			setLoading(false);
 		});
 		if ((location.state as { toast?: string })?.toast) {

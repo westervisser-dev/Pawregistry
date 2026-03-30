@@ -12,7 +12,13 @@ export function AdminLitters() {
 
 	useEffect(() => {
 		api.litters.admin.all.get().then(({ data }) => {
-			if (data) setLitters(data as Litter[]);
+			if (data) {
+				const statusOrder: Record<string, number> = { planned: 0, confirmed: 1, born: 2, weaning: 3, available: 4, completed: 5 };
+				setLitters((data as Litter[]).sort((a, b) => {
+					const sd = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+					return sd !== 0 ? sd : a.name.localeCompare(b.name);
+				}));
+			}
 			setLoading(false);
 		});
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
