@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { getBreedSizeLabel } from '@paw-registry/shared';
 
 // ─── Card ────────────────────────────────────────────────────────────────────
 
@@ -305,7 +306,7 @@ function hashBreed(breed: string): number {
 
 export function BreedBadge({ breed }: { breed: string }) {
 	const variant = breedColours[hashBreed(breed) % breedColours.length];
-	return <Badge variant={variant}>{breed}</Badge>;
+	return <Badge variant={variant}>{getBreedSizeLabel(breed)}</Badge>;
 }
 
 // ─── Loading spinner ─────────────────────────────────────────────────────────
