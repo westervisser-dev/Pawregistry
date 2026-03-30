@@ -74,7 +74,9 @@ export function AdminLitterDetail() {
 	});
 	const [galleryImages, setGalleryImages] = useState<LitterImage[]>([]);
 	const [galleryError, setGalleryError] = useState('');
+	const [galleryUploading, setGalleryUploading] = useState(false);
 	const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
+	const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string }>>([]);
 	const [newPuppyDraft, setNewPuppyDraft] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
 
@@ -149,8 +151,13 @@ export function AdminLitterDetail() {
 			if (error) { setFormError('Failed to save. Please try again.'); return; }
 			if (data) {
 				const newId = (data as Litter).id;
-				for (const file of pendingPhotos.slice(0, 30)) {
-					await api.litters({ id: newId }).gallery.post({ file });
+				const photos = pendingPhotos.slice(0, 30);
+				if (photos.length > 0) {
+					for (let i = 0; i < photos.length; i++) {
+						setUploadProgress({ current: i + 1, total: photos.length });
+						await api.litters({ id: newId }).gallery.post({ file: photos[i] });
+					}
+					setUploadProgress(null);
 				}
 				for (const puppy of pendingPuppies) {
 					await api.litters({ id: newId }).puppies.post(puppy);
@@ -528,7 +535,10 @@ export function AdminLitterDetail() {
 						disabled={saving}
 						className="self-start px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 disabled:opacity-50"
 					>
-						{saving ? 'Saving…' : 'Create Litter'}
+						{uploadProgress
+						? `Uploading photo ${uploadProgress.current} of ${uploadProgress.total}…`
+						: saving ? 'Saving…' : 'Create Litter'
+					}
 					</button>
 				</Card>
 			</div>
@@ -586,7 +596,9 @@ export function AdminLitterDetail() {
 						)}
 					</div>
 					<div className="flex items-center gap-3">
-						{galleryImages.length < 30 ? (
+						{galleryUploading ? (
+							<p className="text-xs text-warm-500">Uploading images…</p>
+						) : galleryImages.length < 30 ? (
 							<label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-warm-200 bg-white text-xs text-warm-600 hover:bg-warm-50 transition-colors">
 								<span>Upload photos</span>
 								<input
@@ -599,11 +611,13 @@ export function AdminLitterDetail() {
 										e.target.value = '';
 										if (!files.length || !id) return;
 										const remaining = 30 - galleryImages.length;
+										setGalleryUploading(true);
 										for (const file of files.slice(0, remaining)) {
 											const { data, error } = await api.litters({ id }).gallery.post({ file });
 											if (error) { setGalleryError('One or more uploads failed.'); break; }
 											if (data) setGalleryImages((prev) => [...prev, data as LitterImage]);
 										}
+										setGalleryUploading(false);
 									}}
 									className="hidden"
 								/>
