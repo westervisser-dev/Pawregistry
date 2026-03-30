@@ -1,5 +1,5 @@
 import Elysia, { t } from 'elysia';
-import { eq, asc, desc, sql } from 'drizzle-orm';
+import { eq, asc, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { clients, clientActivity } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
@@ -119,7 +119,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			.orderBy(
 				sql`CASE WHEN ${clients.depositStatus} != 'none' THEN 0 ELSE 1 END`,
 				asc(clients.priority),
-				desc(clients.createdAt),
+				asc(clients.createdAt),
 			);
 
 		const position = waitlisted.findIndex(r => r.id === client.id) + 1;
@@ -203,7 +203,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		async ({ query }) => {
 			const rows = await db.query.clients.findMany({
 				where: query.stage ? eq(clients.stage, query.stage) : undefined,
-				orderBy: [asc(clients.priority), desc(clients.createdAt)],
+				orderBy: [asc(clients.priority), asc(clients.createdAt)],
 				with: { puppy: true, litter: true },
 			});
 			return rows;
