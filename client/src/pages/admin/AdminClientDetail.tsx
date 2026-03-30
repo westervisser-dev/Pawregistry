@@ -211,6 +211,7 @@ export function AdminClientDetail() {
 	const [documents, setDocuments] = useState<Document[]>([]);
 	const [templates, setTemplates] = useState<DocumentTemplateWithChecklist[]>([]);
 	const [signing, setSigning] = useState<string | null>(null);
+	const [removingDoc, setRemovingDoc] = useState<string | null>(null);
 	const [uploadFile, setUploadFile] = useState<File | null>(null);
 	const [uploadType, setUploadType] = useState<DocumentType>('other');
 	const [uploadLabel, setUploadLabel] = useState('');
@@ -281,6 +282,14 @@ export function AdminClientDetail() {
 			navigate('/admin/clients', { state: { toast: `${client?.firstName ?? 'Client'} deleted.` } });
 		}
 		setDeleting(false);
+	};
+
+	const removeDocument = async (docId: string) => {
+		setRemovingDoc(docId);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		await (api.documents as any).admin({ id: docId }).delete();
+		setRemovingDoc(null);
+		loadDocuments();
 	};
 
 	const signDocument = async (docId: string) => {
@@ -581,6 +590,13 @@ export function AdminClientDetail() {
 												{signing === doc.id ? 'Signing…' : 'Mark signed'}
 											</button>
 										)}
+										<button
+											onClick={() => removeDocument(doc.id)}
+											disabled={removingDoc === doc.id}
+											className="px-2.5 py-1 rounded text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 disabled:opacity-50 transition-colors"
+										>
+											{removingDoc === doc.id ? 'Removing…' : 'Remove'}
+										</button>
 									</div>
 								</div>
 							))}

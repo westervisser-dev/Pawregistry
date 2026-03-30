@@ -22,6 +22,13 @@ export const STORAGE_BUCKETS = {
 	templates: 'document-templates',
 } as const;
 
+export async function deleteFile(bucket: string, fileUrl: string): Promise<void> {
+	const marker = `/storage/v1/object/public/${bucket}/`;
+	const path = fileUrl.split(marker)[1];
+	if (!path) return;
+	await supabase.storage.from(bucket).remove([decodeURIComponent(path)]);
+}
+
 export async function uploadFile(
 	bucket: string,
 	path: string,

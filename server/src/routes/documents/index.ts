@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { documents, clients } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
-import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
+import { uploadFile, deleteFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { logActivity } from '../../lib/activity';
 
 export const documentsRoutes = new Elysia({ prefix: '/documents' })
@@ -51,6 +51,14 @@ export const documentsRoutes = new Elysia({ prefix: '/documents' })
 			}),
 		}
 	)
+
+	.delete('/admin/:id', async ({ params, error }) => {
+		const doc = await db.query.documents.findFirst({ where: eq(documents.id, params.id) });
+		if (!doc) return error(404, { error: 'Not found', message: 'Document not found' });
+		await deleteFile(STORAGE_BUCKETS.documents, doc.fileUrl);
+		await db.delete(documents).where(eq(documents.id, params.id));
+		return { success: true };
+	})
 
 	.patch(
 		'/admin/:id/sign',
