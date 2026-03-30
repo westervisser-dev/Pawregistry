@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
-import type { Client, ClientStage, ClientActivity, EmailLog } from '@paw-registry/shared';
+import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, DocumentType } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
@@ -208,6 +208,27 @@ export function AdminClientDetail() {
 	const [impersonating, setImpersonating] = useState(false);
 	const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
 	const [activities, setActivities] = useState<ClientActivity[]>([]);
+	const [documents, setDocuments] = useState<Document[]>([]);
+	const [templates, setTemplates] = useState<DocumentTemplateWithChecklist[]>([]);
+	const [signing, setSigning] = useState<string | null>(null);
+	const [uploadFile, setUploadFile] = useState<File | null>(null);
+	const [uploadType, setUploadType] = useState<DocumentType>('other');
+	const [uploadLabel, setUploadLabel] = useState('');
+	const [uploading, setUploading] = useState(false);
+	const [uploadError, setUploadError] = useState('');
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const loadDocuments = () => {
+		if (!id) return;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.documents as any).admin({ clientId: id }).get().then(({ data }: { data: Document[] | null }) => {
+			if (data) setDocuments(data);
+		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.templates as any).admin({ clientId: id }).checklist.get().then(({ data }: { data: DocumentTemplateWithChecklist[] | null }) => {
+			if (data) setTemplates(data);
+		});
+	};
 
 	const load = () => {
 		if (!id) return;
@@ -223,6 +244,7 @@ export function AdminClientDetail() {
 		(api.clients.admin({ id }) as any).activity.get().then(({ data }: { data: ClientActivity[] | null }) => {
 			if (data) setActivities(data);
 		});
+		loadDocuments();
 	};
 
 	useEffect(() => { load(); }, [id]);
@@ -259,6 +281,39 @@ export function AdminClientDetail() {
 			navigate('/admin/clients', { state: { toast: `${client?.firstName ?? 'Client'} deleted.` } });
 		}
 		setDeleting(false);
+	};
+
+	const signDocument = async (docId: string) => {
+		setSigning(docId);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		await (api.documents as any).admin({ id: docId }).sign.patch();
+		setSigning(null);
+		loadDocuments();
+		load();
+	};
+
+	const uploadDocument = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!id || !uploadFile || !uploadLabel.trim()) return;
+		setUploading(true);
+		setUploadError('');
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { error } = await (api.documents as any).admin({ clientId: id }).post({
+			file: uploadFile,
+			type: uploadType,
+			label: uploadLabel.trim(),
+		});
+		setUploading(false);
+		if (error) {
+			setUploadError('Upload failed. Please try again.');
+			return;
+		}
+		setUploadFile(null);
+		setUploadLabel('');
+		setUploadType('other');
+		if (fileInputRef.current) fileInputRef.current.value = '';
+		loadDocuments();
+		load();
 	};
 
 	if (loading) return <LoadingPage />;
@@ -430,6 +485,159 @@ export function AdminClientDetail() {
 						</dl>
 					</div>
 				</div>
+			</Card>
+
+			{/* Documents */}
+			<Card className="p-5 mb-6">
+				<h3 className="font-medium text-warm-900 mb-4">Documents</h3>
+
+				{/* Template checklist */}
+				{templates.length > 0 && (
+					<div className="mb-6">
+						<p className="text-xs font-semibold text-amber-700 uppercase tracking-widest mb-2">
+							Client-submitted Forms ({templates.filter(t => t.checkedAt).length}/{templates.length})
+						</p>
+						<div className="divide-y divide-black/[0.05]">
+							{templates.map(t => (
+								<div key={t.id} className="py-2.5 flex items-center gap-3">
+									<span className="text-base shrink-0" aria-hidden="true">
+										{t.checkedAt ? '✅' : '⬜'}
+									</span>
+									<div className="flex-1 min-w-0">
+										<p className="text-sm text-warm-800 truncate">{t.name}</p>
+										{t.category && (
+											<p className="text-xs text-warm-400">{t.category}</p>
+										)}
+									</div>
+									<div className="flex items-center gap-2 shrink-0">
+										{t.checkedAt && (
+											<span className="text-xs text-warm-400">
+												{new Date(t.checkedAt).toLocaleDateString()}
+											</span>
+										)}
+										{t.uploadedFileUrl ? (
+											<a
+												href={t.uploadedFileUrl}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="px-2.5 py-1 rounded text-xs font-medium bg-warm-100 text-warm-700 hover:bg-warm-200 transition-colors"
+											>
+												View →
+											</a>
+										) : (
+											<span className="text-xs text-warm-300 italic">Not submitted</span>
+										)}
+										<a
+											href={t.fileUrl}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="px-2.5 py-1 rounded text-xs font-medium bg-warm-50 text-warm-500 hover:bg-warm-100 transition-colors"
+										>
+											Template
+										</a>
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				)}
+
+				{/* Admin-uploaded documents */}
+				<div className="mb-5">
+					<p className="text-xs font-semibold text-amber-700 uppercase tracking-widest mb-2">Admin Documents</p>
+					{documents.length === 0 ? (
+						<p className="text-sm text-warm-400 mb-3">No documents uploaded yet.</p>
+					) : (
+						<div className="divide-y divide-black/[0.05] mb-3">
+							{documents.map(doc => (
+								<div key={doc.id} className="py-2.5 flex items-center gap-3">
+									<span className="text-base shrink-0" aria-hidden="true">📄</span>
+									<div className="flex-1 min-w-0">
+										<p className="text-sm text-warm-800 truncate">{doc.label}</p>
+										<p className="text-xs text-warm-400">
+											{doc.type} · {new Date(doc.createdAt).toLocaleDateString()}
+											{doc.signedAt && (
+												<span className="ml-2 inline-flex items-center gap-0.5 text-green-600">
+													✓ Signed {new Date(doc.signedAt).toLocaleDateString()}
+												</span>
+											)}
+										</p>
+									</div>
+									<div className="flex items-center gap-2 shrink-0">
+										<a
+											href={doc.fileUrl}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="px-2.5 py-1 rounded text-xs font-medium bg-warm-100 text-warm-700 hover:bg-warm-200 transition-colors"
+										>
+											View →
+										</a>
+										{!doc.signedAt && (
+											<button
+												onClick={() => signDocument(doc.id)}
+												disabled={signing === doc.id}
+												className="px-2.5 py-1 rounded text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 transition-colors"
+											>
+												{signing === doc.id ? 'Signing…' : 'Mark signed'}
+											</button>
+										)}
+									</div>
+								</div>
+							))}
+						</div>
+					)}
+				</div>
+
+				{/* Upload form */}
+				<form onSubmit={uploadDocument} className="border border-black/[0.07] rounded-lg p-4 bg-warm-50/50">
+					<p className="text-xs font-semibold text-warm-600 uppercase tracking-wide mb-3">Upload Document</p>
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+						<div>
+							<label className="block text-xs text-warm-500 mb-1">Label</label>
+							<input
+								type="text"
+								value={uploadLabel}
+								onChange={e => setUploadLabel(e.target.value)}
+								placeholder="e.g. Signed Contract"
+								className="w-full px-3 py-1.5 text-sm border border-black/[0.1] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
+								required
+							/>
+						</div>
+						<div>
+							<label className="block text-xs text-warm-500 mb-1">Type</label>
+							<select
+								value={uploadType}
+								onChange={e => setUploadType(e.target.value as DocumentType)}
+								className="w-full px-3 py-1.5 text-sm border border-black/[0.1] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
+							>
+								<option value="contract">Contract</option>
+								<option value="invoice">Invoice</option>
+								<option value="health_record">Health Record</option>
+								<option value="go_home_pack">Go-Home Pack</option>
+								<option value="other">Other</option>
+							</select>
+						</div>
+					</div>
+					<div className="mb-3">
+						<label className="block text-xs text-warm-500 mb-1">File</label>
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+							onChange={e => setUploadFile(e.target.files?.[0] ?? null)}
+							className="w-full text-sm text-warm-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-warm-100 file:text-warm-700 hover:file:bg-warm-200"
+							required
+						/>
+					</div>
+					{uploadError && <p role="alert" className="text-xs text-red-500 mb-2">{uploadError}</p>}
+					<button
+						type="submit"
+						disabled={uploading || !uploadFile || !uploadLabel.trim()}
+						className="px-4 py-1.5 bg-warm-900 text-white text-xs font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 transition-colors"
+					>
+						{uploading ? 'Uploading…' : 'Upload'}
+					</button>
+				</form>
 			</Card>
 
 			{/* Portal access */}

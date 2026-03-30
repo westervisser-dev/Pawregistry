@@ -72,6 +72,24 @@ export const templatesRoutes = new Elysia({ prefix: '/templates' })
 	// ── Admin routes ──
 	.use(adminPlugin)
 
+	.get('/admin/:clientId/checklist', async ({ params }) => {
+		const templates = await db.query.documentTemplates.findMany({
+			orderBy: [asc(documentTemplates.sortOrder), asc(documentTemplates.createdAt)],
+		});
+
+		const checklistItems = await db.query.clientTemplateChecklist.findMany({
+			where: eq(clientTemplateChecklist.clientId, params.clientId),
+		});
+
+		const checklistMap = new Map(checklistItems.map((c) => [c.templateId, c]));
+
+		return templates.map((t) => ({
+			...t,
+			checkedAt: checklistMap.get(t.id)?.checkedAt ?? null,
+			uploadedFileUrl: checklistMap.get(t.id)?.uploadedFileUrl ?? null,
+		}));
+	})
+
 	.get('/admin', async () => {
 		return db.query.documentTemplates.findMany({
 			orderBy: [asc(documentTemplates.sortOrder), asc(documentTemplates.createdAt)],
