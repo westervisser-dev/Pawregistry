@@ -1,12 +1,19 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 
 export function LoginPage() {
+	const navigate = useNavigate();
+	const init = useAuthStore((s) => s.init);
 	const [email, setEmail] = useState('');
 	const [sent, setSent] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
+	const [otp, setOtp] = useState('');
+	const [verifying, setVerifying] = useState(false);
+	const [otpError, setOtpError] = useState('');
 
 	const submit = async () => {
 		if (!email) return;
@@ -19,6 +26,25 @@ export function LoginPage() {
 			return;
 		}
 		setSent(true);
+	};
+
+	const verifyOtp = async () => {
+		if (!otp.trim()) return;
+		setVerifying(true);
+		setOtpError('');
+		const { error: authError } = await supabase.auth.verifyOtp({
+			email,
+			token: otp.trim(),
+			type: 'email',
+		});
+		if (authError) {
+			setVerifying(false);
+			setOtpError('Invalid or expired code. Please check your email and try again.');
+			return;
+		}
+		await init();
+		const { isAdmin } = useAuthStore.getState();
+		navigate(isAdmin ? '/admin' : '/portal', { replace: true });
 	};
 
 	useEffect(() => {
@@ -41,13 +67,45 @@ export function LoginPage() {
 
 				<div className="bg-white rounded-xl border border-warm-200 p-8">
 					{sent ? (
-						<div className="text-center">
-							<div className="text-4xl mb-4">📬</div>
-							<h2 className="font-medium text-warm-900 mb-2">Check your email</h2>
-							<p className="text-warm-500 text-sm">
-								We sent a sign-in link to <strong>{email}</strong>.
-								Click the link in your email to access your portal.
-							</p>
+						<div className="flex flex-col gap-4">
+							<div className="text-center">
+								<div className="text-4xl mb-4">📬</div>
+								<h2 className="font-medium text-warm-900 mb-2">Check your email</h2>
+								<p className="text-warm-500 text-sm">
+									We sent a sign-in link to <strong>{email}</strong>.
+									Click the link in your email, or enter the code below.
+								</p>
+							</div>
+							<div>
+								<label htmlFor="otp-code" className="block text-sm font-medium text-warm-700 mb-1">
+									Sign-in code
+								</label>
+								<input
+									id="otp-code"
+									type="text"
+									inputMode="numeric"
+									value={otp}
+									onChange={(e) => setOtp(e.target.value)}
+									onKeyDown={(e) => e.key === 'Enter' && verifyOtp()}
+									placeholder="Enter code from email"
+									autoComplete="one-time-code"
+									className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 tracking-widest text-center"
+								/>
+							</div>
+							{otpError && <p role="alert" className="text-red-600 text-sm">{otpError}</p>}
+							<button
+								onClick={verifyOtp}
+								disabled={verifying || !otp.trim()}
+								className="w-full py-2.5 bg-brand-500 text-white font-medium rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50 text-sm"
+							>
+								{verifying ? 'Verifying…' : 'Sign in with code'}
+							</button>
+							<button
+								onClick={() => { setSent(false); setOtp(''); setOtpError(''); }}
+								className="text-xs text-warm-400 hover:text-warm-600 text-center"
+							>
+								Use a different email
+							</button>
 						</div>
 					) : (
 						<div className="flex flex-col gap-4">
