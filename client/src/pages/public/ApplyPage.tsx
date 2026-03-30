@@ -365,6 +365,16 @@ export function ApplyPage() {
 	}
 	};
 
+	useEffect(() => {
+		document.title = 'Apply for a Puppy — Paw Registry';
+		return () => { document.title = 'Paw Registry'; };
+	}, []);
+
+	const sizeOptions = form.preferredBreed ? (BREED_SIZES[form.preferredBreed] ?? []) : [];
+	const secondChoiceSizeOptions = form.secondChoiceBreed ? (BREED_SIZES[form.secondChoiceBreed] ?? []) : [];
+	// Same breed, different size options (excludes first choice size)
+	const sameBrandAltSizeOptions = sizeOptions.filter((s) => s.value !== form.preferredSize);
+
 	if (step === 'done') {
 		return (
 			<div className="max-w-lg mx-auto px-6 py-24 text-center">
@@ -385,16 +395,6 @@ export function ApplyPage() {
 			</div>
 		);
 	}
-
-	const sizeOptions = form.preferredBreed ? (BREED_SIZES[form.preferredBreed] ?? []) : [];
-	const secondChoiceSizeOptions = form.secondChoiceBreed ? (BREED_SIZES[form.secondChoiceBreed] ?? []) : [];
-	// Same breed, different size options (excludes first choice size)
-	const sameBrandAltSizeOptions = sizeOptions.filter((s) => s.value !== form.preferredSize);
-
-	useEffect(() => {
-		document.title = 'Apply for a Puppy — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
 
 	return (
 		<div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 md:py-16">
