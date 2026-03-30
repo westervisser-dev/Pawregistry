@@ -6,6 +6,11 @@ import type { Dog, Litter, LitterImage, MatchingClient } from '@paw-registry/sha
 import { BREEDS, BREED_SIZES, buildBreedSize, parseBreedSize, getBreedSizeLabel } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
 
+const COLLAR_COLOURS = [
+	'aqua', 'black', 'blue', 'gray', 'green', 'lime', 'maroon', 'navy',
+	'olive', 'orange', 'pink', 'purple', 'red', 'silver', 'white', 'yellow',
+];
+
 function NotifyTimer({ since }: { since: string }) {
 	const [elapsed, setElapsed] = useState(() => Date.now() - new Date(since).getTime());
 	const rafRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -479,12 +484,16 @@ export function AdminLitterDetail() {
 									</div>
 								)}
 								<div className="flex gap-2">
-									<input
-										placeholder="Collar colour"
+									<select
 										value={newPuppyDraft.collarColour}
 										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, collarColour: e.target.value }))}
 										className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
-									/>
+									>
+										<option value="">Collar colour</option>
+										{COLLAR_COLOURS.map((c) => (
+											<option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+										))}
+									</select>
 									<input
 										placeholder="Coat colour"
 										value={newPuppyDraft.colour}
@@ -771,12 +780,16 @@ export function AdminLitterDetail() {
 						<>
 							<p className="text-xs font-medium text-warm-500 uppercase tracking-wide mb-3">Add puppy</p>
 							<div className="flex gap-2">
-								<input
-									placeholder="Collar colour"
+								<select
 									value={newPuppy.collarColour}
 									onChange={(e) => setNewPuppy((p) => ({ ...p, collarColour: e.target.value }))}
 									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
-								/>
+								>
+									<option value="">Collar colour</option>
+									{COLLAR_COLOURS.map((c) => (
+										<option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+									))}
+								</select>
 								<input
 									placeholder="Coat colour"
 									value={newPuppy.colour}
