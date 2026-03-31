@@ -6,23 +6,23 @@ import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
 import { LoadingPage, EmptyState } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 
-/* ── Match tier styling ── */
+/* ── Match tier config ── */
 
 const tierBarColor: Record<LitterMatchTier, string> = {
 	great:   'bg-green-600',
 	good:    'bg-[#6B9E6B]',
 	partial: 'bg-brand-500',
-	low:     'bg-warm-300',
+	low:     'bg-warm-200',
 };
 
-const tierBadgeBg: Record<LitterMatchTier, string> = {
+const tierBadge: Record<LitterMatchTier, string> = {
 	great:   'bg-green-50 text-green-700',
 	good:    'bg-[#EEF5EE] text-[#5A8C5A]',
-	partial: 'bg-amber-50 text-brand-600',
+	partial: 'bg-[#FFF3E5] text-brand-600',
 	low:     'bg-warm-100 text-warm-500',
 };
 
-const tierDotColor: Record<LitterMatchTier, string> = {
+const tierBadgeDot: Record<LitterMatchTier, string> = {
 	great:   'bg-green-600',
 	good:    'bg-[#5A8C5A]',
 	partial: 'bg-brand-500',
@@ -38,59 +38,40 @@ const tierLabel: Record<LitterMatchTier, string> = {
 
 const tierFilterOrder: LitterMatchTier[] = ['great', 'good', 'partial', 'low'];
 
-/* ── Stage timeline ── */
+/* ── Availability pill config by tier ── */
 
-const STAGES: LitterStatus[] = ['planned', 'confirmed', 'born', 'weaning', 'available', 'completed'];
+// pill background
+const availPillBg: Record<LitterMatchTier, string> = {
+	great:   'bg-green-50',
+	good:    'bg-[#EEF5EE]',
+	partial: 'bg-[#FFF3E5]',
+	low:     'bg-warm-100',
+};
 
-function StageStrip({ status, tier }: { status: LitterStatus; tier?: LitterMatchTier }) {
-	const currentIdx = STAGES.indexOf(status);
-	const fillPct = currentIdx <= 0 ? 0 : Math.round((currentIdx / (STAGES.length - 1)) * 100);
-	const isGreat = tier === 'great';
+// large number color
+const availNumColor: Record<LitterMatchTier, string> = {
+	great:   'text-green-700',
+	good:    'text-[#5A8C5A]',
+	partial: 'text-brand-500',
+	low:     'text-warm-400',
+};
 
-	return (
-		<div className="relative">
-			{/* Track */}
-			<div
-				className="absolute top-[4px] h-[2px] bg-warm-200 rounded-full overflow-hidden"
-				style={{ left: `calc(100% / 12)`, right: `calc(100% / 12)` }}
-			>
-				<div
-					className="h-full bg-warm-700 rounded-full"
-					style={{ width: `${fillPct}%` }}
-				/>
-			</div>
-			{/* Dots */}
-			<div className="relative flex z-[1]">
-				{STAGES.map((stage, i) => {
-					const isDone = i < currentIdx;
-					const isCurrent = i === currentIdx;
-					return (
-						<div key={stage} className="flex-1 flex flex-col items-center gap-[5px]">
-							<div
-								className={`w-[10px] h-[10px] rounded-full border-2 flex-shrink-0 ${
-									isCurrent
-										? isGreat
-											? 'bg-green-600 border-green-600 shadow-[0_0_0_3px_rgba(45,122,79,0.18)]'
-											: 'bg-brand-500 border-brand-500 shadow-[0_0_0_3px_rgba(196,114,31,0.18)]'
-										: isDone
-											? 'bg-warm-700 border-warm-700'
-											: 'bg-warm-100 border-warm-300'
-								}`}
-							/>
-							<span
-								className={`text-[9.5px] font-medium text-center whitespace-nowrap capitalize ${
-									isCurrent ? 'text-warm-900 font-semibold' : isDone ? 'text-warm-500' : 'text-warm-400'
-								}`}
-							>
-								{stage}
-							</span>
-						</div>
-					);
-				})}
-			</div>
-		</div>
-	);
-}
+// label color
+const availWordColor: Record<LitterMatchTier, string> = {
+	great:   'text-green-700',
+	good:    'text-[#5A8C5A]',
+	partial: 'text-brand-500',
+	low:     'text-warm-400',
+};
+
+/* ── Stage chip dot color ── */
+
+const stageDotColor: Record<LitterMatchTier, string> = {
+	great:   'bg-green-600',
+	good:    'bg-[#5A8C5A]',
+	partial: 'bg-brand-500',
+	low:     'bg-warm-400',
+};
 
 /* ── Helpers ── */
 
@@ -122,75 +103,98 @@ function LitterCard({ litter, match }: { litter: LitterWithDogs; match?: LitterM
 	const breedLabel = getBreedLabel(litter.breed);
 	const sizeLabel = getSizeLabel(litter.breed);
 	const availableCount = litter.availableCount ?? 0;
+	const hasAvailable = availableCount > 0;
+	const tier = match?.tier;
+	const isGreat = tier === 'great';
+
+	// Breed link color: green for great match, amber otherwise
+	const breedColor = isGreat ? 'text-green-700' : 'text-brand-500';
+
+	// Availability pill
+	const pillBg = tier ? availPillBg[tier] : 'bg-warm-100';
+	const pillNumColor = tier ? availNumColor[tier] : 'text-warm-400';
+	const pillWordColor = tier ? availWordColor[tier] : 'text-warm-400';
+
+	// Stage chip dot
+	const chipDotColor = tier ? stageDotColor[tier] : 'bg-warm-400';
+
+	// Capitalize stage
+	const stageDisplay = (litter.status as string).charAt(0).toUpperCase() + (litter.status as string).slice(1);
 
 	return (
 		<Link
 			to={`/portal/litters/${litter.id}`}
-			className="group bg-white border-[1.5px] border-warm-200 rounded-xl overflow-hidden flex flex-col shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.10),0_1px_4px_rgba(0,0,0,0.05)] hover:border-brand-500/50 transition-[transform,box-shadow,border-color] duration-200"
+			className="group bg-white border-[1.5px] border-warm-200 rounded-xl overflow-hidden flex flex-col shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.10),0_1px_4px_rgba(0,0,0,0.05)] hover:border-brand-500/50 transition-[transform,box-shadow,border-color] duration-[180ms] ease-out"
 		>
 			{/* Match bar */}
-			{match && <div className={`h-[3px] w-full ${tierBarColor[match.tier]}`} />}
+			{tier && <div className={`h-[3px] w-full ${tierBarColor[tier]}`} />}
 
 			{/* Body */}
-			<div className="px-5 pt-[18px] pb-3.5 flex-1 flex flex-col">
-				{/* Header: name + match badge */}
-				<div className="flex items-start justify-between gap-2.5 mb-2.5">
+			<div className="px-5 pt-[18px] pb-4 flex-1 flex flex-col">
+
+				{/* Title + match badge */}
+				<div className="flex items-start justify-between gap-2.5 mb-1.5">
 					<h3 className="font-serif text-base leading-snug text-warm-900 flex-1">
 						{litter.name}
 					</h3>
-					{match && (
-						<span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0 ml-2.5 mt-[1px] ${tierBadgeBg[match.tier]}`}>
-							<span className={`w-[5px] h-[5px] rounded-full flex-shrink-0 ${tierDotColor[match.tier]}`} aria-hidden="true" />
-							{tierLabel[match.tier]}
+					{tier && (
+						<span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap flex-shrink-0 ml-2.5 mt-[2px] ${tierBadge[tier]}`}>
+							<span className={`w-[5px] h-[5px] rounded-full flex-shrink-0 ${tierBadgeDot[tier]}`} aria-hidden="true" />
+							{tierLabel[tier]}
 						</span>
 					)}
 				</div>
 
-				{/* Breed + size pill */}
+				{/* Breed · Size */}
 				{breedLabel && (
-					<div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
-						<span className="text-xs font-semibold text-brand-500">{breedLabel}</span>
+					<div className="flex items-center gap-[5px] mb-3.5 flex-wrap">
+						<span className={`text-xs font-semibold ${breedColor}`}>{breedLabel}</span>
 						{sizeLabel && (
 							<>
-								<span className="w-[3px] h-[3px] rounded-full bg-warm-300 flex-shrink-0" aria-hidden="true" />
-								<span className="text-[11.5px] text-warm-500 bg-warm-100 px-2 py-[1px] rounded-full font-medium">{sizeLabel}</span>
+								<span className="text-[11px] text-warm-300" aria-hidden="true">·</span>
+								<span className="text-xs text-warm-400">{sizeLabel}</span>
 							</>
 						)}
 					</div>
 				)}
 
-				{/* Parents + puppy count side by side */}
-				<div className="flex items-end justify-between mb-4">
+				{/* Parents + availability pill */}
+				<div className="flex items-end justify-between gap-3">
 					{(litter.sire?.name || litter.dam?.name) && (
 						<div>
-							<p className="text-[10px] font-semibold tracking-[0.06em] uppercase text-warm-400 mb-0.5">Parents</p>
-							<p className="text-[12.5px] text-warm-600">
+							<p className="text-[9.5px] font-semibold tracking-[0.07em] uppercase text-warm-400 mb-[3px]">Parents</p>
+							<p className="text-[12.5px] text-warm-700">
 								{litter.sire?.name} <span className="text-warm-400">×</span> {litter.dam?.name}
 							</p>
 						</div>
 					)}
-					<div className="flex items-baseline gap-1 flex-shrink-0">
-						<span className="font-serif text-[18px] text-brand-500 leading-none">
-							{availableCount > 0 ? availableCount : '—'}
+
+					{/* Availability pill */}
+					<div className={`flex flex-col items-center rounded-[10px] px-3.5 py-[7px] flex-shrink-0 min-w-[66px] ${pillBg}`}>
+						<span className={`font-serif leading-none ${hasAvailable ? 'text-2xl' : 'text-lg'} ${pillNumColor}`}>
+							{hasAvailable ? availableCount : '—'}
 						</span>
-						<span className="text-[11px] text-warm-400 font-normal">
-							{availableCount > 0
-								? (availableCount === 1 ? 'puppy available' : 'puppies available')
-								: 'expected soon'}
+						<span className={`text-[9px] mt-[3px] font-semibold tracking-[0.05em] uppercase leading-none ${!hasAvailable ? 'normal-case tracking-normal font-normal text-[9.5px]' : ''} ${pillWordColor}`}>
+							{hasAvailable ? 'available' : 'expected soon'}
 						</span>
 					</div>
 				</div>
 
-				{/* Stage timeline */}
-				<StageStrip status={litter.status} tier={match?.tier} />
 			</div>
 
-			{/* Footer */}
-			<div className="px-5 py-2.5 border-t border-warm-100 flex items-center justify-between">
-				<span className="text-[11.5px] text-warm-400">
-					<span className="font-semibold text-warm-600">{formatDate(litter)}</span>
-				</span>
-				<span className="text-xs font-semibold text-brand-500 inline-flex items-center gap-[3px] group-hover:gap-[7px] transition-[gap] duration-150">
+			{/* Footer: stage chip · date · view link */}
+			<div className="px-5 py-[11px] border-t border-warm-100 flex items-center gap-2.5 mt-0">
+				{/* Stage chip */}
+				<div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border-[1.5px] border-warm-200">
+					<span className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${chipDotColor}`} aria-hidden="true" />
+					<span className="text-[11.5px] font-semibold text-warm-800">{stageDisplay}</span>
+				</div>
+
+				{/* Date */}
+				<span className="text-[11px] text-warm-400 truncate">{formatDate(litter)}</span>
+
+				{/* View link — pushed right */}
+				<span className="text-xs font-semibold text-brand-500 inline-flex items-center gap-[3px] group-hover:gap-[7px] transition-[gap] duration-150 ml-auto whitespace-nowrap flex-shrink-0">
 					View litter <span aria-hidden="true">→</span>
 				</span>
 			</div>
@@ -204,7 +208,6 @@ function Section({ label, litters, matches }: { label: string; litters: LitterWi
 	if (litters.length === 0) return null;
 	return (
 		<div className="mb-10">
-			{/* Section header with line + count */}
 			<div className="flex items-center gap-2.5 mb-4">
 				<h2 className="text-[10px] font-semibold tracking-[0.14em] uppercase text-warm-400 whitespace-nowrap">{label}</h2>
 				<div className="flex-1 h-px bg-warm-200" />
@@ -260,12 +263,10 @@ export function PortalLitters() {
 
 	const hasMatches = Object.keys(matches).length > 0;
 
-	/* Apply filter */
 	const filtered = filter === 'all'
 		? litters
 		: litters.filter((l) => matches[l.id]?.tier === filter);
 
-	/* Group into sections */
 	const availableNow = filtered.filter((l) => (l.availableCount ?? 0) > 0);
 	const upcoming = filtered.filter((l) => (l.availableCount ?? 0) === 0);
 
@@ -273,7 +274,7 @@ export function PortalLitters() {
 		<div>
 			{/* Header */}
 			<div className="mb-7">
-				<h1 className="font-serif text-[34px] text-warm-900 leading-[1.05] mb-1">Litters</h1>
+				<h1 className="font-serif text-[34px] text-warm-900 leading-[1.05] mb-[5px]">Litters</h1>
 				<p className="text-[13.5px] text-warm-500">Our current and upcoming litters, matched to your preferences.</p>
 			</div>
 
@@ -283,7 +284,7 @@ export function PortalLitters() {
 				<>
 					{/* Filter bar */}
 					{hasMatches && (
-						<div className="flex items-center gap-2 mb-8 flex-wrap">
+						<div className="flex items-center gap-[7px] mb-8 flex-wrap">
 							<span className="text-[12.5px] font-medium text-warm-400 mr-[3px]">Filter by match</span>
 							<button
 								onClick={() => setFilter('all')}
@@ -311,7 +312,6 @@ export function PortalLitters() {
 						</div>
 					)}
 
-					{/* Sections */}
 					<Section label="Available Now" litters={availableNow} matches={matches} />
 					<Section label="Upcoming Litters" litters={upcoming} matches={matches} />
 
