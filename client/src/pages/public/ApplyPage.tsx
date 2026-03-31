@@ -392,6 +392,16 @@ export function ApplyPage() {
 						You can pay a deposit at any time after your application is reviewed to move to priority placement.
 					</div>
 				)}
+				<div className="mt-8 p-4 bg-white border border-warm-200 rounded-lg text-sm text-warm-700">
+					<p className="font-semibold text-warm-900 mb-1">What's next?</p>
+					<p>Once approved, you'll receive a magic link to log in to your client portal — where you can track your application, upload documents, and stay up to date.</p>
+					<a
+						href="/login"
+						className="inline-block mt-3 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors"
+					>
+						Go to client login →
+					</a>
+				</div>
 			</div>
 		);
 	}
