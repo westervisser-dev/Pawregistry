@@ -43,11 +43,13 @@ export function AdminClients() {
 		matched_paid: 'Matched & Paid',
 	};
 
-	// Clients past the pre-waitlist stages live in the priority queues
-	const queueClients = clients.filter((c) => !(PRE_WAITLIST_STAGES as string[]).includes(c.stage));
+	// Active queue: all stages from waitlisted through matched (position persists until matched_paid)
+	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'placed', 'match_requested', 'matched'];
+	const queueClients = clients.filter((c) => (ACTIVE_QUEUE_STAGES as string[]).includes(c.stage));
 	const depositQueueClients = queueClients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
 	const noDepositQueueClients = queueClients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
 	const notYetWaitlistedClients = clients.filter((c) => (PRE_WAITLIST_STAGES as string[]).includes(c.stage));
+	const completedClients = clients.filter((c) => c.stage === 'matched_paid');
 
 	const handleDepositReorder = async (newOrder: Client[]) => {
 		const waitlistOnly = [...newOrder, ...noDepositQueueClients];
@@ -105,6 +107,11 @@ export function AdminClients() {
 					<ClientReadTable
 						title="Not Yet Waitlisted"
 						clients={notYetWaitlistedClients}
+						onDepositUpdate={handleDepositUpdate}
+					/>
+					<ClientReadTable
+						title="Completed"
+						clients={completedClients}
 						onDepositUpdate={handleDepositUpdate}
 					/>
 				</div>

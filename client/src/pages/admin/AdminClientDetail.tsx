@@ -232,13 +232,15 @@ export function AdminClientDetail() {
 		});
 	};
 
+	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'placed', 'match_requested', 'matched'];
+
 	const load = () => {
 		if (!id) return;
 		api.clients.admin({ id }).get().then(({ data }) => {
 			if (data) {
 				const c = data as Client;
 				setClient(c);
-				if (c.stage === 'waitlisted') {
+				if (ACTIVE_QUEUE_STAGES.includes(c.stage)) {
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(api.clients.admin({ id }) as any)['waitlist-position'].get().then(({ data: pos }: { data: { position: number | null; total: number | null } | null }) => {
 						if (pos) setWaitlistPosition(pos);
@@ -390,8 +392,8 @@ export function AdminClientDetail() {
 				</div>
 			</div>
 
-			{/* Waitlist position — only when waitlisted */}
-			{client.stage === 'waitlisted' && waitlistPosition?.position != null && (
+			{/* Waitlist position — shown for all active queue stages until matched_paid */}
+			{ACTIVE_QUEUE_STAGES.includes(client.stage) && waitlistPosition?.position != null && (
 				<div className="mb-6 flex items-center gap-5 rounded-xl border border-amber-200/80 bg-amber-50 px-5 py-4">
 					<div className="flex items-baseline gap-1.5 shrink-0">
 						<span className="font-serif text-[32px] leading-none font-bold text-amber-700">
