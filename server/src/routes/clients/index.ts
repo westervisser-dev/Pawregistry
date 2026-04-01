@@ -1,9 +1,9 @@
 import Elysia, { t } from 'elysia';
-import { eq, asc, max, sql, inArray } from 'drizzle-orm';
+import { eq, asc, max, sql, inArray, count, and, isNotNull } from 'drizzle-orm';
 import { db } from '../../db';
-import { clients, clientActivity } from '../../db/schema';
+import { clients, clientActivity, documentTemplates, clientTemplateChecklist } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
-import { sendStageEmail } from '../../lib/email';
+import { sendStageEmail, sendClientEmail, sendAdminNotification } from '../../lib/email';
 import { logActivity } from '../../lib/activity';
 
 const applicationDataSchema = t.Object({
@@ -75,6 +75,10 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				stage: 'enquired',
 			}).returning();
 			sendStageEmail(client.id, 'enquired').catch(console.error);
+			sendAdminNotification(
+				`New application — ${client.firstName} ${client.lastName}`,
+				`${client.firstName} ${client.lastName} (${client.email}) has submitted a new application.\n\nReview it here: ${process.env.CLIENT_URL}/admin/clients/${client.id}`,
+			).catch(console.error);
 			logActivity(client.id, 'application_submitted', 'Application submitted', 'client');
 			return { id: client.id, message: 'Application received. We will be in touch soon.' };
 		},
@@ -191,6 +195,11 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				.where(eq(clients.id, client.id))
 				.returning();
 			logActivity(client.id, 'deposit_changed', 'Deposit status changed from none to pending', 'client', { from: 'none', to: 'pending' });
+			sendAdminNotification(
+				`Deposit request — ${updated.firstName} ${updated.lastName}`,
+				`${updated.firstName} ${updated.lastName} (${updated.email}) has requested a deposit.\n\nConfirm the deposit here: ${process.env.CLIENT_URL}/admin/clients/${updated.id}`,
+			).catch(console.error);
+			sendClientEmail(updated.id, 'deposit_request_received').catch(console.error);
 			return updated;
 		}
 	)
@@ -218,6 +227,41 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			}),
 		}
 	)
+
+	// Returns client IDs that need admin action — used for badges and dashboard
+	.get('/admin/attention', async () => {
+		// Approved clients where every active template has been uploaded by the client
+		const approvedIds = (
+			await db.select({ id: clients.id }).from(clients).where(eq(clients.stage, 'approved'))
+		).map((c) => c.id);
+
+		let docsCompleteIds: string[] = [];
+		if (approvedIds.length > 0) {
+			const [{ total }] = await db
+				.select({ total: count() })
+				.from(documentTemplates)
+				.where(eq(documentTemplates.isActive, true));
+
+			if (Number(total) > 0) {
+				const uploadedCounts = await db
+					.select({ clientId: clientTemplateChecklist.clientId, uploaded: count() })
+					.from(clientTemplateChecklist)
+					.where(
+						and(
+							inArray(clientTemplateChecklist.clientId, approvedIds),
+							isNotNull(clientTemplateChecklist.uploadedFileUrl),
+						),
+					)
+					.groupBy(clientTemplateChecklist.clientId);
+
+				docsCompleteIds = uploadedCounts
+					.filter((row) => Number(row.uploaded) >= Number(total))
+					.map((row) => row.clientId);
+			}
+		}
+
+		return { docsCompleteIds };
+	})
 
 	.get('/admin/:id', async ({ params, error }) => {
 		const client = await db.query.clients.findFirst({
@@ -299,9 +343,20 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			if (body.stage && current && body.stage !== current.stage) {
 				sendStageEmail(params.id, body.stage).catch(console.error);
 				logActivity(params.id, 'stage_changed', `Stage changed from ${current.stage} to ${body.stage}`, 'admin', { from: current.stage, to: body.stage });
+				// Notify admin when a client has been matched (puppy selected — confirm payment)
+				if (body.stage === 'matched') {
+					sendAdminNotification(
+						`Puppy selected — ${updated.firstName} ${updated.lastName}`,
+						`${updated.firstName} ${updated.lastName} (${updated.email}) has been matched with a puppy.\n\nConfirm payment here: ${process.env.CLIENT_URL}/admin/clients/${params.id}`,
+					).catch(console.error);
+				}
 			}
 			if (body.depositStatus && current && body.depositStatus !== current.depositStatus) {
 				logActivity(params.id, 'deposit_changed', `Deposit status changed from ${current.depositStatus} to ${body.depositStatus}`, 'admin', { from: current.depositStatus, to: body.depositStatus });
+				// Notify client when admin confirms their deposit
+				if (body.depositStatus === 'paid') {
+					sendClientEmail(params.id, 'deposit_confirmed').catch(console.error);
+				}
 			}
 			if (body.adminNotes !== undefined && current && body.adminNotes !== current.adminNotes) {
 				logActivity(params.id, 'notes_updated', 'Admin notes updated', 'admin');

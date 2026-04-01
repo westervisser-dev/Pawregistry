@@ -1,10 +1,44 @@
 import Elysia, { t } from 'elysia';
-import { eq, asc, and } from 'drizzle-orm';
+import { eq, asc, and, count, isNotNull } from 'drizzle-orm';
 import { db } from '../../db';
 import { documentTemplates, clientTemplateChecklist, clients } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { logActivity } from '../../lib/activity';
+import { sendAdminNotification, sendClientEmail } from '../../lib/email';
+
+// Fires admin notification + client confirmation when all active templates have been uploaded
+async function checkAllDocsUploaded(
+	clientId: string,
+	firstName: string,
+	lastName: string,
+	email: string,
+): Promise<void> {
+	const [{ total }] = await db
+		.select({ total: count() })
+		.from(documentTemplates)
+		.where(eq(documentTemplates.isActive, true));
+
+	if (Number(total) === 0) return;
+
+	const [{ uploaded }] = await db
+		.select({ uploaded: count() })
+		.from(clientTemplateChecklist)
+		.where(
+			and(
+				eq(clientTemplateChecklist.clientId, clientId),
+				isNotNull(clientTemplateChecklist.uploadedFileUrl),
+			),
+		);
+
+	if (Number(uploaded) >= Number(total)) {
+		sendAdminNotification(
+			`Documents ready to review — ${firstName} ${lastName}`,
+			`${firstName} ${lastName} (${email}) has uploaded all required documents and is ready for review.\n\nReview here: ${process.env.CLIENT_URL}/admin/clients/${clientId}`,
+		).catch(console.error);
+		sendClientEmail(clientId, 'docs_received').catch(console.error);
+	}
+}
 
 export const templatesRoutes = new Elysia({ prefix: '/templates' })
 	// ── Client: list templates with checklist status ──
@@ -54,6 +88,8 @@ export const templatesRoutes = new Elysia({ prefix: '/templates' })
 					.where(eq(clientTemplateChecklist.id, existing.id))
 					.returning();
 				logActivity(client.id, 'document_uploaded', `Template document uploaded`, 'client', { templateId: params.templateId });
+				// Check if all active templates are now uploaded — if so notify admin + client
+				await checkAllDocsUploaded(client.id, client.firstName, client.lastName, client.email);
 				return updated;
 			} else {
 				const [created] = await db.insert(clientTemplateChecklist).values({
@@ -63,6 +99,8 @@ export const templatesRoutes = new Elysia({ prefix: '/templates' })
 					uploadedFileUrl: url,
 				}).returning();
 				logActivity(client.id, 'document_uploaded', `Template document uploaded`, 'client', { templateId: params.templateId });
+				// Check if all active templates are now uploaded — if so notify admin + client
+				await checkAllDocsUploaded(client.id, client.firstName, client.lastName, client.email);
 				return created;
 			}
 		},

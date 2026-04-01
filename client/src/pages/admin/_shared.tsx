@@ -132,6 +132,27 @@ export function formatBreedSize(raw: string | null | undefined): { breed: string
 	};
 }
 
+// ─── Action badge ─────────────────────────────────────────────────────────────
+
+export type ClientAction = 'review_application' | 'review_documents' | 'confirm_deposit' | 'confirm_payment';
+
+const ACTION_CONFIG: Record<ClientAction, { label: string; bg: string; text: string; border: string }> = {
+	review_application: { label: 'Review application', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+	review_documents:   { label: 'Review documents',   bg: 'bg-blue-50',  text: 'text-blue-700',  border: 'border-blue-200'  },
+	confirm_deposit:    { label: 'Confirm deposit',     bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
+	confirm_payment:    { label: 'Confirm payment',     bg: 'bg-violet-50',text: 'text-violet-700',border: 'border-violet-200'},
+};
+
+export function ActionBadge({ action }: { action: ClientAction }) {
+	const cfg = ACTION_CONFIG[action];
+	return (
+		<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border} whitespace-nowrap`}>
+			<span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
+			{cfg.label}
+		</span>
+	);
+}
+
 // ─── Deposit status inline select ────────────────────────────────────────────
 
 export function DepositStatusSelect({ client, onUpdate }: { client: Client; onUpdate: (c: Client) => void }) {
@@ -168,10 +189,11 @@ export function DepositStatusSelect({ client, onUpdate }: { client: Client; onUp
 
 // ─── Sortable client row ──────────────────────────────────────────────────────
 
-export function SortableClientRow({ client, index, onDepositUpdate }: {
+export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 	client: Client;
 	index: number;
 	onDepositUpdate: (c: Client) => void;
+	action?: ClientAction;
 }) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: client.id });
 	const style = {
@@ -207,6 +229,7 @@ export function SortableClientRow({ client, index, onDepositUpdate }: {
 			<td className="py-3 px-4">
 				<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
 				<p className="text-xs text-warm-400">{client.email}</p>
+				{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
 			</td>
 			<td className="py-3 px-4">
 				{parsed ? (
@@ -233,12 +256,13 @@ export function SortableClientRow({ client, index, onDepositUpdate }: {
 
 // ─── Client DnD table ─────────────────────────────────────────────────────────
 
-export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, startIndex = 0 }: {
+export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, startIndex = 0, actionMap = {} }: {
 	title: string;
 	clients: Client[];
 	onReorder: (newOrder: Client[]) => void;
 	onDepositUpdate: (c: Client) => void;
 	startIndex?: number;
+	actionMap?: Record<string, ClientAction>;
 }) {
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -268,6 +292,7 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, sta
 									client={client}
 									index={startIndex + i}
 									onDepositUpdate={onDepositUpdate}
+									action={actionMap[client.id]}
 								/>
 							))}
 							{clients.length === 0 && (
@@ -287,10 +312,11 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, sta
 
 // ─── Plain read-only client table (no DnD) ───────────────────────────────────
 
-export function ClientReadTable({ title, clients, onDepositUpdate }: {
+export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {} }: {
 	title: string;
 	clients: Client[];
 	onDepositUpdate: (c: Client) => void;
+	actionMap?: Record<string, ClientAction>;
 }) {
 	const pbs = (c: Client) =>
 		(c.applicationData as unknown as Record<string, unknown>)?.preferredBreedSize as string | undefined;
@@ -305,11 +331,13 @@ export function ClientReadTable({ title, clients, onDepositUpdate }: {
 				<AdminTable headers={['Name', 'Preference', 'Stage', 'Deposit', 'Applied', '']}>
 					{clients.map((client) => {
 						const parsed = formatBreedSize(pbs(client));
+						const action = actionMap[client.id];
 						return (
 							<tr key={client.id} className="border-b border-black/[0.05] hover:bg-warm-50 bg-white transition-colors">
 								<td className="py-3 px-4">
 									<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
 									<p className="text-xs text-warm-400">{client.email}</p>
+									{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
 								</td>
 								<td className="py-3 px-4">
 									{parsed ? (

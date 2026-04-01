@@ -3,6 +3,8 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { emailTemplates, emailLogs, clients, litters } from '../db/schema';
 
+const ADMIN_EMAIL = 'westervisser@gmail.com';
+
 let _resend: Resend | null = null;
 function getResend(): Resend {
 	if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY ?? '');
@@ -63,10 +65,9 @@ function toHtml(plainText: string): string {
 </html>`;
 }
 
-export async function sendStageEmail(clientId: string, stage: string): Promise<void> {
-	const trigger = STAGE_TRIGGER[stage];
-	if (!trigger) return;
+// ─── Shared send logic ────────────────────────────────────────────────────────
 
+async function sendEmailByTrigger(clientId: string, trigger: string): Promise<void> {
 	const [client] = await db.select().from(clients).where(eq(clients.id, clientId));
 	if (!client) return;
 
@@ -111,6 +112,31 @@ export async function sendStageEmail(clientId: string, stage: string): Promise<v
 		trigger,
 		subject,
 		resendId,
-		metadata: { stage, error: sendError },
+		metadata: { error: sendError },
 	});
+}
+
+// ─── Public: send a stage-mapped email to a client ───────────────────────────
+
+export async function sendStageEmail(clientId: string, stage: string): Promise<void> {
+	const trigger = STAGE_TRIGGER[stage];
+	if (!trigger) return;
+	await sendEmailByTrigger(clientId, trigger);
+}
+
+// ─── Public: send any template-based email to a client by trigger key ────────
+
+export async function sendClientEmail(clientId: string, trigger: string): Promise<void> {
+	await sendEmailByTrigger(clientId, trigger);
+}
+
+// ─── Public: send a plain notification email to the admin ────────────────────
+
+export async function sendAdminNotification(subject: string, body: string): Promise<void> {
+	try {
+		const from = process.env.RESEND_FROM_EMAIL ?? 'Paw Registry <onboarding@resend.dev>';
+		await getResend().emails.send({ from, to: ADMIN_EMAIL, subject, html: toHtml(body) });
+	} catch (e) {
+		console.error('Admin notification failed:', e);
+	}
 }

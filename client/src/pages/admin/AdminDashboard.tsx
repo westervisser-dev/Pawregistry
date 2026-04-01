@@ -31,8 +31,16 @@ function timeAgo(dateStr: string): string {
 	return `${days}d ago`;
 }
 
+interface AttentionCounts {
+	enquiries: number;
+	docsToReview: number;
+	pendingDeposits: number;
+	awaitingPayment: number;
+}
+
 export function AdminDashboard() {
 	const [counts, setCounts] = useState({ dogs: 0, litters: 0, clients: 0, enquiries: 0 });
+	const [attention, setAttention] = useState<AttentionCounts>({ enquiries: 0, docsToReview: 0, pendingDeposits: 0, awaitingPayment: 0 });
 	const [recentEnquiries, setRecentEnquiries] = useState<Pick<Client, 'id' | 'firstName' | 'lastName' | 'email' | 'createdAt'>[]>([]);
 	const [allClients, setAllClients] = useState<Client[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -47,10 +55,13 @@ export function AdminDashboard() {
 			api.dogs.get({ query: {} }),
 			api.litters.admin.all.get(),
 			api.clients.admin.get({ query: {} }),
-		]).then(([dogsRes, littersRes, clientsRes]) => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(api.clients.admin as any).attention.get(),
+		]).then(([dogsRes, littersRes, clientsRes, attentionRes]) => {
 			const dogs = (dogsRes.data as Dog[] | null) ?? [];
 			const litters = (littersRes.data as Litter[] | null) ?? [];
 			const clients = (clientsRes.data as Client[] | null) ?? [];
+			const attentionData = (attentionRes as { data: { docsCompleteIds: string[] } | null }).data;
 
 			const enquired = clients.filter((c) => c.stage === 'enquired');
 
@@ -59,6 +70,13 @@ export function AdminDashboard() {
 				litters: litters.length,
 				clients: clients.length,
 				enquiries: enquired.length,
+			});
+
+			setAttention({
+				enquiries: enquired.length,
+				docsToReview: attentionData?.docsCompleteIds.length ?? 0,
+				pendingDeposits: clients.filter((c) => c.depositStatus === 'pending').length,
+				awaitingPayment: clients.filter((c) => c.stage === 'matched').length,
 			});
 
 			setRecentEnquiries(
@@ -123,6 +141,53 @@ export function AdminDashboard() {
 					to="/admin/clients?stage=enquired"
 				/>
 			</div>
+
+			{/* ── Needs Attention ─────────────────────────────────── */}
+			{(attention.enquiries > 0 || attention.docsToReview > 0 || attention.pendingDeposits > 0 || attention.awaitingPayment > 0) && (
+				<div className="mb-5 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+					<p className="text-xs font-semibold text-amber-700 uppercase tracking-[0.06em] mb-3">
+						⚡ Needs your attention
+					</p>
+					<div className="flex flex-wrap gap-2">
+						{attention.enquiries > 0 && (
+							<Link
+								to="/admin/clients?stage=enquired"
+								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-800 text-xs font-medium transition-colors"
+							>
+								<span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+								{attention.enquiries} new {attention.enquiries === 1 ? 'application' : 'applications'} to review
+							</Link>
+						)}
+						{attention.docsToReview > 0 && (
+							<Link
+								to="/admin/clients?stage=approved"
+								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 hover:bg-blue-200 border border-blue-300 text-blue-800 text-xs font-medium transition-colors"
+							>
+								<span className="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true" />
+								{attention.docsToReview} {attention.docsToReview === 1 ? 'client has' : 'clients have'} uploaded all documents
+							</Link>
+						)}
+						{attention.pendingDeposits > 0 && (
+							<Link
+								to="/admin/clients?stage=waitlisted"
+								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 hover:bg-green-200 border border-green-300 text-green-800 text-xs font-medium transition-colors"
+							>
+								<span className="w-1.5 h-1.5 rounded-full bg-green-500" aria-hidden="true" />
+								{attention.pendingDeposits} {attention.pendingDeposits === 1 ? 'deposit' : 'deposits'} to confirm
+							</Link>
+						)}
+						{attention.awaitingPayment > 0 && (
+							<Link
+								to="/admin/clients?stage=matched"
+								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-100 hover:bg-violet-200 border border-violet-300 text-violet-800 text-xs font-medium transition-colors"
+							>
+								<span className="w-1.5 h-1.5 rounded-full bg-violet-500" aria-hidden="true" />
+								{attention.awaitingPayment} {attention.awaitingPayment === 1 ? 'client' : 'clients'} awaiting payment confirmation
+							</Link>
+						)}
+					</div>
+				</div>
+			)}
 
 			{/* ── Lower Grid: Table + Actions Panel ───────────────── */}
 			<div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">

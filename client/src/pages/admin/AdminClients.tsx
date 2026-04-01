@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { LoadingPage, PageHeader } from '@/components/ui';
 import type { Client, ClientStage } from '@paw-registry/shared';
-import { ClientDndTable, ClientReadTable } from './_shared';
+import { ClientDndTable, ClientReadTable, type ClientAction } from './_shared';
 
 const PRE_WAITLIST_STAGES: ClientStage[] = ['enquired', 'approved', 'rejected'];
 
@@ -10,6 +10,7 @@ export function AdminClients() {
 	const [clients, setClients] = useState<Client[]>([]);
 	const [stage, setStage] = useState('');
 	const [loading, setLoading] = useState(true);
+	const [actionMap, setActionMap] = useState<Record<string, ClientAction>>({});
 
 	useEffect(() => {
 		document.title = 'Clients — Paw Registry Admin';
@@ -23,6 +24,17 @@ export function AdminClients() {
 			setLoading(false);
 		});
 	};
+
+	// Fetch attention flags once on mount — stage filter doesn't affect this
+	useEffect(() => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.clients.admin as any).attention.get().then(({ data }: { data: { docsCompleteIds: string[] } | null }) => {
+			if (!data) return;
+			const map: Record<string, ClientAction> = {};
+			for (const id of data.docsCompleteIds) map[id] = 'review_documents';
+			setActionMap(map);
+		});
+	}, []);
 
 	useEffect(() => { load(''); }, []);
 
@@ -42,6 +54,22 @@ export function AdminClients() {
 		matched: 'Matched',
 		matched_paid: 'Matched & Paid',
 	};
+
+	// Derive per-client action badge — priority: confirm_payment > review_documents > confirm_deposit > review_application
+	const getAction = (c: Client): ClientAction | undefined => {
+		if (c.stage === 'matched') return 'confirm_payment';
+		if (actionMap[c.id] === 'review_documents') return 'review_documents';
+		if (c.depositStatus === 'pending') return 'confirm_deposit';
+		if (c.stage === 'enquired') return 'review_application';
+		return undefined;
+	};
+
+	const computedActionMap = Object.fromEntries(
+		clients.flatMap((c) => {
+			const a = getAction(c);
+			return a ? [[c.id, a]] : [];
+		}),
+	) as Record<string, ClientAction>;
 
 	// Active queue: all stages from waitlisted through matched (position persists until matched_paid)
 	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'placed', 'match_requested', 'matched'];
@@ -96,6 +124,7 @@ export function AdminClients() {
 						clients={depositQueueClients}
 						onReorder={handleDepositReorder}
 						onDepositUpdate={handleDepositUpdate}
+						actionMap={computedActionMap}
 					/>
 					<ClientDndTable
 						title="Waitlisted — No Deposit"
@@ -103,16 +132,19 @@ export function AdminClients() {
 						onReorder={handleNoDepositReorder}
 						onDepositUpdate={handleDepositUpdate}
 						startIndex={depositQueueClients.length}
+						actionMap={computedActionMap}
 					/>
 					<ClientReadTable
 						title="Not Yet Waitlisted"
 						clients={notYetWaitlistedClients}
 						onDepositUpdate={handleDepositUpdate}
+						actionMap={computedActionMap}
 					/>
 					<ClientReadTable
 						title="Completed"
 						clients={completedClients}
 						onDepositUpdate={handleDepositUpdate}
+						actionMap={computedActionMap}
 					/>
 				</div>
 			)}
