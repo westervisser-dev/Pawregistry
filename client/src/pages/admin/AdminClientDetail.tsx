@@ -202,6 +202,7 @@ export function AdminClientDetail() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const [client, setClient] = useState<Client | null>(null);
+	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleting, setDeleting] = useState(false);
@@ -234,7 +235,18 @@ export function AdminClientDetail() {
 	const load = () => {
 		if (!id) return;
 		api.clients.admin({ id }).get().then(({ data }) => {
-			if (data) setClient(data as Client);
+			if (data) {
+				const c = data as Client;
+				setClient(c);
+				if (c.stage === 'waitlisted') {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					(api.clients.admin({ id }) as any)['waitlist-position'].get().then(({ data: pos }: { data: { position: number | null; total: number | null } | null }) => {
+						if (pos) setWaitlistPosition(pos);
+					});
+				} else {
+					setWaitlistPosition(null);
+				}
+			}
 			setLoading(false);
 		});
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -377,6 +389,29 @@ export function AdminClientDetail() {
 					)}
 				</div>
 			</div>
+
+			{/* Waitlist position — only when waitlisted */}
+			{client.stage === 'waitlisted' && waitlistPosition?.position != null && (
+				<div className="mb-6 flex items-center gap-5 rounded-xl border border-amber-200/80 bg-amber-50 px-5 py-4">
+					<div className="flex items-baseline gap-1.5 shrink-0">
+						<span className="font-serif text-[32px] leading-none font-bold text-amber-700">
+							#{waitlistPosition.position}
+						</span>
+						{waitlistPosition.total != null && (
+							<span className="text-[12px] text-amber-500 font-medium">
+								of {waitlistPosition.total}
+							</span>
+						)}
+					</div>
+					<div className="h-8 w-px bg-amber-200 shrink-0" />
+					<div>
+						<p className="text-[13px] font-semibold text-amber-800">Waiting list position</p>
+						<p className="text-[12px] text-amber-600/80 mt-0.5">
+							{waitlistPosition.position === 1 ? 'First in line' : `${waitlistPosition.position === 2 ? 'Second' : waitlistPosition.position === 3 ? 'Third' : `#${waitlistPosition.position}`} in line`} · ordered by deposit status then priority
+						</p>
+					</div>
+				</div>
+			)}
 
 			{/* Stage management */}
 			<Card className="p-5 mb-6">

@@ -241,6 +241,28 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			.orderBy(desc(clientActivity.createdAt));
 	})
 
+	.get('/admin/:id/waitlist-position', async ({ params, error }) => {
+		const client = await db.query.clients.findFirst({
+			where: eq(clients.id, params.id),
+			columns: { id: true, stage: true },
+		});
+		if (!client) return error(404, { error: 'Not found', message: 'Client not found' });
+		if (client.stage !== 'waitlisted') return { position: null, total: null };
+
+		const waitlisted = await db
+			.select({ id: clients.id })
+			.from(clients)
+			.where(eq(clients.stage, 'waitlisted'))
+			.orderBy(
+				sql`CASE WHEN ${clients.depositStatus} != 'none' THEN 0 ELSE 1 END`,
+				asc(clients.priority),
+				asc(clients.createdAt),
+			);
+
+		const position = waitlisted.findIndex(r => r.id === client.id) + 1;
+		return { position: position > 0 ? position : null, total: waitlisted.length };
+	})
+
 	.patch(
 		'/admin/:id',
 		async ({ params, body, error }) => {
