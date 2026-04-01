@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, PuppyStatusBadge, EmptyState } from '@/components/ui';
-import type { Dog, Litter, LitterImage, MatchingClient } from '@paw-registry/shared';
+import type { Dog, Litter, LitterImage, LitterStatus, MatchingClient } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES, buildBreedSize, parseBreedSize, getBreedSizeLabel } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
 
@@ -854,20 +854,24 @@ export function AdminLitterDetail() {
 										{selectedIds.size === 0 ? 'Select clients below' : `${selectedIds.size} selected`}
 									</span>
 								)}
-								{notifyOpen ? (
-									<button
-										onClick={() => { setNotifyOpen(false); setSelectedIds(new Set()); }}
-										className="px-3 py-1.5 text-xs border border-warm-300 text-warm-600 rounded-md hover:bg-warm-100 transition-colors"
-									>
-										Cancel
-									</button>
+								{(['born', 'weaning', 'available'] as LitterStatus[]).includes(litter.status) ? (
+									notifyOpen ? (
+										<button
+											onClick={() => { setNotifyOpen(false); setSelectedIds(new Set()); }}
+											className="px-3 py-1.5 text-xs border border-warm-300 text-warm-600 rounded-md hover:bg-warm-100 transition-colors"
+										>
+											Cancel
+										</button>
+									) : (
+										<button
+											onClick={openNotifyPanel}
+											className="px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
+										>
+											Send litter notification
+										</button>
+									)
 								) : (
-									<button
-										onClick={openNotifyPanel}
-										className="px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
-									>
-										Send litter notification
-									</button>
+									<span className="text-xs text-warm-400 italic">Notifications available once litter is born</span>
 								)}
 								{notifyOpen && (
 									<button
