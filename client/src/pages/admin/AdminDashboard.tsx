@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import {
@@ -31,24 +31,31 @@ function timeAgo(dateStr: string): string {
 	return `${days}d ago`;
 }
 
-interface AttentionCounts {
-	enquiries: number;
-	docsToReview: number;
-	pendingDeposits: number;
-	awaitingPayment: number;
-}
-
 export function AdminDashboard() {
 	const [counts, setCounts] = useState({ dogs: 0, litters: 0, clients: 0, enquiries: 0 });
-	const [attention, setAttention] = useState<AttentionCounts>({ enquiries: 0, docsToReview: 0, pendingDeposits: 0, awaitingPayment: 0 });
 	const [recentEnquiries, setRecentEnquiries] = useState<Pick<Client, 'id' | 'firstName' | 'lastName' | 'email' | 'createdAt'>[]>([]);
 	const [allClients, setAllClients] = useState<Client[]>([]);
+	const [docsCompleteIds, setDocsCompleteIds] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(true);
+	const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+	const attentionRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		document.title = 'Dashboard — Paw Registry';
 		return () => { document.title = 'Paw Registry'; };
 	}, []);
+
+	// Close dropdown on outside click
+	useEffect(() => {
+		if (!openDropdown) return;
+		const handler = (e: MouseEvent) => {
+			if (attentionRef.current && !attentionRef.current.contains(e.target as Node)) {
+				setOpenDropdown(null);
+			}
+		};
+		document.addEventListener('mousedown', handler);
+		return () => document.removeEventListener('mousedown', handler);
+	}, [openDropdown]);
 
 	useEffect(() => {
 		Promise.all([
@@ -72,12 +79,7 @@ export function AdminDashboard() {
 				enquiries: enquired.length,
 			});
 
-			setAttention({
-				enquiries: enquired.length,
-				docsToReview: attentionData?.docsCompleteIds.length ?? 0,
-				pendingDeposits: clients.filter((c) => c.depositStatus === 'pending').length,
-				awaitingPayment: clients.filter((c) => c.stage === 'matched').length,
-			});
+			setDocsCompleteIds(new Set(attentionData?.docsCompleteIds ?? []));
 
 			setRecentEnquiries(
 				enquired
@@ -143,51 +145,109 @@ export function AdminDashboard() {
 			</div>
 
 			{/* ── Needs Attention ─────────────────────────────────── */}
-			{(attention.enquiries > 0 || attention.docsToReview > 0 || attention.pendingDeposits > 0 || attention.awaitingPayment > 0) && (
-				<div className="mb-5 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
-					<p className="text-xs font-semibold text-amber-700 uppercase tracking-[0.06em] mb-3">
-						⚡ Needs your attention
-					</p>
-					<div className="flex flex-wrap gap-2">
-						{attention.enquiries > 0 && (
-							<Link
-								to="/admin/clients?action=review_application"
-								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-800 text-xs font-medium transition-colors"
-							>
-								<span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />
-								{attention.enquiries} new {attention.enquiries === 1 ? 'application' : 'applications'} to review
-							</Link>
-						)}
-						{attention.docsToReview > 0 && (
-							<Link
-								to="/admin/clients?action=review_documents"
-								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 hover:bg-blue-200 border border-blue-300 text-blue-800 text-xs font-medium transition-colors"
-							>
-								<span className="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true" />
-								{attention.docsToReview} {attention.docsToReview === 1 ? 'client has' : 'clients have'} uploaded all documents
-							</Link>
-						)}
-						{attention.pendingDeposits > 0 && (
-							<Link
-								to="/admin/clients?action=confirm_deposit"
-								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 hover:bg-green-200 border border-green-300 text-green-800 text-xs font-medium transition-colors"
-							>
-								<span className="w-1.5 h-1.5 rounded-full bg-green-500" aria-hidden="true" />
-								{attention.pendingDeposits} {attention.pendingDeposits === 1 ? 'deposit' : 'deposits'} to confirm
-							</Link>
-						)}
-						{attention.awaitingPayment > 0 && (
-							<Link
-								to="/admin/clients?action=confirm_payment"
-								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-100 hover:bg-violet-200 border border-violet-300 text-violet-800 text-xs font-medium transition-colors"
-							>
-								<span className="w-1.5 h-1.5 rounded-full bg-violet-500" aria-hidden="true" />
-								{attention.awaitingPayment} {attention.awaitingPayment === 1 ? 'client' : 'clients'} awaiting payment confirmation
-							</Link>
-						)}
+			{(() => {
+				const groups = [
+					{
+						key: 'review_application',
+						clients: allClients.filter((c) => c.stage === 'enquired'),
+						label: (n: number) => `${n} new ${n === 1 ? 'application' : 'applications'} to review`,
+						hash: 'stage',
+						pill: 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-800',
+						dot: 'bg-amber-500',
+						dropdown: 'border-amber-200',
+						item: 'hover:bg-amber-50 text-amber-900',
+					},
+					{
+						key: 'review_documents',
+						clients: allClients.filter((c) => docsCompleteIds.has(c.id)),
+						label: (n: number) => `${n} ${n === 1 ? 'client' : 'clients'} ready to review`,
+						hash: 'documents',
+						pill: 'bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800',
+						dot: 'bg-blue-500',
+						dropdown: 'border-blue-200',
+						item: 'hover:bg-blue-50 text-blue-900',
+					},
+					{
+						key: 'confirm_deposit',
+						clients: allClients.filter((c) => c.depositStatus === 'pending'),
+						label: (n: number) => `${n} ${n === 1 ? 'deposit' : 'deposits'} to confirm`,
+						hash: 'deposit',
+						pill: 'bg-green-100 hover:bg-green-200 border-green-300 text-green-800',
+						dot: 'bg-green-500',
+						dropdown: 'border-green-200',
+						item: 'hover:bg-green-50 text-green-900',
+					},
+					{
+						key: 'confirm_payment',
+						clients: allClients.filter((c) => c.stage === 'matched'),
+						label: (n: number) => `${n} ${n === 1 ? 'client' : 'clients'} awaiting payment confirmation`,
+						hash: 'stage',
+						pill: 'bg-violet-100 hover:bg-violet-200 border-violet-300 text-violet-800',
+						dot: 'bg-violet-500',
+						dropdown: 'border-violet-200',
+						item: 'hover:bg-violet-50 text-violet-900',
+					},
+				].filter((g) => g.clients.length > 0);
+
+				if (groups.length === 0) return null;
+
+				return (
+					<div ref={attentionRef} className="mb-5 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+						<p className="text-xs font-semibold text-amber-700 uppercase tracking-[0.06em] mb-3">
+							⚡ Needs your attention
+						</p>
+						<div className="flex flex-wrap gap-2">
+							{groups.map((g) => {
+								const isOpen = openDropdown === g.key;
+								const isSingle = g.clients.length === 1;
+								const pillClass = `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${g.pill}`;
+
+								if (isSingle) {
+									return (
+										<Link
+											key={g.key}
+											to={`/admin/clients/${g.clients[0].id}#${g.hash}`}
+											className={pillClass}
+										>
+											<span className={`w-1.5 h-1.5 rounded-full ${g.dot}`} aria-hidden="true" />
+											{g.label(1)}
+										</Link>
+									);
+								}
+
+								return (
+									<div key={g.key} className="relative">
+										<button
+											onClick={() => setOpenDropdown(isOpen ? null : g.key)}
+											className={`${pillClass} cursor-pointer`}
+											aria-expanded={isOpen}
+										>
+											<span className={`w-1.5 h-1.5 rounded-full ${g.dot}`} aria-hidden="true" />
+											{g.label(g.clients.length)}
+											<span className="ml-0.5 opacity-60" aria-hidden="true">{isOpen ? '▲' : '▼'}</span>
+										</button>
+										{isOpen && (
+											<div className={`absolute top-full left-0 mt-1.5 z-50 min-w-48 max-h-60 overflow-y-auto bg-white rounded-xl border shadow-lg ${g.dropdown}`}>
+												{g.clients.map((c) => (
+													<Link
+														key={c.id}
+														to={`/admin/clients/${c.id}#${g.hash}`}
+														onClick={() => setOpenDropdown(null)}
+														className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium first:rounded-t-xl last:rounded-b-xl transition-colors ${g.item}`}
+													>
+														<span className={`w-1.5 h-1.5 rounded-full shrink-0 ${g.dot}`} aria-hidden="true" />
+														{c.firstName} {c.lastName}
+													</Link>
+												))}
+											</div>
+										)}
+									</div>
+								);
+							})}
+						</div>
 					</div>
-				</div>
-			)}
+				);
+			})()}
 
 			{/* ── Lower Grid: Table + Actions Panel ───────────────── */}
 			<div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
