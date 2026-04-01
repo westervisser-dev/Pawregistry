@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
 import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, DocumentType } from '@paw-registry/shared';
-import { DeleteModal } from './_shared';
+import { DeleteModal, DepositStatusSelect } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
 	stage_enquired: 'Application Received',
@@ -271,6 +271,14 @@ export function AdminClientDetail() {
 		}
 	}, [client]);
 
+	// Scroll to anchored section once data is loaded (supports deep links from the dashboard)
+	useEffect(() => {
+		if (!loading && window.location.hash) {
+			const el = document.querySelector(window.location.hash);
+			if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+	}, [loading]);
+
 	const updateStage = async (stage: string) => {
 		if (!id) return;
 		await api.clients.admin({ id }).patch({ stage: stage as Client['stage'] });
@@ -380,15 +388,9 @@ export function AdminClientDetail() {
 						) : null;
 					})()}
 				</div>
-				<div className="flex flex-col items-end gap-2">
+				<div id="deposit" className="flex flex-col items-end gap-2 scroll-mt-6">
 					<StageBadge stage={client.stage} />
-					{client.depositStatus === 'paid' ? (
-						<span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Deposit · Paid</span>
-					) : client.depositStatus === 'pending' ? (
-						<span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Deposit · Pending</span>
-					) : (
-						<span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-warm-100 text-warm-500">No Deposit</span>
-					)}
+					<DepositStatusSelect client={client} onUpdate={(updated) => setClient(updated)} />
 				</div>
 			</div>
 
@@ -416,7 +418,7 @@ export function AdminClientDetail() {
 			)}
 
 			{/* Stage management */}
-			<Card className="p-5 mb-6">
+			<Card id="stage" className="p-5 mb-6 scroll-mt-6">
 				<h3 className="font-medium text-warm-900 mb-3">Move Stage</h3>
 				<div className="flex flex-wrap gap-2">
 					{([
@@ -516,25 +518,13 @@ export function AdminClientDetail() {
 							<AppField label="Open to other colour" value={a.considerOtherColour} />
 							<AppField label="Would consider rehome" value={a.considerRehome} />
 							<AppField label="Agreed to contract" value={a.agreedToContract} />
-							<div className="py-2.5 border-b border-black/[0.05] last:border-0 grid grid-cols-2 gap-4 items-start">
-								<dt className="text-xs text-warm-400 pt-0.5">Deposit intent</dt>
-								<dd className="text-sm">
-									{client.depositStatus === 'paid' ? (
-										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Paid</span>
-									) : client.depositStatus === 'pending' ? (
-										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Yes — pending payment</span>
-									) : (
-										<span className="text-warm-400">Not interested</span>
-									)}
-								</dd>
-							</div>
 						</dl>
 					</div>
 				</div>
 			</Card>
 
 			{/* Documents */}
-			<Card className="p-5 mb-6">
+			<Card id="documents" className="p-5 mb-6 scroll-mt-6">
 				<h3 className="font-medium text-warm-900 mb-4">Documents</h3>
 
 				{/* Template checklist */}

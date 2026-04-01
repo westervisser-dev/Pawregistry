@@ -189,11 +189,12 @@ export function DepositStatusSelect({ client, onUpdate }: { client: Client; onUp
 
 // ─── Sortable client row ──────────────────────────────────────────────────────
 
-export function SortableClientRow({ client, index, onDepositUpdate, action }: {
+export function SortableClientRow({ client, index, onDepositUpdate, action, detailHash }: {
 	client: Client;
 	index: number;
 	onDepositUpdate: (c: Client) => void;
 	action?: ClientAction;
+	detailHash?: string;
 }) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: client.id });
 	const style = {
@@ -246,7 +247,7 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 				{new Date(client.createdAt).toLocaleDateString()}
 			</td>
 			<td className="py-3 px-4">
-				<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
+				<Link to={`/admin/clients/${client.id}${detailHash ? `#${detailHash}` : ''}`} className="text-sm text-brand-600 hover:underline">
 					View →
 				</Link>
 			</td>
@@ -256,13 +257,14 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 
 // ─── Client DnD table ─────────────────────────────────────────────────────────
 
-export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, startIndex = 0, actionMap = {} }: {
+export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, startIndex = 0, actionMap = {}, detailHash }: {
 	title: string;
 	clients: Client[];
 	onReorder: (newOrder: Client[]) => void;
 	onDepositUpdate: (c: Client) => void;
 	startIndex?: number;
 	actionMap?: Record<string, ClientAction>;
+	detailHash?: string;
 }) {
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -293,6 +295,7 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, sta
 									index={startIndex + i}
 									onDepositUpdate={onDepositUpdate}
 									action={actionMap[client.id]}
+									detailHash={detailHash}
 								/>
 							))}
 							{clients.length === 0 && (
@@ -312,11 +315,12 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, sta
 
 // ─── Plain read-only client table (no DnD) ───────────────────────────────────
 
-export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {} }: {
+export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {}, detailHash }: {
 	title: string;
 	clients: Client[];
 	onDepositUpdate: (c: Client) => void;
 	actionMap?: Record<string, ClientAction>;
+	detailHash?: string;
 }) {
 	const pbs = (c: Client) =>
 		(c.applicationData as unknown as Record<string, unknown>)?.preferredBreedSize as string | undefined;
@@ -360,7 +364,7 @@ export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {
 									{new Date(client.createdAt).toLocaleDateString()}
 								</td>
 								<td className="py-3 px-4">
-									<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
+									<Link to={`/admin/clients/${client.id}${detailHash ? `#${detailHash}` : ''}`} className="text-sm text-brand-600 hover:underline">
 										View →
 									</Link>
 								</td>

@@ -7,11 +7,12 @@ import { getBreedSizeLabel } from '@paw-registry/shared';
 interface CardProps {
 	children: ReactNode;
 	className?: string;
+	id?: string;
 }
 
-export function Card({ children, className = '' }: CardProps) {
+export function Card({ children, className = '', id }: CardProps) {
 	return (
-		<div className={`bg-white rounded-[14px] border border-black/[0.07] ${className}`}>
+		<div id={id} className={`bg-white rounded-[14px] border border-black/[0.07] ${className}`}>
 			{children}
 		</div>
 	);

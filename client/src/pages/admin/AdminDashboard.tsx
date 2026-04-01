@@ -151,7 +151,7 @@ export function AdminDashboard() {
 					<div className="flex flex-wrap gap-2">
 						{attention.enquiries > 0 && (
 							<Link
-								to="/admin/clients?stage=enquired"
+								to="/admin/clients?action=review_application"
 								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-800 text-xs font-medium transition-colors"
 							>
 								<span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />
@@ -160,7 +160,7 @@ export function AdminDashboard() {
 						)}
 						{attention.docsToReview > 0 && (
 							<Link
-								to="/admin/clients?stage=approved"
+								to="/admin/clients?action=review_documents"
 								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 hover:bg-blue-200 border border-blue-300 text-blue-800 text-xs font-medium transition-colors"
 							>
 								<span className="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true" />
@@ -169,7 +169,7 @@ export function AdminDashboard() {
 						)}
 						{attention.pendingDeposits > 0 && (
 							<Link
-								to="/admin/clients?stage=waitlisted"
+								to="/admin/clients?action=confirm_deposit"
 								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 hover:bg-green-200 border border-green-300 text-green-800 text-xs font-medium transition-colors"
 							>
 								<span className="w-1.5 h-1.5 rounded-full bg-green-500" aria-hidden="true" />
@@ -178,7 +178,7 @@ export function AdminDashboard() {
 						)}
 						{attention.awaitingPayment > 0 && (
 							<Link
-								to="/admin/clients?stage=matched"
+								to="/admin/clients?action=confirm_payment"
 								className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-100 hover:bg-violet-200 border border-violet-300 text-violet-800 text-xs font-medium transition-colors"
 							>
 								<span className="w-1.5 h-1.5 rounded-full bg-violet-500" aria-hidden="true" />
