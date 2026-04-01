@@ -209,7 +209,7 @@ function Section({ label, litters, matches }: { label: string; litters: LitterWi
 	return (
 		<div className="mb-10">
 			<div className="flex items-center gap-3 mb-4">
-				<h2 className="text-xs font-semibold uppercase tracking-wider text-warm-600 whitespace-nowrap">{label}</h2>
+				<h2 className="text-xs font-semibold uppercase tracking-widest text-warm-600 whitespace-nowrap">{label}</h2>
 				<div className="h-px flex-1 bg-warm-300" />
 				<span className="text-[10.5px] text-warm-400 bg-warm-100 px-2 py-[1px] rounded-full flex-shrink-0">
 					{litters.length} {litters.length === 1 ? 'litter' : 'litters'}
