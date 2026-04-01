@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, Badge } from '@/components/ui';
-import type { Document, DocumentTemplateWithChecklist } from '@paw-registry/shared';
+import type { Client, Document, DocumentTemplateWithChecklist } from '@paw-registry/shared';
 
 const docTypeLabel: Record<string, string> = {
 	contract: 'Contract',
@@ -11,11 +11,64 @@ const docTypeLabel: Record<string, string> = {
 	other: 'Document',
 };
 
+const PAST_REVIEW_STAGES = new Set(['waitlisted', 'placed', 'match_requested', 'matched', 'matched_paid']);
+const POPUP_SHOWN_KEY = 'docs_complete_popup_shown';
+
+function DocsCompletePopup({ onClose }: { onClose: () => void }) {
+	const closeRef = useRef<HTMLButtonElement>(null);
+
+	useEffect(() => {
+		closeRef.current?.focus();
+		const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+		document.addEventListener('keydown', onKey);
+		return () => document.removeEventListener('keydown', onKey);
+	}, [onClose]);
+
+	return (
+		<div
+			className="fixed inset-0 z-50 flex items-center justify-center p-4"
+			style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+			onClick={onClose}
+		>
+			<div
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="docs-complete-title"
+				className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-7 flex flex-col items-center text-center gap-4"
+				onClick={(e) => e.stopPropagation()}
+			>
+				<div className="w-14 h-14 rounded-full bg-green-50 border border-green-100 flex items-center justify-center text-2xl" aria-hidden="true">
+					✅
+				</div>
+				<div>
+					<h2 id="docs-complete-title" className="font-serif text-[18px] text-warm-900 mb-2">
+						Documents submitted!
+					</h2>
+					<p className="text-[13.5px] text-warm-600 leading-relaxed">
+						Thank you for submitting your documents. Our breeder will review them soon — if everything looks good, you'll be placed onto our waiting list.
+					</p>
+				</div>
+				<button
+					ref={closeRef}
+					type="button"
+					onClick={onClose}
+					className="w-full py-2.5 bg-warm-900 text-white text-sm font-medium rounded-lg hover:bg-warm-800 transition-colors cursor-pointer"
+				>
+					Got it
+				</button>
+			</div>
+		</div>
+	);
+}
+
 export function PortalDocuments() {
 	const [documents, setDocuments] = useState<Document[]>([]);
 	const [templates, setTemplates] = useState<DocumentTemplateWithChecklist[]>([]);
+	const [clientStage, setClientStage] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [uploading, setUploading] = useState<string | null>(null);
+	const [showPopup, setShowPopup] = useState(false);
+	const [popupSeen, setPopupSeen] = useState(() => localStorage.getItem(POPUP_SHOWN_KEY) === 'true');
 
 	useEffect(() => {
 		document.title = 'Documents — My Portal';
@@ -26,9 +79,11 @@ export function PortalDocuments() {
 		Promise.all([
 			api.documents.my.get(),
 			api.templates.my.get(),
-		]).then(([docsRes, templatesRes]) => {
+			api.clients.me.get(),
+		]).then(([docsRes, templatesRes, clientRes]) => {
 			if (docsRes.data) setDocuments(docsRes.data as Document[]);
 			if (templatesRes.data) setTemplates(templatesRes.data as DocumentTemplateWithChecklist[]);
+			if (clientRes.data) setClientStage((clientRes.data as Client).stage);
 			setLoading(false);
 		});
 	}, []);
@@ -48,16 +103,50 @@ export function PortalDocuments() {
 		setUploading(null);
 	};
 
+	// Derived values (computed before hooks that depend on them)
+	const checkedCount = templates.filter((t) => t.checkedAt).length;
+	const allComplete = templates.length > 0 && checkedCount === templates.length;
+	const isPastReview = clientStage !== null && PAST_REVIEW_STAGES.has(clientStage);
+
+	// Show popup once when all docs first become complete
+	useEffect(() => {
+		if (allComplete && !isPastReview && !popupSeen) {
+			setShowPopup(true);
+			setPopupSeen(true);
+			localStorage.setItem(POPUP_SHOWN_KEY, 'true');
+		}
+	}, [allComplete, isPastReview, popupSeen]);
+
 	if (loading) return <LoadingPage />;
 
-	const checkedCount = templates.filter((t) => t.checkedAt).length;
+	const handleDismissPopup = () => setShowPopup(false);
 
 	return (
 		<div>
+			{showPopup && <DocsCompletePopup onClose={handleDismissPopup} />}
+
 			<div className="mb-8">
 				<h1 className="font-serif text-2xl font-bold text-warm-900">Documents</h1>
 				<p className="text-warm-600 text-sm mt-1">Your contracts, health records, and go-home documents.</p>
 			</div>
+
+			{/* Under-review banner — shown after popup dismissed, until client is waitlisted */}
+			{allComplete && !isPastReview && popupSeen && (
+				<div
+					role="status"
+					className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3.5"
+				>
+					<span className="text-amber-500 mt-px shrink-0" aria-hidden="true">
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+							<circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+							<path d="M8 5v3.5M8 11h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+						</svg>
+					</span>
+					<p className="text-[13px] text-amber-800 leading-relaxed">
+						<span className="font-medium">Documents under review.</span> Our breeder will review your documents — if successful, you'll be placed onto the waiting list.
+					</p>
+				</div>
+			)}
 
 			{/* Client-specific documents */}
 			{documents.length > 0 && (
