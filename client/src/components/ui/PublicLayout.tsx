@@ -153,7 +153,7 @@ export function PublicLayout() {
 				<Outlet />
 			</main>
 
-			<footer className="bg-warm-900 text-warm-400 py-12 mt-20">
+			<footer className="bg-warm-900 text-warm-400 py-12 mt-4">
 				<div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
 					<div>
 						<div className="flex items-center gap-2 mb-4">

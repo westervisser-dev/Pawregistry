@@ -141,8 +141,8 @@ export function LittersPage() {
 			)}
 
 			{/* Waitlist CTA */}
-			<div className="mt-16 bg-brand-50 border border-brand-100 rounded-2xl p-8 md:p-12">
-				<div className="max-w-md">
+			<div className="mt-16 bg-brand-50 border border-brand-100 rounded-2xl overflow-hidden flex flex-col md:flex-row">
+				<div className="p-8 md:p-12 flex-1">
 					<h2 className="font-serif text-2xl font-bold text-warm-900 mb-2">Join our waitlist</h2>
 					<p className="text-warm-500 mb-6 text-sm leading-relaxed">
 						Litters fill quickly. Submit an application and we'll be in touch when a suitable match becomes available.
@@ -150,6 +150,15 @@ export function LittersPage() {
 					<Link to="/apply" className="inline-block px-7 py-3 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl transition-colors text-sm">
 						Apply now
 					</Link>
+				</div>
+				<div className="hidden md:block w-72 flex-shrink-0 bg-warm-100">
+					<img
+						src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&q=85&auto=format&fit=crop"
+						alt="Two doodle dogs together"
+						loading="lazy"
+						decoding="async"
+						className="w-full h-full object-cover"
+					/>
 				</div>
 			</div>
 

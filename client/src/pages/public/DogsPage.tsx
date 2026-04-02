@@ -32,7 +32,7 @@ export function DogsPage() {
 	}, []);
 
 	return (
-		<div className="max-w-6xl mx-auto px-6 py-16">
+		<div className="max-w-6xl mx-auto px-6 py-10">
 			{/* Backdrop */}
 			{expandedId && (
 				<div
@@ -41,7 +41,7 @@ export function DogsPage() {
 				/>
 			)}
 
-			<div className="mb-10">
+			<div className="mb-8">
 				<h1 className="font-serif text-4xl font-bold text-warm-900 mb-3">Our Dogs</h1>
 				<p className="text-warm-500 max-w-xl">
 					Meet our breeding programme. All dogs are health-tested, registered, and
