@@ -171,7 +171,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		return { interested: !!interest };
 	})
 
-	// Client: toggle litter interest (waitlisted+ only)
+	// Client: toggle litter interest (approved+ only)
 	.post('/:id/interest', async ({ params, user, error }) => {
 		if (!user) return error(401, { error: 'Unauthorized', message: 'Not authenticated' });
 		const client = await db.query.clients.findFirst({
@@ -180,9 +180,9 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		});
 		if (!client) return error(403, { error: 'Forbidden', message: 'No client account found' });
 
-		const eligibleStages = ['waitlisted', 'match_requested', 'matched', 'matched_paid'];
+		const eligibleStages = ['approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'];
 		if (!eligibleStages.includes(client.stage)) {
-			return error(400, { error: 'InvalidStage', message: 'You must be waitlisted to express interest in a litter' });
+			return error(400, { error: 'InvalidStage', message: 'Your application must be approved before you can show interest in a litter' });
 		}
 
 		const litter = await db.query.litters.findFirst({
@@ -303,7 +303,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			columns: { id: true, stage: true },
 		});
 		if (!client) return [];
-		const eligible = ['waitlisted', 'match_requested', 'matched', 'matched_paid'];
+		const eligible = ['approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'];
 		if (!eligible.includes(client.stage)) return [];
 		const interests = await db.query.litterInterests.findMany({
 			where: eq(litterInterests.clientId, client.id),

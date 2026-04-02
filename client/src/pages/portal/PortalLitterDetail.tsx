@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '@/lib/api';
-import type { LitterWithDogs, LitterMatchResult, LitterMatchTier } from '@paw-registry/shared';
+import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -56,6 +56,7 @@ export function PortalLitterDetail() {
 	const [myMatch, setMyMatch] = useState<LitterMatchResult | null>(null);
 	const [myLitterInterest, setMyLitterInterest] = useState(false);
 	const [litterInterestLoading, setLitterInterestLoading] = useState(false);
+	const [clientStage, setClientStage] = useState<ClientStage | null>(null);
 
 	useEffect(() => {
 		if (!id) return;
@@ -88,6 +89,11 @@ export function PortalLitterDetail() {
 				if (match) setMyMatch(match);
 			}
 		}).catch(() => {});
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.clients as any).me.get().then(({ data }: { data: { stage: ClientStage } | null }) => {
+			if (data) setClientStage(data.stage);
+		}).catch(() => {});
 	}, [id, user]);
 
 	useEffect(() => {
@@ -118,6 +124,9 @@ export function PortalLitterDetail() {
 		setLitterInterestLoading(false);
 	};
 
+	const isApprovedOrLater = !!clientStage && ['approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
+	const isWaitlistedOrLater = !!clientStage && ['waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
+
 	if (loading) return <LoadingPage />;
 	if (!litter) return <div className="text-warm-500 p-4">Litter not found.</div>;
 
@@ -145,20 +154,29 @@ export function PortalLitterDetail() {
 					</div>
 				</div>
 
-				{/* Litter interest toggle — shown for waitlisted+ clients */}
-				{user && (eligibility?.position !== null || myLitterInterest) && (
-					<button
-						onClick={toggleLitterInterest}
-						disabled={litterInterestLoading}
-						className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-							myLitterInterest
-								? 'bg-brand-50 text-brand-600 border border-brand-300 hover:bg-brand-100'
-								: 'bg-white text-warm-600 border border-warm-300 hover:bg-warm-50'
-						}`}
-					>
-						<span aria-hidden="true">{myLitterInterest ? '★' : '☆'}</span>
-						{litterInterestLoading ? 'Saving…' : myLitterInterest ? 'Interested' : 'Mark as interested'}
-					</button>
+				{/* Litter interest toggle — shown for approved+ clients, greyed out for enquired/rejected */}
+				{user && clientStage && clientStage !== 'rejected' && (
+					<div className="relative group/litter-btn">
+						<button
+							onClick={isApprovedOrLater ? toggleLitterInterest : undefined}
+							disabled={litterInterestLoading || !isApprovedOrLater}
+							className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+								!isApprovedOrLater
+									? 'bg-warm-100 text-warm-400 border border-warm-200 cursor-not-allowed'
+									: myLitterInterest
+										? 'bg-brand-50 text-brand-600 border border-brand-300 hover:bg-brand-100 disabled:opacity-50'
+										: 'bg-white text-warm-600 border border-warm-300 hover:bg-warm-50 disabled:opacity-50'
+							}`}
+						>
+							<span aria-hidden="true">{myLitterInterest ? '★' : '☆'}</span>
+							{litterInterestLoading ? 'Saving…' : myLitterInterest ? 'Interested' : 'Mark as interested'}
+						</button>
+						{!isApprovedOrLater && (
+							<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/litter-btn:opacity-100 pointer-events-none z-10 transition-opacity">
+								Your application must be approved first
+							</div>
+						)}
+					</div>
 				)}
 			</div>
 
@@ -261,14 +279,36 @@ export function PortalLitterDetail() {
 								<p className="text-xs font-medium text-warm-700 capitalize">{puppy.sex}</p>
 								<p className="text-xs text-warm-500 mb-2">{puppy.colour}</p>
 								<PuppyStatusBadge status={puppy.status} />
-								{puppy.status === 'available' && user && (
+								{puppy.status === 'available' && user && clientStage && (
 									<div className="mt-2">
 										{myInterestPuppyIds.has(puppy.id) ? (
 											<span className="text-xs text-green-600 font-medium">Interest registered ✓</span>
 										) : interestMessage[puppy.id] ? (
 											<span className="text-xs text-warm-500">{interestMessage[puppy.id]}</span>
+										) : !isWaitlistedOrLater ? (
+											<div className="relative group/puppy-btn">
+												<button
+													disabled
+													className="w-full mt-1 px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
+												>
+													Express Interest
+												</button>
+												<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/puppy-btn:opacity-100 pointer-events-none z-10 transition-opacity">
+													You must be on the waitlist first
+												</div>
+											</div>
 										) : eligibility && !eligibility.isNotified ? (
-											<span className="text-xs text-warm-400 italic">Not yet eligible</span>
+											<div className="relative group/puppy-btn">
+												<button
+													disabled
+													className="w-full mt-1 px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
+												>
+													Express Interest
+												</button>
+												<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/puppy-btn:opacity-100 pointer-events-none z-10 transition-opacity">
+													You haven't been invited to select from this litter yet
+												</div>
+											</div>
 										) : (
 											<button
 												onClick={() => expressInterest(puppy.id)}
