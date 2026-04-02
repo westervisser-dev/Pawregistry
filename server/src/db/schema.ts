@@ -232,7 +232,6 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
 	litter: one(litters, { fields: [clients.litterId], references: [litters.id] }),
 	documents: many(documents),
 	updates: many(updates),
-	checklist: one(goHomeChecklists, { fields: [clients.id], references: [goHomeChecklists.clientId] }),
 	puppyInterests: many(puppyInterests),
 	notifications: many(litterNotifications),
 	litterInterests: many(litterInterests),
@@ -274,28 +273,6 @@ export const documents = pgTable('documents', {
 export const documentsRelations = relations(documents, ({ one }) => ({
 	client: one(clients, { fields: [documents.clientId], references: [clients.id] }),
 	puppy: one(puppies, { fields: [documents.puppyId], references: [puppies.id] }),
-}));
-
-// ─── Go-Home Checklists ──────────────────────────────────────────────────────
-
-export const goHomeChecklists = pgTable('go_home_checklists', {
-	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
-	puppyId: text('puppy_id').notNull().references(() => puppies.id),
-	vetCheckDone: boolean('vet_check_done').notNull().default(false),
-	microchipRegistered: boolean('microchip_registered').notNull().default(false),
-	contractSigned: boolean('contract_signed').notNull().default(false),
-	depositPaid: boolean('deposit_paid').notNull().default(false),
-	balancePaid: boolean('balance_paid').notNull().default(false),
-	puppyPackPrepared: boolean('puppy_pack_prepared').notNull().default(false),
-	goHomeDate: text('go_home_date'),
-	notes: text('notes'),
-	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const goHomeChecklistsRelations = relations(goHomeChecklists, ({ one }) => ({
-	client: one(clients, { fields: [goHomeChecklists.clientId], references: [clients.id] }),
-	puppy: one(puppies, { fields: [goHomeChecklists.puppyId], references: [puppies.id] }),
 }));
 
 // ─── Admins ───────────────────────────────────────────────────────────────────

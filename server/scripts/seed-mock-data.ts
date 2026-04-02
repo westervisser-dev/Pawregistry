@@ -914,7 +914,6 @@ async function main() {
 	await db`DELETE FROM puppy_interests`;
 	await db`DELETE FROM litter_notifications`;
 	await db`DELETE FROM client_activity`;
-	await db`DELETE FROM go_home_checklists`;
 	await db`DELETE FROM documents`;
 	await db`DELETE FROM client_template_checklist`;
 	await db`DELETE FROM email_logs`;

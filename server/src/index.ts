@@ -6,7 +6,6 @@ import { littersRoutes } from './routes/litters';
 import { clientsRoutes } from './routes/clients';
 import { updatesRoutes } from './routes/updates';
 import { documentsRoutes } from './routes/documents';
-import { checklistRoutes } from './routes/documents/checklists';
 import { templatesRoutes } from './routes/templates';
 import { authRoutes } from './routes/auth';
 import { adminsRoutes } from './routes/admins';
@@ -42,7 +41,6 @@ const app = new Elysia()
 	.use(clientsRoutes)
 	.use(updatesRoutes)
 	.use(documentsRoutes)
-	.use(checklistRoutes)
 	.use(templatesRoutes)
 
 	.listen(process.env.PORT ?? 3000);

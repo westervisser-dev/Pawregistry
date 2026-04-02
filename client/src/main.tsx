@@ -71,7 +71,6 @@ const AdminInviteCallbackPage = lazy$(() => import('@/pages/AdminInviteCallbackP
 const PortalDashboard = lazy$(() => import('@/pages/portal/PortalDashboard'), 'PortalDashboard');
 const PortalUpdates = lazy$(() => import('@/pages/portal/PortalUpdates'), 'PortalUpdates');
 const PortalDocuments = lazy$(() => import('@/pages/portal/PortalDocuments'), 'PortalDocuments');
-const PortalChecklist = lazy$(() => import('@/pages/portal/PortalChecklist'), 'PortalChecklist');
 const PortalLitters = lazy$(() => import('@/pages/portal/PortalLitters'), 'PortalLitters');
 const PortalLitterDetail = lazy$(() => import('@/pages/portal/PortalLitterDetail'), 'PortalLitterDetail');
 const PortalPreferences = lazy$(() => import('@/pages/portal/PortalPreferences'), 'PortalPreferences');
@@ -127,7 +126,6 @@ function App() {
 							<Route path="/portal/updates" element={<PortalUpdates />} />
 							<Route path="/portal/documents" element={<PortalDocuments />} />
 							<Route path="/portal/preferences" element={<PortalPreferences />} />
-							<Route path="/portal/checklist" element={<PortalChecklist />} />
 						</Route>
 					</Route>
 

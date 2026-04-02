@@ -7,7 +7,6 @@ const portalNav = [
 	{ to: '/portal/litters', label: 'Litters', icon: '🐾', iconFilter: 'brightness(0) invert(1)' },
 	{ to: '/portal/updates', label: 'Updates', icon: '📋' },
 	{ to: '/portal/documents', label: 'Documents', icon: '📁' },
-	{ to: '/portal/checklist', label: 'Checklist', icon: '✅' },
 ];
 
 // ─── Sidebar content extracted so it never remounts on parent re-renders ──────

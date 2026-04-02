@@ -234,23 +234,6 @@ export interface Document {
 	createdAt: string;
 }
 
-// ─── Go-Home Checklist ───────────────────────────────────────────────────────
-
-export interface GoHomeChecklist {
-	id: string;
-	clientId: string;
-	puppyId: string;
-	vetCheckDone: boolean;
-	microchipRegistered: boolean;
-	contractSigned: boolean;
-	depositPaid: boolean;
-	balancePaid: boolean;
-	puppyPackPrepared: boolean;
-	goHomeDate: string | null;
-	notes: string | null;
-	updatedAt: string;
-}
-
 // ─── Document Template ────────────────────────────────────────────────────────
 
 export interface DocumentTemplate {
