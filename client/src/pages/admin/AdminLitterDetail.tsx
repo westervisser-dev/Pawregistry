@@ -50,9 +50,13 @@ export function AdminLitterDetail() {
 	const [deleteBlocking, setDeleteBlocking] = useState<string[] | null>(null);
 	const [matchingClients, setMatchingClients] = useState<MatchingClient[]>([]);
 	const [matchingLoading, setMatchingLoading] = useState(false);
-	const [litterInterests, setLitterInterests] = useState<Array<{
+	const [puppyInterests, setPuppyInterests] = useState<Array<{
 		id: string; puppyId: string; clientId: string; status: string; createdAt: string;
 		client: { id: string; firstName: string; lastName: string; email: string; city: string | null; stage: string; depositStatus: string };
+	}>>([]);
+	const [clientLitterInterests, setClientLitterInterests] = useState<Array<{
+		id: string; clientId: string; litterId: string; createdAt: string;
+		client: { id: string; firstName: string; lastName: string; email: string; city: string | null; depositStatus: string; priority: number; stage: string; waitlistPosition: number | null };
 	}>>([]);
 	const [expandedPuppy, setExpandedPuppy] = useState<string | null>(null);
 	const [updatingPuppyId, setUpdatingPuppyId] = useState<string | null>(null);
@@ -119,8 +123,13 @@ export function AdminLitterDetail() {
 		}).catch(() => setMatchingLoading(false));
 		// Fetch puppy interests
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(api.litters.admin as any).interests({ litterId: id }).get().then(({ data }: { data: typeof litterInterests | null }) => {
-			if (data) setLitterInterests(data);
+		(api.litters.admin as any).interests({ litterId: id }).get().then(({ data }: { data: typeof puppyInterests | null }) => {
+			if (data) setPuppyInterests(data);
+		}).catch(() => {});
+		// Fetch litter-level interests (clients who flagged interest in this litter)
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.litters.admin as any)['litter-interests']({ litterId: id }).get().then(({ data }: { data: typeof clientLitterInterests | null }) => {
+			if (data) setClientLitterInterests(data);
 		}).catch(() => {});
 		// Fetch litter notifications
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -232,23 +241,16 @@ export function AdminLitterDetail() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const { data } = await (api.litters.admin as any).interests({ litterId: interestId }).patch({ status });
 		if (data) {
-			// Refresh interests list
+			// Refresh puppy interests list
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			(api.litters.admin as any).interests({ litterId: id }).get().then(({ data: fresh }: { data: typeof litterInterests | null }) => {
-				if (fresh) setLitterInterests(fresh);
+			(api.litters.admin as any).interests({ litterId: id }).get().then(({ data: fresh }: { data: typeof puppyInterests | null }) => {
+				if (fresh) setPuppyInterests(fresh);
 			});
-			// If approved, update puppy status in local state
-			if (status === 'approved') {
-				const interest = litterInterests.find((i) => i.id === interestId);
-				if (interest && litter) {
-					setLitter({
-						...litter,
-						puppies: litter.puppies.map((p: unknown) => {
-							const pp = p as { id: string; status: string };
-							return pp.id === interest.puppyId ? { ...pp, status: 'reserved' } : pp;
-						}),
-					});
-				}
+			// Re-fetch litter to reflect updated puppy status
+			if (id) {
+				api.litters({ id }).get().then(({ data: fresh }) => {
+					if (fresh) setLitter(fresh as typeof litter);
+				});
 			}
 		}
 		setApprovingInterestId(null);
@@ -690,8 +692,8 @@ export function AdminLitterDetail() {
 				) : (
 					<div className="divide-y divide-black/[0.05]">
 						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null }>).map((p) => {
-							const pendingInterests = litterInterests.filter((i) => i.puppyId === p.id && i.status === 'pending');
-							const allInterests = litterInterests.filter((i) => i.puppyId === p.id);
+							const pendingInterests = puppyInterests.filter((i) => i.puppyId === p.id && i.status === 'pending');
+							const allInterests = puppyInterests.filter((i) => i.puppyId === p.id);
 							const isExpanded = expandedPuppy === p.id;
 
 							return (
@@ -706,7 +708,7 @@ export function AdminLitterDetail() {
 											onChange={(e) => updatePuppyStatus(p.id, e.target.value)}
 											className="px-2 py-1 text-xs border border-warm-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-300 bg-white disabled:opacity-50"
 										>
-											{['available', 'reserved', 'placed', 'retained', 'not_for_sale'].map((s) => (
+											{['available', 'reserved', 'matched', 'matched_paid', 'retained', 'not_for_sale'].map((s) => (
 												<option key={s} value={s}>{s.replace('_', ' ')}</option>
 											))}
 										</select>
@@ -828,6 +830,61 @@ export function AdminLitterDetail() {
 						</>
 					)}
 				</div>
+			</Card>
+
+			{/* Litter Interest — clients who flagged interest in this litter */}
+			<Card className="p-6 mb-6">
+				<div className="flex items-center justify-between mb-3">
+					<h3 className="text-base font-bold text-warm-900">Litter Interest</h3>
+					{clientLitterInterests.length > 0 && (
+						<span className="text-xs font-medium text-warm-500">{clientLitterInterests.length} interested</span>
+					)}
+				</div>
+				{clientLitterInterests.length === 0 ? (
+					<p className="text-sm text-warm-400">No clients have flagged interest in this litter yet.</p>
+				) : (
+					<div className="divide-y divide-black/[0.05]">
+						{clientLitterInterests.map((li) => {
+							const alreadyNotified = !!notifiedMap[li.clientId];
+							return (
+								<div key={li.id} className="flex items-center gap-3 py-2.5">
+									<div className="flex-1 min-w-0">
+										<Link to={`/admin/clients/${li.clientId}`} className="text-sm font-medium text-warm-900 hover:text-brand-600 truncate block">
+											{li.client.firstName} {li.client.lastName}
+										</Link>
+										<div className="flex items-center gap-2 mt-0.5">
+											{li.client.city && <span className="text-xs text-warm-400">{li.client.city}</span>}
+											{li.client.waitlistPosition != null && (
+												<span className="text-xs text-warm-500">#{li.client.waitlistPosition}</span>
+											)}
+											<span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+												li.client.depositStatus === 'paid' ? 'bg-green-100 text-green-700' :
+												li.client.depositStatus === 'pending' ? 'bg-amber-100 text-amber-700' :
+												'bg-warm-100 text-warm-600'
+											}`}>
+												{li.client.depositStatus === 'paid' ? 'Deposit paid' :
+												 li.client.depositStatus === 'pending' ? 'Deposit pending' : 'No deposit'}
+											</span>
+										</div>
+									</div>
+									{alreadyNotified ? (
+										<span className="text-xs text-blue-600 font-medium flex-shrink-0">Notified ✓</span>
+									) : (
+										<button
+											onClick={() => {
+												setSelectedIds((prev) => { const next = new Set(prev); next.add(li.clientId); return next; });
+												setNotifyOpen(true);
+											}}
+											className="px-2.5 py-1 text-xs bg-brand-50 text-brand-700 border border-brand-200 rounded-lg hover:bg-brand-100 transition-colors flex-shrink-0"
+										>
+											+ Invite
+										</button>
+									)}
+								</div>
+							);
+						})}
+					</div>
+				)}
 			</Card>
 
 			{/* Potential Clients */}

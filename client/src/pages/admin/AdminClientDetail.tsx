@@ -9,9 +9,8 @@ const EMAIL_TRIGGER_LABELS: Record<string, string> = {
 	stage_enquired: 'Application Received',
 	stage_approved: 'Application Approved',
 	stage_waitlisted: 'Added to Waitlist',
-	stage_placed: 'Litter Matched',
 	stage_match_requested: 'Puppy Selection',
-	stage_matched: 'Puppy Reserved',
+	stage_matched: 'Puppy Selected',
 	stage_matched_paid: 'Payment Confirmed',
 };
 
@@ -219,6 +218,10 @@ export function AdminClientDetail() {
 	const [uploading, setUploading] = useState(false);
 	const [uploadError, setUploadError] = useState('');
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [clientLitterInterests, setClientLitterInterests] = useState<Array<{
+		id: string; clientId: string; litterId: string; createdAt: string;
+		litter: { id: string; name: string; breed: string | null; status: string; expectedDate: string | null };
+	}>>([]);
 
 	const loadDocuments = () => {
 		if (!id) return;
@@ -232,7 +235,7 @@ export function AdminClientDetail() {
 		});
 	};
 
-	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'placed', 'match_requested', 'matched'];
+	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'match_requested', 'matched'];
 
 	const load = () => {
 		if (!id) return;
@@ -259,6 +262,10 @@ export function AdminClientDetail() {
 		(api.clients.admin({ id }) as any).activity.get().then(({ data }: { data: ClientActivity[] | null }) => {
 			if (data) setActivities(data);
 		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.clients as any).admin({ id })['litter-interests'].get().then(({ data }: { data: typeof clientLitterInterests | null }) => {
+			if (data) setClientLitterInterests(data);
+		}).catch(() => {});
 		loadDocuments();
 	};
 
@@ -426,7 +433,6 @@ export function AdminClientDetail() {
 						['approved', 'Approved'],
 						['rejected', 'Rejected'],
 						['waitlisted', 'Waitlisted'],
-						['placed', 'Placed'],
 						['match_requested', 'Match Requested'],
 						['matched', 'Matched'],
 						['matched_paid', 'Matched & Paid'],
@@ -445,6 +451,34 @@ export function AdminClientDetail() {
 					))}
 				</div>
 			</Card>
+
+			{/* Litter Interest */}
+			{clientLitterInterests.length > 0 && (
+				<Card className="p-5 mb-6">
+					<h3 className="font-medium text-warm-900 mb-3">Litter Interest</h3>
+					<div className="divide-y divide-black/[0.05]">
+						{clientLitterInterests.map((li) => (
+							<div key={li.id} className="py-2.5 flex items-center gap-3">
+								<div className="flex-1 min-w-0">
+									<Link to={`/admin/litters/${li.litterId}`} className="text-sm font-medium text-warm-900 hover:text-brand-600 truncate block">
+										{li.litter.name}
+									</Link>
+									<div className="flex items-center gap-2 mt-0.5">
+										{li.litter.breed && <span className="text-xs text-warm-400">{li.litter.breed}</span>}
+										<span className="text-xs text-warm-400 capitalize">{li.litter.status}</span>
+										{li.litter.expectedDate && (
+											<span className="text-xs text-warm-400">· {li.litter.expectedDate}</span>
+										)}
+									</div>
+								</div>
+								<span className="text-xs text-warm-400 flex-shrink-0">
+									{new Date(li.createdAt).toLocaleDateString()}
+								</span>
+							</div>
+						))}
+					</div>
+				</Card>
+			)}
 
 			{/* Application */}
 			<Card className="p-6 mb-6">

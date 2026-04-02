@@ -99,7 +99,7 @@ function formatDate(litter: LitterWithDogs): string {
 
 /* ── Litter card ── */
 
-function LitterCard({ litter, match }: { litter: LitterWithDogs; match?: LitterMatchResult }) {
+function LitterCard({ litter, match, interested }: { litter: LitterWithDogs; match?: LitterMatchResult; interested?: boolean }) {
 	const breedLabel = getBreedLabel(litter.breed);
 	const sizeLabel = getSizeLabel(litter.breed);
 	const availableCount = litter.availableCount ?? 0;
@@ -132,17 +132,24 @@ function LitterCard({ litter, match }: { litter: LitterWithDogs; match?: LitterM
 			{/* Body */}
 			<div className="px-5 pt-[18px] pb-4 flex-1 flex flex-col">
 
-				{/* Title + match badge */}
+				{/* Title + badges */}
 				<div className="flex items-start justify-between gap-2.5 mb-1.5">
 					<h3 className="font-serif text-base leading-snug text-warm-900 flex-1">
 						{litter.name}
 					</h3>
-					{tier && (
-						<span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap flex-shrink-0 ml-2.5 mt-[2px] ${tierBadge[tier]}`}>
-							<span className={`w-[5px] h-[5px] rounded-full flex-shrink-0 ${tierBadgeDot[tier]}`} aria-hidden="true" />
-							{tierLabel[tier]}
-						</span>
-					)}
+					<div className="flex items-center gap-1.5 flex-shrink-0 ml-2.5 mt-[2px]">
+						{interested && (
+							<span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap bg-brand-50 text-brand-600">
+								<span aria-hidden="true">★</span> Interested
+							</span>
+						)}
+						{tier && (
+							<span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap ${tierBadge[tier]}`}>
+								<span className={`w-[5px] h-[5px] rounded-full flex-shrink-0 ${tierBadgeDot[tier]}`} aria-hidden="true" />
+								{tierLabel[tier]}
+							</span>
+						)}
+					</div>
 				</div>
 
 				{/* Breed · Size */}
@@ -204,7 +211,7 @@ function LitterCard({ litter, match }: { litter: LitterWithDogs; match?: LitterM
 
 /* ── Section ── */
 
-function Section({ label, litters, matches }: { label: string; litters: LitterWithDogs[]; matches: Record<string, LitterMatchResult> }) {
+function Section({ label, litters, matches, interestedIds }: { label: string; litters: LitterWithDogs[]; matches: Record<string, LitterMatchResult>; interestedIds: Set<string> }) {
 	if (litters.length === 0) return null;
 	return (
 		<div className="mb-10">
@@ -216,7 +223,7 @@ function Section({ label, litters, matches }: { label: string; litters: LitterWi
 				</span>
 			</div>
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-				{litters.map((l) => <LitterCard key={l.id} litter={l} match={matches[l.id]} />)}
+				{litters.map((l) => <LitterCard key={l.id} litter={l} match={matches[l.id]} interested={interestedIds.has(l.id)} />)}
 			</div>
 		</div>
 	);
@@ -229,6 +236,7 @@ export function PortalLitters() {
 	const [matches, setMatches] = useState<Record<string, LitterMatchResult>>({});
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState<LitterMatchTier | 'all'>('all');
+	const [interestedIds, setInterestedIds] = useState<Set<string>>(new Set());
 	const { user } = useAuthStore();
 
 	useEffect(() => {
@@ -238,11 +246,15 @@ export function PortalLitters() {
 
 	useEffect(() => {
 		const fetchAll = async () => {
-			const [littersRes, matchesRes] = await Promise.all([
+			const [littersRes, matchesRes, interestsRes] = await Promise.all([
 				api.litters.get(),
 				user
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					? (api.litters.portal as any)['my-matches'].get()
+					: Promise.resolve({ data: null }),
+				user
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					? (api.litters.portal as any)['my-litter-interests'].get()
 					: Promise.resolve({ data: null }),
 			]);
 
@@ -252,6 +264,10 @@ export function PortalLitters() {
 				const map: Record<string, LitterMatchResult> = {};
 				(matchesRes.data as LitterMatchResult[]).forEach((m) => { map[m.litterId] = m; });
 				setMatches(map);
+			}
+
+			if (interestsRes.data) {
+				setInterestedIds(new Set(interestsRes.data as string[]));
 			}
 
 			setLoading(false);
@@ -312,8 +328,8 @@ export function PortalLitters() {
 						</div>
 					)}
 
-					<Section label="Available Now" litters={availableNow} matches={matches} />
-					<Section label="Upcoming Litters" litters={upcoming} matches={matches} />
+					<Section label="Available Now" litters={availableNow} matches={matches} interestedIds={interestedIds} />
+					<Section label="Upcoming Litters" litters={upcoming} matches={matches} interestedIds={interestedIds} />
 
 					{filtered.length === 0 && (
 						<p className="text-sm text-warm-400 text-center py-12">No litters match this filter.</p>

@@ -9,9 +9,8 @@ const TRIGGER_LABELS: Record<string, string> = {
 	stage_enquired: 'Application Received',
 	stage_approved: 'Application Approved',
 	stage_waitlisted: 'Added to Waitlist',
-	stage_placed: 'Litter Matched',
 	stage_match_requested: 'Puppy Selection',
-	stage_matched: 'Puppy Reserved',
+	stage_matched: 'Puppy Selected',
 	stage_matched_paid: 'Payment Confirmed',
 };
 
@@ -19,7 +18,6 @@ const TRIGGER_VARIABLES: Record<string, string[]> = {
 	stage_enquired: ['{{first_name}}', '{{full_name}}'],
 	stage_approved: ['{{first_name}}', '{{full_name}}', '{{documents_link}}', '{{portal_link}}'],
 	stage_waitlisted: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
-	stage_placed: ['{{first_name}}', '{{full_name}}', '{{litter_name}}', '{{litter_breed}}', '{{litter_expected_date}}', '{{litter_link}}', '{{portal_link}}'],
 	stage_match_requested: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
 	stage_matched: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
 	stage_matched_paid: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],

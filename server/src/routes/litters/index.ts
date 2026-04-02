@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc, asc, inArray, and, ne, notInArray } from 'drizzle-orm';
+import { eq, desc, asc, inArray, and, ne, notInArray, or } from 'drizzle-orm';
 import { db } from '../../db';
-import { litters, puppies, litterImages, clients, updates, puppyInterests, clientActivity, litterNotifications } from '../../db/schema';
+import { litters, puppies, litterImages, clients, updates, puppyInterests, clientActivity, litterNotifications, litterInterests } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { parseBreedSize } from '@paw-registry/shared';
@@ -36,9 +36,14 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 			const client = await db.query.clients.findFirst({
 				where: eq(clients.userId, user.id),
-				columns: { id: true, firstName: true, lastName: true },
+				columns: { id: true, firstName: true, lastName: true, stage: true },
 			});
 			if (!client) return error(403, { error: 'Forbidden', message: 'No client account found' });
+
+			// Only waitlisted clients can express puppy interest
+			if (client.stage !== 'waitlisted') {
+				return error(400, { error: 'InvalidStage', message: 'You can only express interest in a puppy while you are waitlisted' });
+			}
 
 			const puppy = await db.query.puppies.findFirst({
 				where: eq(puppies.id, params.puppyId),
@@ -55,7 +60,6 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			if (batchRecords.length > 0) {
 				const isNotified = batchRecords.some((n) => n.clientId === client.id);
 				if (!isNotified) {
-					// Find client's rank among all waitlisted clients sorted by priority
 					const allWaitlisted = await db.query.clients.findMany({
 						where: eq(clients.stage, 'waitlisted'),
 						columns: { id: true, priority: true },
@@ -71,7 +75,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				}
 			}
 
-			// Check for existing interest
+			// Check for existing interest on this puppy
 			const existing = await db.query.puppyInterests.findFirst({
 				where: and(eq(puppyInterests.puppyId, params.puppyId), eq(puppyInterests.clientId, client.id)),
 			});
@@ -82,11 +86,16 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.values({ puppyId: params.puppyId, clientId: client.id })
 				.returning();
 
-			// Log client activity
+			// Auto: puppy → reserved, client → match_requested, client litterId set
+			await db.update(puppies).set({ status: 'reserved', updatedAt: new Date() }).where(eq(puppies.id, params.puppyId));
+			await db.update(clients)
+				.set({ stage: 'match_requested', litterId: puppy.litterId, updatedAt: new Date() })
+				.where(eq(clients.id, client.id));
+
 			await db.insert(clientActivity).values({
 				clientId: client.id,
-				type: 'preferences_updated',
-				description: `Expressed interest in a puppy.`,
+				type: 'stage_changed',
+				description: `Expressed interest in a puppy. Stage moved to match_requested.`,
 				metadata: { puppyId: params.puppyId, litterId: puppy.litterId },
 				actor: 'client',
 			});
@@ -147,6 +156,53 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			};
 		}
 	)
+
+	// Client: get own litter interest status
+	.get('/:id/my-litter-interest', async ({ params, user }) => {
+		if (!user) return { interested: false };
+		const client = await db.query.clients.findFirst({
+			where: eq(clients.userId, user.id),
+			columns: { id: true },
+		});
+		if (!client) return { interested: false };
+		const interest = await db.query.litterInterests.findFirst({
+			where: and(eq(litterInterests.clientId, client.id), eq(litterInterests.litterId, params.id)),
+		});
+		return { interested: !!interest };
+	})
+
+	// Client: toggle litter interest (waitlisted+ only)
+	.post('/:id/interest', async ({ params, user, error }) => {
+		if (!user) return error(401, { error: 'Unauthorized', message: 'Not authenticated' });
+		const client = await db.query.clients.findFirst({
+			where: eq(clients.userId, user.id),
+			columns: { id: true, stage: true },
+		});
+		if (!client) return error(403, { error: 'Forbidden', message: 'No client account found' });
+
+		const eligibleStages = ['waitlisted', 'match_requested', 'matched', 'matched_paid'];
+		if (!eligibleStages.includes(client.stage)) {
+			return error(400, { error: 'InvalidStage', message: 'You must be waitlisted to express interest in a litter' });
+		}
+
+		const litter = await db.query.litters.findFirst({
+			where: eq(litters.id, params.id),
+			columns: { id: true, isPublic: true },
+		});
+		if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
+
+		const existing = await db.query.litterInterests.findFirst({
+			where: and(eq(litterInterests.clientId, client.id), eq(litterInterests.litterId, params.id)),
+		});
+
+		if (existing) {
+			await db.delete(litterInterests).where(eq(litterInterests.id, existing.id));
+			return { interested: false };
+		}
+
+		await db.insert(litterInterests).values({ clientId: client.id, litterId: params.id });
+		return { interested: true };
+	})
 
 	// Client: get match tier for every public litter based on own preferences
 	.get('/portal/my-matches', async ({ user, error }) => {
@@ -237,6 +293,23 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 			return { litterId: litter.id, tier, matchReasons: reasons };
 		});
+	})
+
+	// Client: get all litter IDs the current client has flagged interest in
+	.get('/portal/my-litter-interests', async ({ user }) => {
+		if (!user) return [];
+		const client = await db.query.clients.findFirst({
+			where: eq(clients.userId, user.id),
+			columns: { id: true, stage: true },
+		});
+		if (!client) return [];
+		const eligible = ['waitlisted', 'match_requested', 'matched', 'matched_paid'];
+		if (!eligible.includes(client.stage)) return [];
+		const interests = await db.query.litterInterests.findMany({
+			where: eq(litterInterests.clientId, client.id),
+			columns: { litterId: true },
+		});
+		return interests.map((i) => i.litterId);
 	})
 
 	// ── Admin routes ──
@@ -426,6 +499,32 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		return interests;
 	})
 
+	// ── Admin: get litter interests (clients who flagged interest in this litter) ──
+	.get('/admin/litter-interests/:litterId', async ({ params }) => {
+		const interests = await db.query.litterInterests.findMany({
+			where: eq(litterInterests.litterId, params.litterId),
+			with: {
+				client: {
+					columns: { id: true, firstName: true, lastName: true, email: true, city: true, depositStatus: true, priority: true, stage: true },
+				},
+			},
+			orderBy: [asc(litterInterests.createdAt)],
+		});
+
+		// Attach waitlist position for each client
+		const waitlisted = await db.query.clients.findMany({
+			where: inArray(clients.stage, ['waitlisted', 'match_requested', 'matched']),
+			columns: { id: true },
+			orderBy: [asc(clients.priority)],
+		});
+		const positionMap = new Map(waitlisted.map((c, i) => [c.id, i + 1]));
+
+		return interests.map((i) => ({
+			...i,
+			client: { ...i.client, waitlistPosition: positionMap.get(i.client.id) ?? null },
+		}));
+	})
+
 	// ── Admin: get notifications for a litter (who was notified + when) ──
 	.get('/admin/notifications/:litterId', async ({ params }) => {
 		return db.query.litterNotifications.findMany({
@@ -495,8 +594,11 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.returning();
 
 			if (body.status === 'approved') {
-				// Mark puppy as reserved
-				await db.update(puppies).set({ status: 'reserved', updatedAt: new Date() }).where(eq(puppies.id, interest.puppyId));
+				// Puppy → matched, client → matched
+				await db.update(puppies).set({ status: 'matched', updatedAt: new Date() }).where(eq(puppies.id, interest.puppyId));
+				await db.update(clients)
+					.set({ stage: 'matched', puppyId: interest.puppyId, updatedAt: new Date() })
+					.where(eq(clients.id, interest.clientId));
 
 				// Auto-reject all other pending interests for this puppy
 				await db
@@ -508,11 +610,24 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 						eq(puppyInterests.status, 'pending'),
 					));
 
-				// Log client activity
 				await db.insert(clientActivity).values({
 					clientId: interest.clientId,
 					type: 'stage_changed',
-					description: `Puppy interest approved by breeder. Puppy reserved.`,
+					description: `Puppy interest approved. Stage moved to matched.`,
+					metadata: { puppyId: interest.puppyId, interestId: interest.id },
+					actor: 'admin',
+				});
+			} else {
+				// Reject: puppy → available, client → waitlisted, clear litterId
+				await db.update(puppies).set({ status: 'available', updatedAt: new Date() }).where(eq(puppies.id, interest.puppyId));
+				await db.update(clients)
+					.set({ stage: 'waitlisted', litterId: null, updatedAt: new Date() })
+					.where(eq(clients.id, interest.clientId));
+
+				await db.insert(clientActivity).values({
+					clientId: interest.clientId,
+					type: 'stage_changed',
+					description: `Puppy interest rejected. Stage reverted to waitlisted.`,
 					metadata: { puppyId: interest.puppyId, interestId: interest.id },
 					actor: 'admin',
 				});
@@ -569,7 +684,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					.set({ status: 'available', updatedAt: new Date() })
 					.where(and(
 						eq(puppies.litterId, params.id),
-						notInArray(puppies.status, ['reserved', 'placed', 'retained', 'not_for_sale']),
+						notInArray(puppies.status, ['reserved', 'matched', 'matched_paid', 'retained', 'not_for_sale']),
 					));
 			}
 
@@ -650,8 +765,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				sex: t.Union([t.Literal('male'), t.Literal('female')]),
 				colour: t.String(),
 				status: t.Optional(t.Union([
-					t.Literal('available'), t.Literal('reserved'), t.Literal('placed'),
-					t.Literal('retained'), t.Literal('not_for_sale'),
+					t.Literal('available'), t.Literal('reserved'), t.Literal('matched'),
+					t.Literal('matched_paid'), t.Literal('retained'), t.Literal('not_for_sale'),
 				])),
 				birthWeight: t.Optional(t.Nullable(t.Number())),
 				notes: t.Optional(t.Nullable(t.String())),
@@ -668,6 +783,32 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.where(eq(puppies.id, params.puppyId))
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Puppy not found' });
+
+			// If admin manually resets puppy to available, revert any linked client
+			if (body.status === 'available') {
+				const activeInterest = await db.query.puppyInterests.findFirst({
+					where: and(
+						eq(puppyInterests.puppyId, params.puppyId),
+						or(eq(puppyInterests.status, 'pending'), eq(puppyInterests.status, 'approved')),
+					),
+				});
+				if (activeInterest) {
+					await db.update(puppyInterests)
+						.set({ status: 'rejected', updatedAt: new Date() })
+						.where(eq(puppyInterests.id, activeInterest.id));
+					await db.update(clients)
+						.set({ stage: 'waitlisted', litterId: null, puppyId: null, updatedAt: new Date() })
+						.where(eq(clients.id, activeInterest.clientId));
+					await db.insert(clientActivity).values({
+						clientId: activeInterest.clientId,
+						type: 'stage_changed',
+						description: `Puppy reset to available by admin. Stage reverted to waitlisted.`,
+						metadata: { puppyId: params.puppyId },
+						actor: 'admin',
+					});
+				}
+			}
+
 			return updated;
 		},
 		{
@@ -676,8 +817,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				sex: t.Union([t.Literal('male'), t.Literal('female')]),
 				colour: t.String(),
 				status: t.Union([
-					t.Literal('available'), t.Literal('reserved'), t.Literal('placed'),
-					t.Literal('retained'), t.Literal('not_for_sale'),
+					t.Literal('available'), t.Literal('reserved'), t.Literal('matched'),
+					t.Literal('matched_paid'), t.Literal('retained'), t.Literal('not_for_sale'),
 				]),
 				birthWeight: t.Nullable(t.Number()), currentWeight: t.Nullable(t.Number()),
 				notes: t.Nullable(t.String()), profileImageUrl: t.Nullable(t.String()),

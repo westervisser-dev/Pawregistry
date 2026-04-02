@@ -54,6 +54,8 @@ export function PortalLitterDetail() {
 	const [interestMessage, setInterestMessage] = useState<Record<string, string>>({});
 	const [eligibility, setEligibility] = useState<{ isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null>(null);
 	const [myMatch, setMyMatch] = useState<LitterMatchResult | null>(null);
+	const [myLitterInterest, setMyLitterInterest] = useState(false);
+	const [litterInterestLoading, setLitterInterestLoading] = useState(false);
 
 	useEffect(() => {
 		if (!id) return;
@@ -72,6 +74,11 @@ export function PortalLitterDetail() {
 				setMyInterestPuppyIds(new Set(data.interests.map((i) => i.puppyId)));
 				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo });
 			}
+		}).catch(() => {});
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.litters({ id }) as any)['my-litter-interest'].get().then(({ data }: { data: { interested: boolean } | null }) => {
+			if (data) setMyLitterInterest(data.interested);
 		}).catch(() => {});
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,12 +101,21 @@ export function PortalLitterDetail() {
 		const { error } = await (api.litters.puppies({ puppyId }) as any).interest.post({});
 		if (!error) {
 			setMyInterestPuppyIds((prev) => new Set([...prev, puppyId]));
-			setInterestMessage((prev) => ({ ...prev, [puppyId]: 'Interest registered!' }));
+			setInterestMessage((prev) => ({ ...prev, [puppyId]: 'Interest registered! Our team will be in touch to confirm your match.' }));
 		} else {
 			const body = error.value as { message?: string };
 			setInterestMessage((prev) => ({ ...prev, [puppyId]: body?.message ?? 'Something went wrong.' }));
 		}
 		setSubmittingInterest(null);
+	};
+
+	const toggleLitterInterest = async () => {
+		if (!id) return;
+		setLitterInterestLoading(true);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { data } = await (api.litters({ id }) as any).interest.post({});
+		if (data) setMyLitterInterest((data as { interested: boolean }).interested);
+		setLitterInterestLoading(false);
 	};
 
 	if (loading) return <LoadingPage />;
@@ -128,6 +144,22 @@ export function PortalLitterDetail() {
 						)}
 					</div>
 				</div>
+
+				{/* Litter interest toggle — shown for waitlisted+ clients */}
+				{user && (eligibility?.position !== null || myLitterInterest) && (
+					<button
+						onClick={toggleLitterInterest}
+						disabled={litterInterestLoading}
+						className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+							myLitterInterest
+								? 'bg-brand-50 text-brand-600 border border-brand-300 hover:bg-brand-100'
+								: 'bg-white text-warm-600 border border-warm-300 hover:bg-warm-50'
+						}`}
+					>
+						<span aria-hidden="true">{myLitterInterest ? '★' : '☆'}</span>
+						{litterInterestLoading ? 'Saving…' : myLitterInterest ? 'Interested' : 'Mark as interested'}
+					</button>
+				)}
 			</div>
 
 			{/* Match card */}

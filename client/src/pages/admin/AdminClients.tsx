@@ -40,7 +40,7 @@ export function AdminClients() {
 
 	const stages: Array<Client['stage'] | ''> = [
 		'', 'enquired', 'approved', 'rejected',
-		'waitlisted', 'placed', 'match_requested', 'matched', 'matched_paid',
+		'waitlisted', 'match_requested', 'matched', 'matched_paid',
 	];
 
 	const stageLabels: Record<string, string> = {
@@ -49,7 +49,6 @@ export function AdminClients() {
 		approved: 'Approved',
 		rejected: 'Rejected',
 		waitlisted: 'Waitlisted',
-		placed: 'Placed',
 		match_requested: 'Match Requested',
 		matched: 'Matched',
 		matched_paid: 'Matched & Paid',
@@ -72,7 +71,7 @@ export function AdminClients() {
 	) as Record<string, ClientAction>;
 
 	// Active queue: all stages from waitlisted through matched (position persists until matched_paid)
-	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'placed', 'match_requested', 'matched'];
+	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'match_requested', 'matched'];
 	const queueClients = clients.filter((c) => (ACTIVE_QUEUE_STAGES as string[]).includes(c.stage));
 	const depositQueueClients = queueClients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
 	const noDepositQueueClients = queueClients.filter((c) => !c.depositStatus || c.depositStatus === 'none');

@@ -42,7 +42,8 @@ export const litterStatusEnum = pgEnum('litter_status', [
 export const puppyStatusEnum = pgEnum('puppy_status', [
 	'available',
 	'reserved',
-	'placed',
+	'matched',
+	'matched_paid',
 	'retained',
 	'not_for_sale',
 ]);
@@ -51,7 +52,6 @@ export const clientStageEnum = pgEnum('client_stage', [
 	'approved',
 	'rejected',
 	'waitlisted',
-	'placed',
 	'match_requested',
 	'matched',
 	'matched_paid',
@@ -145,6 +145,7 @@ export const littersRelations = relations(litters, ({ one, many }) => ({
 	updates: many(updates),
 	images: many(litterImages),
 	notifications: many(litterNotifications),
+	interests: many(litterInterests),
 }));
 
 // ─── Puppies ─────────────────────────────────────────────────────────────────
@@ -215,7 +216,7 @@ export const clients = pgTable('clients', {
 	phone: text('phone'),
 	city: text('city'),
 	country: text('country').notNull().default('ZA'),
-	stage: clientStageEnum('stage').notNull().default('enquiry'),
+	stage: clientStageEnum('stage').notNull().default('enquired'),
 	priority: integer('priority').notNull().default(100),
 	depositStatus: depositStatusEnum('deposit_status').notNull().default('none'),
 	puppyId: text('puppy_id').references(() => puppies.id),
@@ -232,8 +233,9 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
 	documents: many(documents),
 	updates: many(updates),
 	checklist: one(goHomeChecklists, { fields: [clients.id], references: [goHomeChecklists.clientId] }),
-	interests: many(puppyInterests),
+	puppyInterests: many(puppyInterests),
 	notifications: many(litterNotifications),
+	litterInterests: many(litterInterests),
 }));
 
 // ─── Updates ─────────────────────────────────────────────────────────────────
@@ -395,4 +397,19 @@ export const litterNotifications = pgTable('litter_notifications', {
 export const litterNotificationsRelations = relations(litterNotifications, ({ one }) => ({
 	litter: one(litters, { fields: [litterNotifications.litterId], references: [litters.id] }),
 	client: one(clients, { fields: [litterNotifications.clientId], references: [clients.id] }),
+}));
+
+// ─── Litter Interests ─────────────────────────────────────────────────────────
+
+export const litterInterests = pgTable('litter_interests', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+	litterId: text('litter_id').notNull().references(() => litters.id, { onDelete: 'cascade' }),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const litterInterestsRelations = relations(litterInterests, ({ one }) => ({
+	client: one(clients, { fields: [litterInterests.clientId], references: [clients.id] }),
+	litter: one(litters, { fields: [litterInterests.litterId], references: [litters.id] }),
 }));

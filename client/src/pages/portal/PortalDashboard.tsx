@@ -66,14 +66,6 @@ const STAGES = [
 		trigger: 'Happens automatically once all required documents are submitted.',
 	},
 	{
-		key: 'placed',
-		label: 'Placed',
-		variant: 'green' as const,
-		icon: '🐾',
-		description: 'You\'ve been placed with a specific litter. We\'ll keep you updated as the puppies grow and the go-home date approaches.',
-		trigger: 'Set by our team when a suitable litter becomes available for you.',
-	},
-	{
 		key: 'match_requested',
 		label: 'Match Requested',
 		variant: 'purple' as const,
@@ -103,14 +95,14 @@ const STAGE_STEPS = [
 	{ key: 'enquired', label: 'Applied' },
 	{ key: 'approved', label: 'Approved' },
 	{ key: 'waitlisted', label: 'Waitlisted' },
-	{ key: 'placed', label: 'Matched' },
+	{ key: 'matched', label: 'Matched' },
 	{ key: 'matched_paid', label: 'Complete' },
 ];
 
 function getStageIndex(stage: string): number {
 	const idx = STAGE_STEPS.findIndex(s => s.key === stage);
 	if (idx >= 0) return idx;
-	if (stage === 'match_requested' || stage === 'matched') return 3;
+	if (stage === 'match_requested') return 3;
 	return 0;
 }
 
@@ -297,7 +289,7 @@ function StageProgress({ currentStage }: { currentStage: string }) {
 
 function WelcomeBanner({ firstName, stage }: { firstName: string; stage: string }) {
 	const stageLabel = STAGES.find(s => s.key === stage)?.label ?? stage;
-	const isPositiveStage = ['approved', 'waitlisted', 'placed', 'matched', 'matched_paid'].includes(stage);
+	const isPositiveStage = ['approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(stage);
 
 	return (
 		<div className="bg-sidebar-bg rounded-2xl px-7 py-7 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">

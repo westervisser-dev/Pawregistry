@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
 import { eq, asc, max, sql, inArray, count, and, isNotNull } from 'drizzle-orm';
 import { db } from '../../db';
-import { clients, clientActivity, documentTemplates, clientTemplateChecklist } from '../../db/schema';
+import { clients, clientActivity, documentTemplates, clientTemplateChecklist, puppies, puppyInterests, litterInterests, litters } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { sendStageEmail, sendClientEmail, sendAdminNotification } from '../../lib/email';
 import { logActivity } from '../../lib/activity';
@@ -221,7 +221,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			query: t.Object({
 				stage: t.Optional(t.Union([
 					t.Literal('enquired'), t.Literal('approved'), t.Literal('rejected'),
-					t.Literal('waitlisted'), t.Literal('placed'), t.Literal('match_requested'),
+					t.Literal('waitlisted'), t.Literal('match_requested'),
 					t.Literal('matched'), t.Literal('matched_paid'),
 				])),
 			}),
@@ -286,7 +286,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 	})
 
 	.get('/admin/:id/waitlist-position', async ({ params, error }) => {
-		const ACTIVE_QUEUE_STAGES = ['waitlisted', 'placed', 'match_requested', 'matched'] as const;
+		const ACTIVE_QUEUE_STAGES = ['waitlisted', 'match_requested', 'matched'] as const;
 		type ActiveStage = typeof ACTIVE_QUEUE_STAGES[number];
 
 		const client = await db.query.clients.findFirst({
@@ -308,6 +308,19 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 
 		const position = activeQueue.findIndex(r => r.id === client.id) + 1;
 		return { position: position > 0 ? position : null, total: activeQueue.length };
+	})
+
+	// ── Admin: get litter interests for a client ──
+	.get('/admin/:id/litter-interests', async ({ params }) => {
+		return db.query.litterInterests.findMany({
+			where: eq(litterInterests.clientId, params.id),
+			with: {
+				litter: {
+					columns: { id: true, name: true, breed: true, status: true, expectedDate: true },
+				},
+			},
+			orderBy: [asc(litterInterests.createdAt)],
+		});
 	})
 
 	.patch(
@@ -350,6 +363,12 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 						`${updated.firstName} ${updated.lastName} (${updated.email}) has been matched with a puppy.\n\nConfirm payment here: ${process.env.CLIENT_URL}/admin/clients/${params.id}`,
 					).catch(console.error);
 				}
+				// When marking matched_paid, sync the linked puppy to matched_paid
+				if (body.stage === 'matched_paid' && updated.puppyId) {
+					await db.update(puppies)
+						.set({ status: 'matched_paid', updatedAt: new Date() })
+						.where(eq(puppies.id, updated.puppyId));
+				}
 			}
 			if (body.depositStatus && current && body.depositStatus !== current.depositStatus) {
 				logActivity(params.id, 'deposit_changed', `Deposit status changed from ${current.depositStatus} to ${body.depositStatus}`, 'admin', { from: current.depositStatus, to: body.depositStatus });
@@ -368,7 +387,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			body: t.Partial(t.Object({
 				stage: t.Union([
 					t.Literal('enquired'), t.Literal('approved'), t.Literal('rejected'),
-					t.Literal('waitlisted'), t.Literal('placed'), t.Literal('match_requested'),
+					t.Literal('waitlisted'), t.Literal('match_requested'),
 					t.Literal('matched'), t.Literal('matched_paid'),
 				]),
 				priority: t.Number(),

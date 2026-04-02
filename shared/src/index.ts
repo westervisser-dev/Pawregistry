@@ -97,7 +97,7 @@ export interface LitterWithDogs extends Litter {
 
 // ─── Puppy ───────────────────────────────────────────────────────────────────
 
-export type PuppyStatus = 'available' | 'reserved' | 'placed' | 'retained' | 'not_for_sale';
+export type PuppyStatus = 'available' | 'reserved' | 'matched' | 'matched_paid' | 'retained' | 'not_for_sale';
 
 export interface Puppy {
 	id: string;
@@ -122,10 +122,9 @@ export type ClientStage =
 	| 'approved'        // Admin reviewed and approved
 	| 'rejected'        // Admin reviewed and rejected
 	| 'waitlisted'      // Client completed all required docs
-	| 'placed'          // Admin assigned a possible litter
-	| 'match_requested' // Admin waiting on client to select a born puppy
-	| 'matched'         // Client has selected a puppy
-	| 'matched_paid';   // Client selected and paid in full
+	| 'match_requested' // Client expressed interest in a puppy — awaiting admin approval
+	| 'matched'         // Admin approved the puppy interest
+	| 'matched_paid';   // Client paid in full
 
 // DB values: 'none' | 'pending' (Deposit — Selected) | 'paid' (Deposit — Paid)
 export type DepositStatus = 'none' | 'pending' | 'paid';
@@ -358,6 +357,28 @@ export interface LitterNotification {
 	clientId: string;
 	notifiedAt: string;
 	createdAt: string;
+}
+
+// ─── Litter Interest ──────────────────────────────────────────────────────────
+
+export interface LitterInterest {
+	id: string;
+	clientId: string;
+	litterId: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface LitterInterestWithClient extends LitterInterest {
+	client: {
+		id: string;
+		firstName: string;
+		lastName: string;
+		email: string;
+		city: string | null;
+		depositStatus: DepositStatus;
+		priority: number;
+	};
 }
 
 // ─── Breed & Size Constants ──────────────────────────────────────────────────

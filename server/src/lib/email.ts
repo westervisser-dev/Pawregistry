@@ -16,7 +16,6 @@ const STAGE_TRIGGER: Partial<Record<string, string>> = {
 	enquired: 'stage_enquired',
 	approved: 'stage_approved',
 	waitlisted: 'stage_waitlisted',
-	placed: 'stage_placed',
 	match_requested: 'stage_match_requested',
 	matched: 'stage_matched',
 	matched_paid: 'stage_matched_paid',
