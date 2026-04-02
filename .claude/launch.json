@@ -3,9 +3,12 @@
   "configurations": [
     {
       "name": "client",
-      "runtimeExecutable": "pnpm",
+      "runtimeExecutable": "/Users/westervisser/Library/pnpm/pnpm",
       "runtimeArgs": ["--filter", "@paw-registry/client", "dev"],
-      "port": 5173
+      "port": 5173,
+      "env": {
+        "PATH": "/usr/local/bin:/usr/bin:/bin"
+      }
     },
     {
       "name": "server",
