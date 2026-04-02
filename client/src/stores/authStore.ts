@@ -8,6 +8,7 @@ interface AuthState {
 	session: Session | null;
 	isAdmin: boolean;
 	hasClientRecord: boolean;
+	clientStage: string | null;
 	loading: boolean;
 	init: () => Promise<void>;
 	signOut: () => Promise<void>;
@@ -24,17 +25,21 @@ export const useAuthStore = create<AuthState>((set) => {
 			const isAdmin = (data && typeof data === 'object' && 'isAdmin' in data)
 				? Boolean(data.isAdmin)
 				: false;
+			const clientStage = (data && typeof data === 'object' && 'clientStage' in data && typeof data.clientStage === 'string')
+				? data.clientStage
+				: null;
 			set({
 				user: session.user,
 				session,
 				isAdmin,
 				hasClientRecord,
+				clientStage,
 				...(isInit ? { loading: false } : {}),
 			});
 		} else {
 			localStorage.removeItem('access_token');
 			set({
-				user: null, session: null, isAdmin: false, hasClientRecord: false,
+				user: null, session: null, isAdmin: false, hasClientRecord: false, clientStage: null,
 				...(isInit ? { loading: false } : {}),
 			});
 		}
@@ -45,6 +50,7 @@ export const useAuthStore = create<AuthState>((set) => {
 		session: null,
 		isAdmin: false,
 		hasClientRecord: false,
+		clientStage: null,
 		loading: true,
 
 		init: async () => {
@@ -59,7 +65,7 @@ export const useAuthStore = create<AuthState>((set) => {
 		signOut: async () => {
 			await supabase.auth.signOut();
 			localStorage.removeItem('access_token');
-			set({ user: null, session: null, isAdmin: false, hasClientRecord: false });
+			set({ user: null, session: null, isAdmin: false, hasClientRecord: false, clientStage: null });
 		},
 	};
 });

@@ -70,6 +70,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 				email: user.email,
 				hasClientRecord: !!client,
 				isAdmin,
+				clientStage: client?.stage ?? null,
 			};
 		},
 		{ body: t.Object({ accessToken: t.String() }) }

@@ -6,18 +6,19 @@ const portalNav = [
 	{ to: '/portal', label: 'Dashboard', icon: '▪', end: true },
 	{ to: '/portal/litters', label: 'Litters', icon: '🐾', iconFilter: 'brightness(0) invert(1)' },
 	{ to: '/portal/updates', label: 'Updates', icon: '📋' },
-	{ to: '/portal/documents', label: 'Documents', icon: '📁' },
+	{ to: '/portal/documents', label: 'Documents', icon: '📁', requiresApproval: true },
 ];
 
 // ─── Sidebar content extracted so it never remounts on parent re-renders ──────
 
 interface SidebarProps {
 	email?: string;
+	clientStage: string | null;
 	signOut: () => void;
 	onLinkClick: () => void;
 }
 
-function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
+function PortalSidebar({ email, clientStage, signOut, onLinkClick }: SidebarProps) {
 	const initials = (email ?? '')
 		.split('@')[0]
 		.slice(0, 2)
@@ -40,24 +41,39 @@ function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
 
 			{/* Navigation */}
 			<nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
-				{portalNav.map(({ to, label, icon, end, iconFilter }) => (
-					<NavLink
-						key={to}
-						to={to}
-						end={end}
-						onClick={onLinkClick}
-						className={({ isActive }) =>
-							`flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13.5px] transition-colors ${
-								isActive
-									? 'bg-brand-500 text-white font-medium'
-									: 'text-[rgba(240,237,234,0.75)] hover:bg-white/[0.06] hover:text-[rgba(240,237,234,1)]'
-							}`
-						}
-					>
-						<span className="w-4 text-center text-sm" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
-						{label}
-					</NavLink>
-				))}
+				{portalNav.map(({ to, label, icon, end, iconFilter, requiresApproval }) => {
+					const locked = requiresApproval && clientStage === 'enquired';
+					if (locked) {
+						return (
+							<span
+								key={to}
+								title="Available once your application is approved"
+								className="flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13.5px] text-[rgba(240,237,234,0.3)] cursor-not-allowed select-none"
+							>
+								<span className="w-4 text-center text-sm opacity-40" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
+								{label}
+							</span>
+						);
+					}
+					return (
+						<NavLink
+							key={to}
+							to={to}
+							end={end}
+							onClick={onLinkClick}
+							className={({ isActive }) =>
+								`flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13.5px] transition-colors ${
+									isActive
+										? 'bg-brand-500 text-white font-medium'
+										: 'text-[rgba(240,237,234,0.75)] hover:bg-white/[0.06] hover:text-[rgba(240,237,234,1)]'
+								}`
+							}
+						>
+							<span className="w-4 text-center text-sm" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
+							{label}
+						</NavLink>
+					);
+				})}
 			</nav>
 
 			{/* Footer */}
@@ -82,7 +98,7 @@ function PortalSidebar({ email, signOut, onLinkClick }: SidebarProps) {
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export function PortalLayout() {
-	const { user, signOut } = useAuthStore();
+	const { user, signOut, clientStage } = useAuthStore();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 
 	const closeSidebar = () => setSidebarOpen(false);
@@ -110,7 +126,7 @@ export function PortalLayout() {
 				${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
 				md:translate-x-0 md:static md:z-auto
 			`}>
-				<PortalSidebar email={user?.email} signOut={signOut} onLinkClick={closeSidebar} />
+				<PortalSidebar email={user?.email} clientStage={clientStage} signOut={signOut} onLinkClick={closeSidebar} />
 			</aside>
 
 			{/* Main */}
@@ -142,21 +158,35 @@ export function PortalLayout() {
 			{/* Mobile bottom navigation */}
 			<nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-sidebar-bg border-t border-white/10">
 				<div className="grid grid-cols-5 h-16">
-					{portalNav.map(({ to, label, icon, end, iconFilter }) => (
-						<NavLink
-							key={to}
-							to={to}
-							end={end}
-							className={({ isActive }) =>
-								`flex flex-col items-center justify-center gap-0.5 text-center transition-colors ${
-									isActive ? 'text-brand-400' : 'text-[rgba(240,237,234,0.7)]'
-								}`
-							}
-						>
-							<span className="text-xl leading-none" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
-							<span className="text-[10px] font-medium leading-tight">{label}</span>
-						</NavLink>
-					))}
+					{portalNav.map(({ to, label, icon, end, iconFilter, requiresApproval }) => {
+						const locked = requiresApproval && clientStage === 'enquired';
+						if (locked) {
+							return (
+								<span
+									key={to}
+									className="flex flex-col items-center justify-center gap-0.5 text-center text-[rgba(240,237,234,0.3)] cursor-not-allowed select-none"
+								>
+									<span className="text-xl leading-none opacity-40" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
+									<span className="text-[10px] font-medium leading-tight">{label}</span>
+								</span>
+							);
+						}
+						return (
+							<NavLink
+								key={to}
+								to={to}
+								end={end}
+								className={({ isActive }) =>
+									`flex flex-col items-center justify-center gap-0.5 text-center transition-colors ${
+										isActive ? 'text-brand-400' : 'text-[rgba(240,237,234,0.7)]'
+									}`
+								}
+							>
+								<span className="text-xl leading-none" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
+								<span className="text-[10px] font-medium leading-tight">{label}</span>
+							</NavLink>
+						);
+					})}
 				</div>
 			</nav>
 		</div>
