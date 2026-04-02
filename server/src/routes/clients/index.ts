@@ -101,7 +101,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 	.get('/me', async ({ user, error }) => {
 		const client = await db.query.clients.findFirst({
 			where: eq(clients.userId, user.id),
-			with: { puppy: true, litter: true, documents: true, checklist: true },
+			with: { puppy: true, litter: true, documents: true },
 		});
 		if (!client) return error(404, { error: 'Not found', message: 'Client record not found' });
 		return client;
@@ -270,7 +270,6 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				puppy: true,
 				litter: true,
 				documents: true,
-				checklist: true,
 			},
 		});
 		if (!client) return error(404, { error: 'Not found', message: 'Client not found' });
