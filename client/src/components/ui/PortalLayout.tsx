@@ -150,45 +150,10 @@ export function PortalLayout() {
 				</div>
 
 				{/* Page content */}
-				<main id="main-content" className="flex-1 p-5 md:p-8 lg:p-9 pb-24 md:pb-8">
+				<main id="main-content" className="flex-1 p-5 md:p-8 lg:p-9">
 					<Outlet />
 				</main>
 			</div>
-
-			{/* Mobile bottom navigation */}
-			<nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-sidebar-bg border-t border-white/10">
-				<div className="grid grid-cols-4 h-16">
-					{portalNav.map(({ to, label, icon, end, iconFilter, requiresApproval }) => {
-						const locked = requiresApproval && clientStage === 'enquired';
-						if (locked) {
-							return (
-								<span
-									key={to}
-									className="flex flex-col items-center justify-center gap-0.5 text-center text-[rgba(240,237,234,0.3)] cursor-not-allowed select-none"
-								>
-									<span className="text-xl leading-none opacity-40" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
-									<span className="text-[11px] font-medium leading-tight">{label}</span>
-								</span>
-							);
-						}
-						return (
-							<NavLink
-								key={to}
-								to={to}
-								end={end}
-								className={({ isActive }) =>
-									`flex flex-col items-center justify-center gap-0.5 text-center transition-colors ${
-										isActive ? 'text-brand-400' : 'text-[rgba(240,237,234,0.7)]'
-									}`
-								}
-							>
-								<span className="text-xl leading-none" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
-								<span className="text-[11px] font-medium leading-tight">{label}</span>
-							</NavLink>
-						);
-					})}
-				</div>
-			</nav>
 		</div>
 	);
 }
