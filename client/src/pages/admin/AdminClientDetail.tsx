@@ -467,7 +467,7 @@ export function AdminClientDetail() {
 										{li.litter.breed && <span className="text-xs text-warm-400">{li.litter.breed}</span>}
 										<span className="text-xs text-warm-400 capitalize">{li.litter.status}</span>
 										{li.litter.expectedDate && (
-											<span className="text-xs text-warm-400">· {li.litter.expectedDate}</span>
+											<span className="text-xs text-warm-400">· {new Date(li.litter.expectedDate).toLocaleDateString()}</span>
 										)}
 									</div>
 								</div>
