@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage } from '@paw-registry/shared';
+import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -41,6 +42,27 @@ const tierPill: Record<LitterMatchTier, string> = {
 	partial: 'bg-amber-100 text-amber-700',
 	low:     'bg-warm-200 text-warm-500',
 };
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getBreedLabel(raw: string | null | undefined): string | null {
+	const parsed = parseBreedSize(raw);
+	if (!parsed) return null;
+	return BREEDS.find((b) => b.value === parsed.breed)?.label ?? parsed.breed;
+}
+
+function getSizeLabel(raw: string | null | undefined): string | null {
+	const parsed = parseBreedSize(raw);
+	if (!parsed?.size) return null;
+	return BREED_SIZES[parsed.breed]?.find((s) => s.value === parsed.size)?.label ?? parsed.size;
+}
+
+function formatBreed(raw: string | null | undefined): string | null {
+	const breed = getBreedLabel(raw);
+	if (!breed) return null;
+	const size = getSizeLabel(raw);
+	return size ? `${breed} · ${size}` : breed;
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -140,7 +162,7 @@ export function PortalLitterDetail() {
 				<div>
 					<div className="flex items-center gap-3 mb-1.5">
 						<h1 className="font-serif text-2xl font-bold text-warm-900">{litter.name}</h1>
-						{litter.breed && <Badge variant="default">{litter.breed}</Badge>}
+						{litter.breed && <Badge variant="default">{formatBreed(litter.breed)}</Badge>}
 					</div>
 					<div className="flex items-center gap-3 text-sm text-warm-500">
 						<LitterStatusBadge status={litter.status} />
@@ -155,7 +177,7 @@ export function PortalLitterDetail() {
 
 				{/* Litter interest toggle — shown for all non-rejected clients, active from waitlisted onwards */}
 				{user && clientStage && clientStage !== 'rejected' && (
-					<div className="relative group/litter-btn">
+					<div className="flex flex-col items-end gap-1">
 						<button
 							onClick={isWaitlistedOrLater ? toggleLitterInterest : undefined}
 							disabled={litterInterestLoading || !isWaitlistedOrLater}
@@ -171,9 +193,9 @@ export function PortalLitterDetail() {
 							{litterInterestLoading ? 'Saving…' : myLitterInterest ? 'Interested' : 'Mark as interested'}
 						</button>
 						{!isWaitlistedOrLater && (
-							<div className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg max-w-[220px] text-center opacity-0 group-hover/litter-btn:opacity-100 pointer-events-none z-10 transition-opacity">
-								You must be on the waitlist to mark interest in a litter
-							</div>
+							<p className="text-xs text-warm-400 text-right max-w-[220px]">
+								You must be on the waitlist to mark interest
+							</p>
 						)}
 					</div>
 				)}
@@ -233,7 +255,7 @@ export function PortalLitterDetail() {
 						<div>
 							<p className="text-xs text-warm-400 uppercase tracking-wide">{label}</p>
 							<p className="font-medium text-warm-900">{dog?.name}</p>
-							<p className="text-xs text-warm-500">{dog?.colour} · {dog?.breed}</p>
+							<p className="text-xs text-warm-500">{dog?.colour}{dog?.breed ? ` · ${formatBreed(dog.breed)}` : ''}</p>
 						</div>
 					</div>
 				))}
@@ -285,28 +307,28 @@ export function PortalLitterDetail() {
 										) : interestMessage[puppy.id] ? (
 											<span className="text-xs text-warm-500">{interestMessage[puppy.id]}</span>
 										) : !isWaitlistedOrLater ? (
-											<div className="relative group/puppy-btn">
+											<div>
 												<button
 													disabled
 													className="w-full mt-1 px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
 												>
 													Express Interest
 												</button>
-												<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg max-w-[160px] text-center opacity-0 group-hover/puppy-btn:opacity-100 pointer-events-none z-10 transition-opacity">
-													You must be on the waitlist first
-												</div>
+												<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
+													Waitlist required
+												</p>
 											</div>
 										) : eligibility && !eligibility.isNotified ? (
-											<div className="relative group/puppy-btn">
+											<div>
 												<button
 													disabled
 													className="w-full mt-1 px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
 												>
 													Express Interest
 												</button>
-												<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg max-w-[160px] text-center opacity-0 group-hover/puppy-btn:opacity-100 pointer-events-none z-10 transition-opacity">
-													You haven't been invited to select from this litter yet
-												</div>
+												<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
+													Not yet invited
+												</p>
 											</div>
 										) : (
 											<button
