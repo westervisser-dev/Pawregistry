@@ -171,7 +171,7 @@ export function PortalLitterDetail() {
 							{litterInterestLoading ? 'Saving…' : myLitterInterest ? 'Interested' : 'Mark as interested'}
 						</button>
 						{!isWaitlistedOrLater && (
-							<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/litter-btn:opacity-100 pointer-events-none z-10 transition-opacity">
+							<div className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg max-w-[220px] text-center opacity-0 group-hover/litter-btn:opacity-100 pointer-events-none z-10 transition-opacity">
 								You must be on the waitlist to mark interest in a litter
 							</div>
 						)}
@@ -292,7 +292,7 @@ export function PortalLitterDetail() {
 												>
 													Express Interest
 												</button>
-												<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/puppy-btn:opacity-100 pointer-events-none z-10 transition-opacity">
+												<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg max-w-[160px] text-center opacity-0 group-hover/puppy-btn:opacity-100 pointer-events-none z-10 transition-opacity">
 													You must be on the waitlist first
 												</div>
 											</div>
@@ -304,7 +304,7 @@ export function PortalLitterDetail() {
 												>
 													Express Interest
 												</button>
-												<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/puppy-btn:opacity-100 pointer-events-none z-10 transition-opacity">
+												<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg max-w-[160px] text-center opacity-0 group-hover/puppy-btn:opacity-100 pointer-events-none z-10 transition-opacity">
 													You haven't been invited to select from this litter yet
 												</div>
 											</div>
