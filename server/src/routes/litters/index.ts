@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { litters, puppies, litterImages, clients, updates, puppyInterests, clientActivity, litterNotifications, litterInterests } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
+import { sendLitterNotificationEmail } from '../../lib/email';
 import { parseBreedSize } from '@paw-registry/shared';
 
 export const littersRoutes = new Elysia({ prefix: '/litters' })
@@ -561,8 +562,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.values(toNotify.map((clientId) => ({ litterId: params.litterId, clientId })))
 				.returning();
 
-			// TODO: send emails via Resend to each matched client
-			// toNotify.forEach(id => sendNotificationEmail(id, litter))
+			await Promise.all(toNotify.map((id) => sendLitterNotificationEmail(id, params.litterId)));
 
 			const notifiedClients = await db.query.clients.findMany({
 				where: inArray(clients.id, toNotify),
