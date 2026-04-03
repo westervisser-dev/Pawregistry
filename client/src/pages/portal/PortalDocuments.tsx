@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, Badge } from '@/components/ui';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Client, Document, DocumentTemplateWithChecklist } from '@paw-registry/shared';
 
 const docTypeLabel: Record<string, string> = {
@@ -70,10 +71,7 @@ export function PortalDocuments() {
 	const [showPopup, setShowPopup] = useState(false);
 	const [popupSeen, setPopupSeen] = useState(() => localStorage.getItem(POPUP_SHOWN_KEY) === 'true');
 
-	useEffect(() => {
-		document.title = 'Documents — My Portal';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Documents');
 
 	useEffect(() => {
 		Promise.all([

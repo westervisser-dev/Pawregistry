@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, Badge, useFocusTrap } from '@/components/ui';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Client, ClientApplication } from '@paw-registry/shared';
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
@@ -454,10 +455,7 @@ export function PortalDashboard() {
 	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
 	const [templates, setTemplates] = useState<TemplateItem[] | null>(null);
 
-	useEffect(() => {
-		document.title = 'Dashboard — My Portal';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Dashboard');
 
 	useEffect(() => {
 		api.clients.me.get().then(({ data }) => {

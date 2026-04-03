@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { LoadingPage, Badge } from '@/components/ui';
 import type { Dog } from '@paw-registry/shared';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const TRUNCATE = 100;
 
@@ -26,10 +27,7 @@ export function DogsPage() {
 
 	const filtered = filter === 'all' ? dogs : dogs.filter((d) => d.sex === filter);
 
-	useEffect(() => {
-		document.title = 'Our Dogs — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Our Dogs');
 
 	return (
 		<div className="max-w-6xl mx-auto px-6 py-10">

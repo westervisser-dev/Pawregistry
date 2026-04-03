@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 type Step = 'personal' | 'home' | 'experience' | 'preferences' | 'deposit' | 'done';
 
@@ -365,10 +366,7 @@ export function ApplyPage() {
 	}
 	};
 
-	useEffect(() => {
-		document.title = 'Apply for a Puppy — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Apply for a Puppy');
 
 	const sizeOptions = form.preferredBreed ? (BREED_SIZES[form.preferredBreed] ?? []) : [];
 	const secondChoiceSizeOptions = form.secondChoiceBreed ? (BREED_SIZES[form.secondChoiceBreed] ?? []) : [];

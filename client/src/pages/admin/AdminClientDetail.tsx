@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
 import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, DocumentType } from '@paw-registry/shared';
 import { DeleteModal, DepositStatusSelect } from './_shared';
@@ -271,12 +272,7 @@ export function AdminClientDetail() {
 
 	useEffect(() => { load(); }, [id]);
 
-	useEffect(() => {
-		if (client) {
-			document.title = `${client.firstName} ${client.lastName} — Paw Registry Admin`;
-			return () => { document.title = 'Paw Registry'; };
-		}
-	}, [client]);
+	usePageTitle(client ? `${client.firstName} ${client.lastName}` : undefined);
 
 	// Scroll to anchored section once data is loaded (supports deep links from the dashboard)
 	useEffect(() => {

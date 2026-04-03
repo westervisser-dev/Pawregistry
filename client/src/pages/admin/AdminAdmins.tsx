@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader } from '@/components/ui';
 import type { Admin } from '@paw-registry/shared';
 import { AdminTable } from './_shared';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export function AdminAdmins() {
 	const [admins, setAdmins] = useState<Admin[]>([]);
@@ -19,10 +20,10 @@ export function AdminAdmins() {
 			setLoading(false);
 		});
 
+	usePageTitle('Admins');
+
 	useEffect(() => {
-		document.title = 'Admins — Paw Registry';
 		load();
-		return () => { document.title = 'Paw Registry'; };
 	}, []);
 
 	const invite = async () => {

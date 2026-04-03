@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { api } from '@/lib/api';
 import { LitterStatusBadge } from '@/components/ui';
 import { getBreedSizeLabel, type LitterWithDogs } from '@paw-registry/shared';
@@ -15,10 +16,7 @@ export function HomePage() {
 		});
 	}, []);
 
-	useEffect(() => {
-		document.title = 'Paw Registry — Thoughtful Dog Breeding';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle();
 
 	return (
 		<div>

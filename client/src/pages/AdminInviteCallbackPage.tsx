@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Spinner } from '@/components/ui';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export function AdminInviteCallbackPage() {
 	const navigate = useNavigate();
@@ -12,10 +13,7 @@ export function AdminInviteCallbackPage() {
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState('');
 
-	useEffect(() => {
-		document.title = 'Set Password — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Set Password');
 
 	// init() processes the invite token from the URL hash
 	useEffect(() => {

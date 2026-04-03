@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { Card, StageBadge, useFocusTrap } from '@/components/ui';
 import type { Client } from '@paw-registry/shared';
+import { BREEDS, BREED_SIZES } from '@paw-registry/shared';
 import {
 	DndContext,
 	closestCenter,
@@ -119,30 +120,12 @@ export function DeleteModal({
 
 // ─── Application view helpers ─────────────────────────────────────────────────
 
-const BREED_LABELS: Record<string, string> = {
-	f1_goldendoodle: 'F1 Goldendoodle',
-	f1b_goldendoodle: 'F1b Goldendoodle',
-	f1_border_doodle: 'F1 Border Doodle',
-	f1_mini_biewer_doodle: 'F1 Mini Biewer Doodle',
-	red_tuxedo_french_poodle: 'Red Tuxedo French Poodle',
-};
-
-const SIZE_LABELS: Record<string, string> = {
-	standard: 'Standard',
-	miniature: 'Miniature',
-	dwarf: 'Dwarf',
-	border_doodle: 'Border Doodle',
-	biewer_doodle: 'Biewer Doodle',
-	standard_poodle: 'Standard Poodle',
-	moyen_poodle: 'Moyen Poodle',
-};
-
 export function formatBreedSize(raw: string | null | undefined): { breed: string; size: string | null } | null {
 	if (!raw) return null;
 	const [breedRaw, sizeRaw] = raw.split(' - ');
 	return {
-		breed: BREED_LABELS[breedRaw] ?? breedRaw,
-		size: sizeRaw ? (SIZE_LABELS[sizeRaw] ?? sizeRaw) : null,
+		breed: BREEDS.find((b) => b.value === breedRaw)?.label ?? breedRaw,
+		size: sizeRaw ? (BREED_SIZES[breedRaw]?.find((s) => s.value === sizeRaw)?.label ?? sizeRaw) : null,
 	};
 }
 

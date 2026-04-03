@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, Button } from '@/components/ui';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Client, ClientApplication } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES, parseBreedSize as _parseBreedSize } from '@paw-registry/shared';
 
@@ -32,10 +33,7 @@ export function PortalPreferences() {
 	const [considerOtherBreedSize, setConsiderOtherBreedSize] = useState(false);
 	const [considerRehome, setConsiderRehome] = useState(false);
 
-	useEffect(() => {
-		document.title = 'Edit Preferences — My Portal';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Edit Preferences');
 
 	useEffect(() => {
 		api.clients.me.get().then(({ data }) => {

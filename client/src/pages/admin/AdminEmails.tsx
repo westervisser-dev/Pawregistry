@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Card, PageHeader } from '@/components/ui';
 import type { EmailTemplate } from '@paw-registry/shared';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
@@ -32,10 +33,7 @@ export function AdminEmails() {
 	const [saving, setSaving] = useState(false);
 	const [saved, setSaved] = useState(false);
 
-	useEffect(() => {
-		document.title = 'Emails — Paw Registry Admin';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Emails');
 
 	useEffect(() => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,9 +1,7 @@
-import { useEffect } from 'react';
+import { usePageTitle } from '@/hooks/usePageTitle';
+import { APP_NAME } from '@/config/app';
 export function AboutPage() {
-	useEffect(() => {
-		document.title = 'About Us — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('About Us');
 
 	return (
 		<div className="max-w-3xl mx-auto px-6 py-12">
@@ -75,7 +73,7 @@ export function AboutPage() {
 					<p className="font-serif text-xl text-warm-800 leading-relaxed italic mb-3">
 						"We don't breed for volume. We breed for the families waiting at the end of the journey."
 					</p>
-					<cite className="text-sm text-warm-400 not-italic">— Paw Registry</cite>
+					<cite className="text-sm text-warm-400 not-italic">— {APP_NAME}</cite>
 				</blockquote>
 			</div>
 		</div>

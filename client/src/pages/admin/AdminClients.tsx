@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { LoadingPage, PageHeader } from '@/components/ui';
 import type { Client, ClientStage } from '@paw-registry/shared';
 import { ClientDndTable, ClientReadTable, type ClientAction } from './_shared';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 const PRE_WAITLIST_STAGES: ClientStage[] = ['enquired', 'approved', 'rejected'];
 
@@ -12,10 +13,7 @@ export function AdminClients() {
 	const [loading, setLoading] = useState(true);
 	const [actionMap, setActionMap] = useState<Record<string, ClientAction>>({});
 
-	useEffect(() => {
-		document.title = 'Clients — Paw Registry Admin';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Clients');
 
 	const load = (s: string) => {
 		setLoading(true);

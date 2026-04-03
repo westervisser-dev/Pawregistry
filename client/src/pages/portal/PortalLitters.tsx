@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, LitterStatus } from '@paw-registry/shared';
 import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
 import { LoadingPage, EmptyState } from '@/components/ui';
@@ -239,10 +240,7 @@ export function PortalLitters() {
 	const [interestedIds, setInterestedIds] = useState<Set<string>>(new Set());
 	const { user } = useAuthStore();
 
-	useEffect(() => {
-		document.title = 'Litters — My Portal';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Litters');
 
 	useEffect(() => {
 		const fetchAll = async () => {

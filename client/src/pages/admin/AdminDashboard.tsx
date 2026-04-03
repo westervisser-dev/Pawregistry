@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import {
 	Card,
 	CardHeader,
@@ -40,10 +41,7 @@ export function AdminDashboard() {
 	const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 	const attentionRef = useRef<HTMLDivElement>(null);
 
-	useEffect(() => {
-		document.title = 'Dashboard — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Dashboard');
 
 	// Close dropdown on outside click
 	useEffect(() => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export function AdminLoginPage() {
 	const navigate = useNavigate();
@@ -32,10 +33,7 @@ export function AdminLoginPage() {
 		navigate('/admin', { replace: true });
 	};
 
-	useEffect(() => {
-		document.title = 'Admin Login — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Admin Login');
 
 	return (
 		<div className="min-h-screen bg-warm-50 flex items-center justify-center px-6">

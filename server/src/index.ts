@@ -24,7 +24,7 @@ const app = new Elysia()
 	.use(
 		swagger({
 			documentation: {
-				info: { title: 'Paw Registry API', version: '1.0.0' },
+				info: { title: `${process.env.APP_NAME ?? 'Paw Registry'} API`, version: '1.0.0' },
 			},
 		})
 	)
@@ -45,7 +45,7 @@ const app = new Elysia()
 
 	.listen(process.env.PORT ?? 3000);
 
-console.log(`🐾 Paw Registry API running at ${app.server?.hostname}:${app.server?.port}`);
+console.log(`🐾 ${process.env.APP_NAME ?? 'Paw Registry'} API running at ${app.server?.hostname}:${app.server?.port}`);
 
 export type App = typeof app;
 

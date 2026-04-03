@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Link, NavLink } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { APP_NAME, CONTACT_EMAIL } from '@/config/app';
 
 const navLinks = [
 	{ to: '/dogs', label: 'Our Dogs' },
@@ -27,7 +28,7 @@ export function PublicLayout() {
 				<div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
 					<Link to="/" className="flex items-center gap-2" onClick={closeMenu}>
 						<span className="text-2xl">🐾</span>
-						<span className="font-serif text-xl font-bold text-warm-900">Paw Registry</span>
+						<span className="font-serif text-xl font-bold text-warm-900">{APP_NAME}</span>
 					</Link>
 
 					{/* Desktop nav */}
@@ -158,7 +159,7 @@ export function PublicLayout() {
 					<div>
 						<div className="flex items-center gap-2 mb-4">
 							<span className="text-xl">🐾</span>
-							<span className="font-serif text-white font-bold">Paw Registry</span>
+							<span className="font-serif text-white font-bold">{APP_NAME}</span>
 						</div>
 						<p className="text-sm leading-relaxed">
 							Thoughtful, ethical breeding with a lifelong commitment to every puppy we place.
@@ -175,7 +176,7 @@ export function PublicLayout() {
 					</div>
 					<div>
 						<h4 className="text-white font-medium mb-3 text-sm uppercase tracking-wider">Contact</h4>
-						<p className="text-sm">info@pawregistry.co.za</p>
+						{CONTACT_EMAIL && <p className="text-sm">{CONTACT_EMAIL}</p>}
 					</div>
 				</div>
 			</footer>

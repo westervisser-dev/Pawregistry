@@ -3,7 +3,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { emailTemplates, emailLogs, clients, litters, updates, litterInterests, litterNotifications, litterUpdateOptOuts, puppies } from '../db/schema';
 
-const ADMIN_EMAIL = 'westervisser@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? '';
 
 let _resend: Resend | null = null;
 function getResend(): Resend {
@@ -49,13 +49,13 @@ function toHtml(plainText: string): string {
     <tr><td align="center">
       <table width="100%" style="max-width:560px" cellpadding="0" cellspacing="0" role="presentation">
         <tr><td style="background:#1c1917;border-radius:12px 12px 0 0;padding:24px 32px">
-          <p style="margin:0;color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-0.02em">🐾 Paw Registry</p>
+          <p style="margin:0;color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-0.02em">🐾 ${process.env.APP_NAME ?? 'Paw Registry'}</p>
         </td></tr>
         <tr><td style="background:#ffffff;padding:32px;border-left:1px solid #e7e5e4;border-right:1px solid #e7e5e4">
           ${lines.join('\n          ')}
         </td></tr>
         <tr><td style="background:#f5f5f4;border-radius:0 0 12px 12px;padding:18px 32px;border:1px solid #e7e5e4;border-top:none">
-          <p style="margin:0;font-size:12px;color:#a8a29e">This is a transactional message related to your application with Paw Registry.</p>
+          <p style="margin:0;font-size:12px;color:#a8a29e">This is a transactional message related to your application with ${process.env.APP_NAME ?? 'Paw Registry'}.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -302,7 +302,7 @@ function buildUpdateEmailHtml(params: {
     <tr><td align="center">
       <table width="100%" style="max-width:560px" cellpadding="0" cellspacing="0" role="presentation">
         <tr><td style="background:#1c1917;border-radius:12px 12px 0 0;padding:24px 32px">
-          <p style="margin:0;color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-0.02em">🐾 Paw Registry</p>
+          <p style="margin:0;color:#ffffff;font-size:17px;font-weight:700;letter-spacing:-0.02em">🐾 ${process.env.APP_NAME ?? 'Paw Registry'}</p>
           <p style="margin:4px 0 0 0;color:#a8a29e;font-size:13px">${params.litterName}</p>
         </td></tr>
         <tr><td style="background:#ffffff;padding:32px;border-left:1px solid #e7e5e4;border-right:1px solid #e7e5e4">
@@ -317,7 +317,7 @@ function buildUpdateEmailHtml(params: {
           </table>
         </td></tr>
         <tr><td style="background:#f5f5f4;border-radius:0 0 12px 12px;padding:18px 32px;border:1px solid #e7e5e4;border-top:none">
-          <p style="margin:0;font-size:12px;color:#a8a29e">You're receiving this because you're registered with Paw Registry. <a href="${params.portalLink}" style="color:#a8a29e">Manage notifications in your portal.</a></p>
+          <p style="margin:0;font-size:12px;color:#a8a29e">You're receiving this because you're registered with ${process.env.APP_NAME ?? 'Paw Registry'}. <a href="${params.portalLink}" style="color:#a8a29e">Manage notifications in your portal.</a></p>
         </td></tr>
       </table>
     </td></tr>

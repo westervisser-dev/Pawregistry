@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { api } from '@/lib/api';
 import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage } from '@paw-registry/shared';
 import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
@@ -118,10 +119,7 @@ export function PortalLitterDetail() {
 		}).catch(() => {});
 	}, [id, user]);
 
-	useEffect(() => {
-		document.title = 'Litter — My Portal';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Litter');
 
 	const expressInterest = async (puppyId: string) => {
 		setSubmittingInterest(puppyId);

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, EmptyState } from '@/components/ui';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Litter, UpdateWithLitter } from '@paw-registry/shared';
 
 const EMPTY_FORM = {
@@ -28,10 +29,7 @@ export function AdminUpdates() {
 	const updateFileRef = useRef<HTMLInputElement>(null);
 	const [pendingUploadId, setPendingUploadId] = useState<string | null>(null);
 
-	useEffect(() => {
-		document.title = 'Updates — Paw Registry Admin';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Updates');
 
 	useEffect(() => {
 		Promise.all([

@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 export function LoginPage() {
 	const navigate = useNavigate();
@@ -47,10 +48,7 @@ export function LoginPage() {
 		navigate(isAdmin ? '/admin' : '/portal', { replace: true });
 	};
 
-	useEffect(() => {
-		document.title = 'Client Login — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Client Login');
 
 	return (
 		<div className="min-h-screen bg-warm-50 flex items-center justify-center px-6">

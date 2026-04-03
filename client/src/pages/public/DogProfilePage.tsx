@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Badge } from '@/components/ui';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Dog, HealthCert } from '@paw-registry/shared';
 
 type DogWithPedigree = Dog & {
@@ -88,10 +89,7 @@ export function DogProfilePage() {
 		});
 	}, [id]);
 
-	useEffect(() => {
-		document.title = 'DogProfile — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Dog Profile');
 
 	if (loading) return <LoadingPage />;
 	if (!dog) return <div className="p-16 text-center text-warm-500">Dog not found.</div>;

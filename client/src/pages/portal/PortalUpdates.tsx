@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, Badge } from '@/components/ui';
 import type { UpdateWithLitter } from '@paw-registry/shared';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 function Lightbox({ urls, initialIndex, onClose }: { urls: string[]; initialIndex: number; onClose: () => void }) {
 	const [index, setIndex] = useState(initialIndex);
@@ -123,10 +124,7 @@ export function PortalUpdates() {
 	const [loading, setLoading] = useState(true);
 	const [togglingId, setTogglingId] = useState<string | null>(null);
 
-	useEffect(() => {
-		document.title = 'Updates — My Portal';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Updates');
 
 	useEffect(() => {
 		Promise.all([

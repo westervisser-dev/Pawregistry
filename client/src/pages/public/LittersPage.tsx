@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { LitterWithDogs } from '@paw-registry/shared';
+import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage, LitterStatusBadge, EmptyState, BreedBadge } from '@/components/ui';
 
 function LitterGateModal({ onClose }: { onClose: () => void }) {
@@ -69,10 +70,7 @@ export function LittersPage() {
 	const [loading, setLoading] = useState(true);
 	const [showModal, setShowModal] = useState(false);
 
-	useEffect(() => {
-		document.title = 'Available Litters — Paw Registry';
-		return () => { document.title = 'Paw Registry'; };
-	}, []);
+	usePageTitle('Available Litters');
 
 	useEffect(() => {
 		api.litters.get().then(({ data }) => {

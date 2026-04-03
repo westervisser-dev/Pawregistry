@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, NavLink, Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { APP_NAME } from '@/config/app';
 
 const portalNav = [
 	{ to: '/portal', label: 'Dashboard', icon: '▪', end: true },
@@ -33,7 +34,7 @@ function PortalSidebar({ email, clientStage, signOut, onLinkClick }: SidebarProp
 						<span className="text-lg leading-none">🐾</span>
 					</div>
 					<div>
-						<div className="font-serif text-[16px] text-[#F0EDEA] tracking-[0.01em]">Paw Registry</div>
+						<div className="font-serif text-[16px] text-[#F0EDEA] tracking-[0.01em]">{APP_NAME}</div>
 						<div className="text-[10.5px] text-[rgba(240,237,234,0.4)] mt-0.5 tracking-[0.06em] uppercase">Client Portal</div>
 					</div>
 				</Link>
@@ -144,7 +145,7 @@ export function PortalLayout() {
 					</button>
 					<Link to="/" className="flex items-center gap-2">
 						<span className="text-lg">🐾</span>
-						<span className="font-serif text-[#F0EDEA] text-sm">Paw Registry</span>
+						<span className="font-serif text-[#F0EDEA] text-sm">{APP_NAME}</span>
 					</Link>
 					<span className="text-[10.5px] text-[rgba(240,237,234,0.4)] uppercase tracking-wider">Client Portal</span>
 				</div>

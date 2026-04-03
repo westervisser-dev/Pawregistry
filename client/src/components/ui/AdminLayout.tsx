@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { APP_NAME } from '@/config/app';
 
 const adminNav = [
 	{ to: '/admin', label: 'Dashboard', icon: '▪', end: true },
@@ -36,7 +37,7 @@ function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 						<span className="text-lg">🐾</span>
 					</div>
 					<div>
-						<span className="font-serif text-[16px] text-[#F0EDEA] block leading-tight">Paw Registry</span>
+						<span className="font-serif text-[16px] text-[#F0EDEA] block leading-tight">{APP_NAME}</span>
 						<span className="text-[10.5px] text-white/40 uppercase tracking-[0.06em] mt-0.5 block">Admin Portal</span>
 					</div>
 				</Link>
@@ -143,7 +144,7 @@ export function AdminLayout() {
 					</button>
 					<Link to="/" className="flex items-center gap-2">
 						<span className="text-lg">🐾</span>
-						<span className="font-serif text-white text-sm">Paw Registry</span>
+						<span className="font-serif text-white text-sm">{APP_NAME}</span>
 					</Link>
 					<span className="text-[10px] text-white/40 uppercase tracking-wider">Admin</span>
 				</div>
