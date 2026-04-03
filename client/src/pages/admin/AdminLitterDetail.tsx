@@ -267,6 +267,16 @@ export function AdminLitterDetail() {
 
 	const notifiedMap = Object.fromEntries(notifications.map((n) => [n.clientId, n.notifiedAt]));
 
+	// Litter-interested clients filtered to waitlisted stage only
+	const interestedWaitlisted = clientLitterInterests.filter((li) => li.client.stage === 'waitlisted');
+	const interestedClientIdSet = new Set(interestedWaitlisted.map((li) => li.clientId));
+	// Map of clientId -> MatchingClient for score/reasons carry-over
+	const matchingClientMap = Object.fromEntries(matchingClients.map((mc) => [mc.id, mc]));
+	// Exclude interested clients from litter-matched section to avoid duplication
+	const dedupedMatchingClients = matchingClients.filter((mc) => !interestedClientIdSet.has(mc.id));
+	// Exclude interested clients from global waitlist section too
+	const dedupedMasterListClients = masterListClients.filter((c) => !interestedClientIdSet.has(c.id));
+
 	const handleNotify = async () => {
 		if (!id || selectedIds.size === 0) return;
 		setNotifying(true);
@@ -296,7 +306,7 @@ export function AdminLitterDetail() {
 	const selectAllWaitlist = () => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
-			matchingClients.filter((mc) => !notifiedMap[mc.id]).forEach((mc) => next.add(mc.id));
+			dedupedMatchingClients.filter((mc) => !notifiedMap[mc.id]).forEach((mc) => next.add(mc.id));
 			return next;
 		});
 	};
@@ -304,7 +314,15 @@ export function AdminLitterDetail() {
 	const selectAllPlatform = () => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
-			masterListClients.filter((c) => !notifiedMap[c.id]).forEach((c) => next.add(c.id));
+			dedupedMasterListClients.filter((c) => !notifiedMap[c.id]).forEach((c) => next.add(c.id));
+			return next;
+		});
+	};
+
+	const selectAllInterested = () => {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			interestedWaitlisted.filter((li) => !notifiedMap[li.clientId]).forEach((li) => next.add(li.clientId));
 			return next;
 		});
 	};
@@ -832,72 +850,17 @@ export function AdminLitterDetail() {
 				</div>
 			</Card>
 
-			{/* Litter Interest — clients who flagged interest in this litter */}
-			<Card className="p-6 mb-6">
-				<div className="flex items-center justify-between mb-3">
-					<h3 className="text-base font-bold text-warm-900">Litter Interest</h3>
-					{clientLitterInterests.length > 0 && (
-						<span className="text-xs font-medium text-warm-500">{clientLitterInterests.length} interested</span>
-					)}
-				</div>
-				{clientLitterInterests.length === 0 ? (
-					<p className="text-sm text-warm-400">No clients have flagged interest in this litter yet.</p>
-				) : (
-					<div className="divide-y divide-black/[0.05]">
-						{clientLitterInterests.map((li) => {
-							const alreadyNotified = !!notifiedMap[li.clientId];
-							return (
-								<div key={li.id} className="flex items-center gap-3 py-2.5">
-									<div className="flex-1 min-w-0">
-										<Link to={`/admin/clients/${li.clientId}`} className="text-sm font-medium text-warm-900 hover:text-brand-600 truncate block">
-											{li.client.firstName} {li.client.lastName}
-										</Link>
-										<div className="flex items-center gap-2 mt-0.5">
-											{li.client.city && <span className="text-xs text-warm-400">{li.client.city}</span>}
-											{li.client.waitlistPosition != null && (
-												<span className="text-xs text-warm-500">#{li.client.waitlistPosition}</span>
-											)}
-											<span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
-												li.client.depositStatus === 'paid' ? 'bg-green-100 text-green-700' :
-												li.client.depositStatus === 'pending' ? 'bg-amber-100 text-amber-700' :
-												'bg-warm-100 text-warm-600'
-											}`}>
-												{li.client.depositStatus === 'paid' ? 'Deposit paid' :
-												 li.client.depositStatus === 'pending' ? 'Deposit pending' : 'No deposit'}
-											</span>
-										</div>
-									</div>
-									{alreadyNotified ? (
-										<span className="text-xs text-blue-600 font-medium flex-shrink-0">Notified ✓</span>
-									) : (
-										<button
-											onClick={() => {
-												setSelectedIds((prev) => { const next = new Set(prev); next.add(li.clientId); return next; });
-												setNotifyOpen(true);
-											}}
-											className="px-2.5 py-1 text-xs bg-brand-50 text-brand-700 border border-brand-200 rounded-lg hover:bg-brand-100 transition-colors flex-shrink-0"
-										>
-											+ Invite
-										</button>
-									)}
-								</div>
-							);
-						})}
-					</div>
-				)}
-			</Card>
-
 			{/* Potential Clients */}
 			<Card className="p-6 mb-6">
 				<div className="flex items-center justify-between mb-3">
 					<h3 className="text-base font-bold text-warm-900">Potential Clients</h3>
-					{(matchingClients.length > 0 || masterListClients.length > 0) && (
-						<span className="text-xs font-medium text-warm-500">{matchingClients.length + masterListClients.length} match{matchingClients.length + masterListClients.length !== 1 ? 'es' : ''}</span>
+					{(interestedWaitlisted.length > 0 || matchingClients.length > 0 || masterListClients.length > 0) && (
+						<span className="text-xs font-medium text-warm-500">{interestedWaitlisted.length + dedupedMatchingClients.length + dedupedMasterListClients.length} match{interestedWaitlisted.length + dedupedMatchingClients.length + dedupedMasterListClients.length !== 1 ? 'es' : ''}</span>
 					)}
 				</div>
 
 				{/* Notify bar */}
-				{!matchingLoading && (matchingClients.length > 0 || notifications.length > 0) && (
+				{!matchingLoading && (interestedWaitlisted.length > 0 || matchingClients.length > 0 || notifications.length > 0) && (
 					<>
 						<div className={`mb-4 rounded-lg border p-3 flex items-center justify-between gap-3 transition-colors ${notifyOpen ? 'bg-amber-50 border-amber-300' : 'bg-warm-50 border-warm-200'}`}>
 							<p className={`text-xs ${notifications.length > 0 ? 'text-blue-600 font-medium' : 'text-warm-500'}`}>
@@ -951,23 +914,150 @@ export function AdminLitterDetail() {
 
 				{matchingLoading ? (
 					<p className="text-sm text-warm-400">Loading matches…</p>
-				) : !litter.breed ? (
+				) : interestedWaitlisted.length === 0 && !litter.breed ? (
 					<p className="text-sm text-warm-400">Set a breed on this litter to see matching clients.</p>
-				) : matchingClients.length === 0 ? (
+				) : interestedWaitlisted.length === 0 && dedupedMatchingClients.length === 0 ? (
 					<EmptyState icon="👥" title="No matching clients" />
 				) : (
 					<div>
+						{/* Litter Interested */}
+						{interestedWaitlisted.length > 0 && (
+							<>
+								<div className="flex items-center gap-3 mb-3">
+									<span className="text-xs font-semibold uppercase tracking-wider text-warm-600 flex-shrink-0">Litter Interested</span>
+									<div className="h-px flex-1 bg-warm-300" />
+									{notifyOpen && (
+										<div className="flex items-center gap-2">
+											{interestedWaitlisted.some((li) => selectedIds.has(li.clientId)) && (
+												<button
+													onClick={() => setSelectedIds((prev) => {
+														const next = new Set(prev);
+														interestedWaitlisted.forEach((li) => next.delete(li.clientId));
+														return next;
+													})}
+													className="text-[11px] text-warm-400 font-medium hover:text-warm-600"
+												>
+													Clear
+												</button>
+											)}
+											<button onClick={selectAllInterested} className="text-[11px] text-brand-500 font-medium hover:text-brand-600">
+												Select all
+											</button>
+										</div>
+									)}
+								</div>
+								<div className="space-y-2 mb-4">
+									{interestedWaitlisted.map((li) => {
+										const mc = matchingClientMap[li.clientId];
+										const notifAt = notifiedMap[li.clientId];
+										const isNotified = !!notifAt;
+										const isSelected = selectedIds.has(li.clientId);
+
+										const cardInner = (
+											<div className="flex items-start gap-3">
+												{notifyOpen && (
+													<div className="flex-shrink-0 pt-0.5">
+														<div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+															isNotified ? 'bg-warm-100 border-warm-200' :
+															isSelected ? 'bg-brand-500 border-brand-500' :
+															'border-warm-300 bg-white'
+														}`}>
+															{isSelected && (
+																<svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+																	<path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+																</svg>
+															)}
+														</div>
+													</div>
+												)}
+												<div className="flex-shrink-0 flex flex-col items-center gap-0.5 w-8">
+													<span className="text-sm font-bold text-warm-700">
+														{li.client.waitlistPosition != null ? `#${li.client.waitlistPosition}` : '—'}
+													</span>
+													<span className="text-[9px] font-medium text-warm-400 uppercase tracking-wide leading-none">wait</span>
+													<span className="text-[9px] font-medium text-warm-400 uppercase tracking-wide leading-none">list</span>
+												</div>
+												<div className="min-w-0 flex-1">
+													<div className="flex items-center gap-1.5 flex-wrap">
+														<span className="font-medium text-sm text-warm-900">{li.client.firstName} {li.client.lastName}</span>
+														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Interested</span>
+														{li.client.depositStatus === 'paid' ? (
+															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Deposit · Paid</span>
+														) : li.client.depositStatus === 'pending' ? (
+															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Deposit · Pending</span>
+														) : (
+															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500">No Deposit</span>
+														)}
+														{notifAt && <NotifyTimer since={notifAt} />}
+														{isNotified && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
+													</div>
+													{li.client.city && <p className="text-[11px] text-warm-400 mt-0.5">{li.client.city}</p>}
+													{isNotified && <p className="text-[11px] text-warm-400 italic mt-1">Already notified — awaiting response</p>}
+													{mc && mc.matchReasons.filter((r) => !r.startsWith('Deposit')).length > 0 && (
+														<div className="flex flex-wrap gap-1 mt-1.5">
+															{mc.matchReasons.filter((r) => !r.startsWith('Deposit')).slice(0, 3).map((reason) => (
+																<span
+																	key={reason}
+																	className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+																		reason.startsWith('First choice') ? 'bg-green-100 text-green-700' :
+																		reason.startsWith('Second choice') ? 'bg-blue-100 text-blue-700' :
+																		reason.includes('Sex') || reason.includes('sex') ? 'bg-purple-100 text-purple-700' :
+																		reason.includes('olour') ? 'bg-pink-100 text-pink-700' :
+																		'bg-warm-100 text-warm-600'
+																	}`}
+																>
+																	{reason}
+																</span>
+															))}
+														</div>
+													)}
+												</div>
+												{mc && (
+													<div className="flex-shrink-0 text-right">
+														<div className="text-sm font-bold text-brand-600">{mc.score}</div>
+														<div className="text-[10px] text-warm-400">pts</div>
+													</div>
+												)}
+											</div>
+										);
+
+										const cardClass = `block p-3.5 rounded-lg border transition-all ${
+											isNotified && notifyOpen ? 'opacity-50 cursor-default border-warm-200' :
+											notifyOpen ? `cursor-pointer ${isSelected ? 'border-brand-400 bg-brand-50/50' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}` :
+											notifAt ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' :
+											'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'
+										}`;
+
+										if (notifyOpen) {
+											return (
+												<div key={li.clientId} className={cardClass} onClick={() => { if (!isNotified) toggleSelection(li.clientId); }}>
+													{cardInner}
+												</div>
+											);
+										}
+										return (
+											<Link key={li.clientId} to={`/admin/clients/${li.clientId}`} className={cardClass}>
+												{cardInner}
+											</Link>
+										);
+									})}
+								</div>
+							</>
+						)}
+
 						{/* Litter Matched Waitlist */}
+						{dedupedMatchingClients.length > 0 && (
+						<>
 						<div className="flex items-center gap-3 mb-3">
 							<span className="text-xs font-semibold uppercase tracking-wider text-warm-600 flex-shrink-0">Litter Matched Waitlist</span>
 							<div className="h-px flex-1 bg-warm-300" />
 							{notifyOpen && (
 								<div className="flex items-center gap-2">
-									{matchingClients.some((mc) => selectedIds.has(mc.id)) && (
+									{dedupedMatchingClients.some((mc) => selectedIds.has(mc.id)) && (
 										<button
 											onClick={() => setSelectedIds((prev) => {
 												const next = new Set(prev);
-												matchingClients.forEach((mc) => next.delete(mc.id));
+												dedupedMatchingClients.forEach((mc) => next.delete(mc.id));
 												return next;
 											})}
 											className="text-[11px] text-warm-400 font-medium hover:text-warm-600"
@@ -982,7 +1072,7 @@ export function AdminLitterDetail() {
 							)}
 						</div>
 						<div className="space-y-2 mb-4">
-							{[...matchingClients].sort((a, b) => a.priority - b.priority).map((mc, i) => {
+							{[...dedupedMatchingClients].sort((a, b) => a.priority - b.priority).map((mc, i) => {
 								const notifAt = notifiedMap[mc.id];
 								const isNotified = !!notifAt;
 								const isSelected = selectedIds.has(mc.id);
@@ -1071,20 +1161,22 @@ export function AdminLitterDetail() {
 								);
 							})}
 						</div>
+						</>
+						)}
 
 						{/* Global Waitlist */}
-						{(masterListClients.length > 0 || masterListLoading) && (
+						{(dedupedMasterListClients.length > 0 || masterListLoading) && (
 							<>
 								<div className="flex items-center gap-3 mb-3 mt-5">
 									<span className="text-xs font-semibold uppercase tracking-wider text-warm-600 flex-shrink-0">Global Waitlist</span>
 									<div className="h-px flex-1 bg-warm-300" />
-									{notifyOpen && masterListClients.length > 0 && (
+									{notifyOpen && dedupedMasterListClients.length > 0 && (
 										<div className="flex items-center gap-2">
-											{masterListClients.some((c) => selectedIds.has(c.id)) && (
+											{dedupedMasterListClients.some((c) => selectedIds.has(c.id)) && (
 												<button
 													onClick={() => setSelectedIds((prev) => {
 														const next = new Set(prev);
-														masterListClients.forEach((c) => next.delete(c.id));
+														dedupedMasterListClients.forEach((c) => next.delete(c.id));
 														return next;
 													})}
 													className="text-[11px] text-warm-400 font-medium hover:text-warm-600"
@@ -1102,7 +1194,7 @@ export function AdminLitterDetail() {
 									<p className="text-xs text-warm-400 py-2">Loading…</p>
 								) : (
 									<div className="space-y-2">
-										{masterListClients.map((c) => {
+										{dedupedMasterListClients.map((c) => {
 											const notifAt = notifiedMap[c.id];
 											const isNotified = !!notifAt;
 											const isSelected = selectedIds.has(c.id);
