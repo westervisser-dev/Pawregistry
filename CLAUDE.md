@@ -94,16 +94,28 @@ Same pattern for `portal/`.
 git add -A && git commit -m "feat: <description>" && git push origin <branch>
 ```
 
-**2. New tables — raw SQL only** (never `drizzle-kit migrate` / `pnpm db:migrate`):
-```sql
-CREATE TABLE IF NOT EXISTS "my_table" (
-  "id" text PRIMARY KEY NOT NULL,
-  "name" text NOT NULL,
-  "created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
+**2. Any change to `schema.ts` — always do all three steps:**
+
+- Update `server/src/db/schema.ts` (and `shared/src/index.ts` if shared types changed)
+- Run `pnpm db:generate` from `server/` to produce a migration file in `server/src/db/migrations/`
+- Provide the user with the contents of that generated `.sql` file to run manually on Supabase (dev first, then prod before pushing)
+
+Never use `drizzle-kit migrate` / `pnpm db:migrate` — user always runs SQL manually.
+
+Always provide both commands together at the end:
+```bash
+# 1. Run the generated SQL on dev Supabase first
+# 2. Then commit and push to dev:
+git add -A && git commit -m "feat: <description>" && git push origin dev
 ```
-Also update `server/src/db/schema.ts` and `shared/src/index.ts`.
-Always let user run SQL scripts.
+
+**3. Branching & deployment rules:**
+- Default branch for all work is `dev` — always push to `dev` unless explicitly told otherwise
+- Only push to `main` (production) when the user explicitly asks to go to prod
+- When going to prod: run the same SQL on prod Supabase first, then:
+```bash
+git checkout main && git merge dev && git push origin main && git checkout dev
+```
 ---
 
 ## Storage Buckets
