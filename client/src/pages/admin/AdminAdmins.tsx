@@ -34,7 +34,9 @@ export function AdminAdmins() {
 		const { data, error } = await api.admins.invite.post({ email });
 		setInviting(false);
 		if (error) {
-			setInviteError((error as { value?: { message?: string } }).value?.message ?? 'Invite failed.');
+			const val = error.value as { message?: string } | string | null | undefined;
+			const msg = typeof val === 'object' && val !== null ? val.message : undefined;
+			setInviteError(msg ?? `Invite failed (${error.status}).`);
 			return;
 		}
 		setInviteSuccess(`Invite sent to ${email}.`);

@@ -30,6 +30,16 @@ export const adminsRoutes = new Elysia({ prefix: '/admins' })
 			});
 
 			if (inviteError || !data.user) {
+				// User may already exist in Supabase Auth (e.g. a portal client) — find and add them directly
+				const { data: listData } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+				const existingUser = listData?.users.find((u) => u.email === body.email);
+				if (existingUser) {
+					await db.insert(admins).values({
+						userId: existingUser.id,
+						email: body.email,
+					});
+					return { message: `${body.email} added as admin. They can sign in with their existing account.` };
+				}
 				return error(500, { error: 'Invite failed', message: inviteError?.message ?? 'Unknown error' });
 			}
 
