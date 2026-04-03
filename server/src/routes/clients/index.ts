@@ -1,5 +1,5 @@
 import Elysia, { t } from 'elysia';
-import { eq, asc, max, sql, inArray, count, and, isNotNull } from 'drizzle-orm';
+import { eq, asc, desc, max, sql, inArray, count, and, isNotNull } from 'drizzle-orm';
 import { db } from '../../db';
 import { clients, clientActivity, documentTemplates, clientTemplateChecklist, puppies, puppyInterests, litterInterests, litters } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
