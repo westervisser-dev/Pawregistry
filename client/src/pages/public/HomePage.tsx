@@ -197,7 +197,7 @@ export function HomePage() {
 										)}
 										{litter.availableCount != null && litter.availableCount > 0 && (
 											<p className="text-sm text-brand-600 font-medium mt-2">
-												{litter.availableCount} puppy{litter.availableCount !== 1 ? 'ies' : ''} available
+												{litter.availableCount} {litter.availableCount !== 1 ? 'puppies' : 'puppy'} available
 											</p>
 										)}
 									</div>
