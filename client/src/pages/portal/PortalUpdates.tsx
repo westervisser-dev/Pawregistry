@@ -72,87 +72,46 @@ function Lightbox({ urls, initialIndex, onClose }: { urls: string[]; initialInde
 	);
 }
 
-function GalleryThumb({ url, onClick }: { url: string; onClick: () => void }) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className="overflow-hidden bg-warm-100 w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-			aria-label="View photo"
-		>
-			<img
-				src={url}
-				alt=""
-				loading="lazy"
-				decoding="async"
-				className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-			/>
-		</button>
-	);
-}
-
 function UpdateGallery({ urls }: { urls: string[] }) {
 	const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
 	if (urls.length === 0) return null;
 
-	const open = (i: number) => setLightboxIndex(i);
-	const close = () => setLightboxIndex(null);
-
-	let grid: React.ReactNode;
-
-	if (urls.length === 1) {
-		grid = (
-			<div className="h-56 sm:h-64">
-				<GalleryThumb url={urls[0]} onClick={() => open(0)} />
-			</div>
-		);
-	} else if (urls.length === 2) {
-		grid = (
-			<div className="h-44 sm:h-52 grid grid-cols-2 gap-0.5">
-				{urls.map((url, i) => <GalleryThumb key={i} url={url} onClick={() => open(i)} />)}
-			</div>
-		);
-	} else if (urls.length === 3) {
-		grid = (
-			<div className="h-44 sm:h-52 flex gap-0.5">
-				<div className="w-2/3">
-					<GalleryThumb url={urls[0]} onClick={() => open(0)} />
-				</div>
-				<div className="flex-1 flex flex-col gap-0.5">
-					{urls.slice(1).map((url, i) => (
-						<div key={i} className="flex-1">
-							<GalleryThumb url={url} onClick={() => open(i + 1)} />
-						</div>
-					))}
-				</div>
-			</div>
-		);
-	} else {
-		// 4+ images: 2×2, last cell shows +N overlay
-		const shown = urls.slice(0, 4);
-		const extra = urls.length - 4;
-		grid = (
-			<div className="h-44 sm:h-52 grid grid-cols-2 gap-0.5">
-				{shown.map((url, i) => (
-					<div key={i} className="relative overflow-hidden">
-						<GalleryThumb url={url} onClick={() => open(i)} />
-						{i === 3 && extra > 0 && (
-							<div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-								<span className="text-white font-semibold text-xl">+{extra}</span>
-							</div>
-						)}
-					</div>
-				))}
-			</div>
-		);
-	}
+	const MAX_VISIBLE = 5;
+	const visible = urls.slice(0, MAX_VISIBLE);
+	const extra = urls.length - MAX_VISIBLE;
 
 	return (
 		<>
-			{grid}
+			<div className="flex gap-2 flex-wrap mt-4">
+				{visible.map((url, i) => {
+					const isLast = i === MAX_VISIBLE - 1 && extra > 0;
+					return (
+						<button
+							key={i}
+							type="button"
+							onClick={() => setLightboxIndex(i)}
+							className="relative w-20 h-20 rounded-lg overflow-hidden bg-warm-100 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+							aria-label={isLast ? `View all ${urls.length} photos` : 'View photo'}
+						>
+							<img
+								src={url}
+								alt=""
+								loading="lazy"
+								decoding="async"
+								className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+							/>
+							{isLast && (
+								<div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+									<span className="text-white font-semibold text-sm">+{extra + 1}</span>
+								</div>
+							)}
+						</button>
+					);
+				})}
+			</div>
 			{lightboxIndex !== null && (
-				<Lightbox urls={urls} initialIndex={lightboxIndex} onClose={close} />
+				<Lightbox urls={urls} initialIndex={lightboxIndex} onClose={() => setLightboxIndex(null)} />
 			)}
 		</>
 	);
@@ -267,26 +226,24 @@ export function PortalUpdates() {
 
 								<div className="flex flex-col gap-6">
 									{sectionUpdates.map((update) => (
-										<Card key={update.id} className="overflow-hidden">
-											<UpdateGallery urls={update.mediaUrls} />
-											<div className="p-6">
-												<div className="flex items-center gap-3 mb-3">
-													{!!update.weekNumber && (
-														<Badge variant="amber">Week {update.weekNumber}</Badge>
-													)}
-													<span className="text-xs text-warm-400">
-														{update.publishedAt
-															? new Date(update.publishedAt).toLocaleDateString()
-															: ''}
-													</span>
-												</div>
-												<h3 className="font-serif font-bold text-warm-900 text-lg mb-2">
-													{update.title}
-												</h3>
-												<p className="text-warm-600 text-sm leading-relaxed whitespace-pre-line">
-													{update.body}
-												</p>
+										<Card key={update.id} className="p-6">
+											<div className="flex items-center gap-3 mb-3">
+												{!!update.weekNumber && (
+													<Badge variant="amber">Week {update.weekNumber}</Badge>
+												)}
+												<span className="text-xs text-warm-400">
+													{update.publishedAt
+														? new Date(update.publishedAt).toLocaleDateString()
+														: ''}
+												</span>
 											</div>
+											<h3 className="font-serif font-bold text-warm-900 text-lg mb-2">
+												{update.title}
+											</h3>
+											<p className="text-warm-600 text-sm leading-relaxed whitespace-pre-line">
+												{update.body}
+											</p>
+											<UpdateGallery urls={update.mediaUrls} />
 										</Card>
 									))}
 								</div>
