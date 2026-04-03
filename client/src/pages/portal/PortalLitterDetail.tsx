@@ -177,11 +177,11 @@ export function PortalLitterDetail() {
 
 				{/* Litter interest toggle — shown for all non-rejected clients, active from waitlisted onwards */}
 				{user && clientStage && clientStage !== 'rejected' && (
-					<div className="flex flex-col items-end gap-1">
+					<div className="flex flex-col items-start sm:items-end gap-1 w-full sm:w-auto">
 						<button
 							onClick={isWaitlistedOrLater ? toggleLitterInterest : undefined}
 							disabled={litterInterestLoading || !isWaitlistedOrLater}
-							className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+							className={`flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
 								!isWaitlistedOrLater
 									? 'bg-warm-100 text-warm-400 border border-warm-200 cursor-not-allowed'
 									: myLitterInterest
@@ -193,7 +193,7 @@ export function PortalLitterDetail() {
 							{litterInterestLoading ? 'Saving…' : myLitterInterest ? 'Interested' : 'Mark as interested'}
 						</button>
 						{!isWaitlistedOrLater && (
-							<p className="text-xs text-warm-400 text-right max-w-[220px]">
+							<p className="text-xs text-warm-400 text-left sm:text-right">
 								You must be on the waitlist to mark interest
 							</p>
 						)}
