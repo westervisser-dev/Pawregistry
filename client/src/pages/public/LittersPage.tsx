@@ -96,11 +96,11 @@ export function LittersPage() {
 								className="group bg-white rounded-2xl border border-warm-200 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 flex flex-col text-left w-full"
 							>
 								<div className="p-5 flex flex-col flex-1 relative">
-									<div className="flex items-start justify-between gap-3 mb-2">
-										<h2 className="font-serif text-lg font-bold text-warm-900 group-hover:text-brand-600 transition-colors leading-snug">
+									<div className="mb-2">
+										<h2 className="font-serif text-lg font-bold text-warm-900 group-hover:text-brand-600 transition-colors leading-snug mb-1.5">
 											{litter.name}
 										</h2>
-										<div className="flex items-center gap-2 flex-shrink-0">
+										<div className="flex flex-wrap items-center gap-1.5">
 											{litter.breed && <BreedBadge breed={litter.breed} />}
 											<LitterStatusBadge status={litter.status} />
 										</div>

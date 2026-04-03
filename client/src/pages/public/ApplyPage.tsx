@@ -105,26 +105,26 @@ function StepIndicator({ current }: { current: Step }) {
 	const labels = ['Personal', 'Home & Life', 'Experience', 'Preferences', 'Deposit'];
 	const currentIdx = steps.indexOf(current);
 	return (
-		<div className="flex items-center gap-0 mb-10">
+		<div className="flex mb-10">
 			{labels.map((label, i) => (
-				<div key={label} className="flex items-center flex-1 sm:flex-none">
-					<div className="flex flex-col items-center">
-						<div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+				<div key={label} className="flex items-start flex-1 sm:flex-none">
+					<div className="flex flex-col items-center min-w-0">
+						<div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-medium transition-colors ${
 							i < currentIdx ? 'bg-brand-500 text-white' :
 							i === currentIdx ? 'bg-brand-500 text-white ring-4 ring-brand-100' :
 							'bg-warm-100 text-warm-400'
 						}`}>
 							{i < currentIdx ? '✓' : i + 1}
 						</div>
-						<span className={`text-xs mt-1 hidden sm:block ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-warm-400'}`}>
+						<span className={`text-[10px] mt-1.5 text-center leading-tight hidden sm:block ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-warm-400'}`}>
 							{label}
 						</span>
-						<span className={`text-xs mt-1 sm:hidden ${i === currentIdx ? 'text-brand-600 font-medium' : 'text-warm-400'}`}>
+						<span className={`text-[10px] mt-1.5 text-center leading-tight sm:hidden ${i === currentIdx ? 'text-brand-600 font-medium' : ''}`}>
 							{i === currentIdx ? label : ''}
 						</span>
 					</div>
 					{i < labels.length - 1 && (
-						<div className={`h-px flex-1 sm:w-16 sm:flex-none mx-2 mb-5 ${i < currentIdx ? 'bg-brand-300' : 'bg-warm-200'}`} />
+						<div className={`h-px flex-1 sm:w-16 sm:flex-none mx-1.5 mt-4 ${i < currentIdx ? 'bg-brand-300' : 'bg-warm-200'}`} />
 					)}
 				</div>
 			))}
@@ -163,7 +163,7 @@ function Textarea({ label, required, ...props }: { label: string; required?: boo
 
 function Toggle({ label, checked, onChange, required }: { label: string; checked: boolean; onChange: (v: boolean) => void; required?: boolean }) {
 	return (
-		<label className="flex items-center gap-3 cursor-pointer">
+		<label className="flex items-start gap-3 cursor-pointer">
 			<input
 				type="checkbox"
 				checked={checked}
@@ -172,11 +172,11 @@ function Toggle({ label, checked, onChange, required }: { label: string; checked
 			/>
 			<div
 				aria-hidden="true"
-				className={`w-10 h-6 rounded-full transition-colors flex items-center peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 peer-focus-visible:ring-offset-1 ${checked ? 'bg-brand-500' : 'bg-warm-200'}`}
+				className={`w-10 h-6 rounded-full flex-shrink-0 transition-colors flex items-center mt-0.5 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 peer-focus-visible:ring-offset-1 ${checked ? 'bg-brand-500' : 'bg-warm-200'}`}
 			>
-				<div className={`w-4 h-4 rounded-full bg-white shadow mx-1 transition-transform ${checked ? 'translate-x-4' : ''}`} />
+				<div className={`w-4 h-4 rounded-full bg-white shadow-sm mx-1 transition-transform ${checked ? 'translate-x-4' : ''}`} />
 			</div>
-			<span className="text-sm text-warm-700">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</span>
+			<span className="text-sm text-warm-700 leading-snug">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</span>
 		</label>
 	);
 }

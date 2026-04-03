@@ -64,7 +64,7 @@ export function HomePage() {
 
 
 			{/* Why us */}
-			<section className="max-w-6xl mx-auto px-6 py-20">
+			<section className="max-w-6xl mx-auto px-6 py-10 md:py-20">
 				<div className="mb-12">
 					<h2 className="font-serif text-3xl text-warm-900 mb-3">Our Commitment</h2>
 					<p className="text-warm-500 text-sm max-w-md leading-relaxed">Three principles that guide every decision we make in our breeding programme.</p>
@@ -122,7 +122,7 @@ export function HomePage() {
 
 			{/* Dogs teaser */}
 			<section className="bg-warm-50 border-t border-warm-100">
-				<div className="max-w-6xl mx-auto px-6 py-16 flex flex-col md:flex-row gap-10 items-center">
+				<div className="max-w-6xl mx-auto px-6 py-10 md:py-16 flex flex-col md:flex-row gap-10 items-center">
 					<div className="w-full md:w-1/2 rounded-2xl overflow-hidden aspect-[4/3] flex-shrink-0">
 						<img
 							src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=85&auto=format&fit=crop"
@@ -154,9 +154,9 @@ export function HomePage() {
 
 			{/* Current litters */}
 			{(littersLoading || litters.length > 0) && (
-				<section className="bg-brand-50 py-20">
+				<section className="bg-brand-50 py-10 md:py-20">
 					<div className="max-w-6xl mx-auto px-6">
-						<div className="flex items-center justify-between mb-10">
+						<div className="flex items-center justify-between mb-6 md:mb-10">
 							<h2 className="font-serif text-3xl font-bold text-warm-900">Current Litters</h2>
 							<Link to="/litters" className="text-brand-600 text-sm font-medium hover:underline">
 								View all →
