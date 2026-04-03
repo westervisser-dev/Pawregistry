@@ -52,6 +52,18 @@ function LitterGateModal({ onClose }: { onClose: () => void }) {
 	);
 }
 
+function PawPrint({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 100 100" fill="currentColor" className={className} aria-hidden="true">
+			<ellipse cx="50" cy="68" rx="26" ry="22" />
+			<ellipse cx="24" cy="40" rx="11" ry="14" />
+			<ellipse cx="42" cy="30" rx="11" ry="14" />
+			<ellipse cx="60" cy="30" rx="11" ry="14" />
+			<ellipse cx="77" cy="40" rx="11" ry="14" />
+		</svg>
+	);
+}
+
 export function LittersPage() {
 	const [litters, setLitters] = useState<LitterWithDogs[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -72,7 +84,16 @@ export function LittersPage() {
 	if (loading) return <LoadingPage />;
 
 	return (
-		<div className="max-w-6xl mx-auto px-6 py-16">
+		<div className="relative">
+		<div className="pointer-events-none select-none absolute inset-0 overflow-hidden z-0">
+			<PawPrint className="absolute -top-6 -right-16 w-[520px] opacity-[0.09] text-warm-400 rotate-[18deg]" />
+			<PawPrint className="absolute top-[30%] -left-20 w-[400px] opacity-[0.07] text-warm-400 -rotate-[25deg]" />
+			<PawPrint className="absolute bottom-32 -right-10 w-[320px] opacity-[0.08] text-warm-400 rotate-[8deg]" />
+			<PawPrint className="absolute top-[60%] right-[15%] w-[220px] opacity-[0.06] text-warm-400 rotate-[45deg]" />
+			<PawPrint className="absolute bottom-10 left-[20%] w-[180px] opacity-[0.06] text-warm-400 -rotate-[10deg]" />
+			<PawPrint className="absolute top-[12%] left-[30%] w-[140px] opacity-[0.05] text-warm-400 rotate-[30deg]" />
+		</div>
+		<div className="relative z-10 max-w-6xl mx-auto px-6 py-16">
 
 			<div className="mb-12">
 				<h1 className="font-serif text-4xl font-bold text-warm-900 mb-2">Our litters</h1>
@@ -163,6 +184,7 @@ export function LittersPage() {
 			</div>
 
 			{showModal && <LitterGateModal onClose={() => setShowModal(false)} />}
+		</div>
 		</div>
 	);
 }
