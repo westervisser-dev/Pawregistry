@@ -25,7 +25,7 @@ export function AdminDogs() {
 	}, [location.key]);
 
 	return (
-		<div className="p-8">
+		<div className="p-4 md:p-8">
 			{toast && (
 				<div className="fixed bottom-6 right-6 z-50 bg-warm-800 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg">
 					{toast}
@@ -44,7 +44,7 @@ export function AdminDogs() {
 				<LoadingPage />
 			) : (
 				<Card>
-					<AdminTable headers={['Dog', 'Breed', 'Sex', 'Colour', 'Status', '']}>
+					<AdminTable headers={['Dog', { label: 'Breed', hideMobile: true }, { label: 'Sex', hideMobile: true }, { label: 'Colour', hideMobile: true }, 'Status', '']}>
 						{dogs.map((dog) => (
 							<tr key={dog.id} className="border-b border-black/[0.05] hover:bg-warm-50">
 								<td className="py-3 px-4">
@@ -58,14 +58,15 @@ export function AdminDogs() {
 										<div>
 											<p className="font-medium text-warm-900">{dog.name}</p>
 											{dog.registeredName && <p className="text-xs text-warm-400">{dog.registeredName}</p>}
+											<p className="text-xs text-warm-400 md:hidden">{dog.breed}{dog.colour ? ` · ${dog.colour}` : ''}</p>
 										</div>
 									</div>
 								</td>
-								<td className="py-3 px-4 text-warm-600">{dog.breed}</td>
-								<td className="py-3 px-4">
+								<td className="hidden md:table-cell py-3 px-4 text-warm-600">{dog.breed}</td>
+								<td className="hidden md:table-cell py-3 px-4">
 									<Badge variant={dog.sex === 'male' ? 'blue' : 'purple'}>{dog.sex}</Badge>
 								</td>
-								<td className="py-3 px-4 text-warm-600">{dog.colour}</td>
+								<td className="hidden md:table-cell py-3 px-4 text-warm-600">{dog.colour}</td>
 								<td className="py-3 px-4">
 									<Badge variant={dog.status === 'active' ? 'green' : 'default'}>{dog.status}</Badge>
 								</td>

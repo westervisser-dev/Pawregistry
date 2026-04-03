@@ -333,7 +333,7 @@ export function AdminLitterDetail() {
 	if (id === 'new') {
 		const setF = (key: keyof typeof newForm, value: string) => setNewForm((f) => ({ ...f, [key]: value }));
 		return (
-			<div className="p-8 max-w-3xl">
+			<div className="p-4 md:p-8 max-w-3xl">
 				<Link to="/admin/litters" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">← Litters</Link>
 				<PageHeader title="New Litter" />
 				<Card className="p-6 flex flex-col gap-4">
@@ -565,7 +565,7 @@ export function AdminLitterDetail() {
 		);
 	}
 
-	if (!litter) return <div className="p-8 text-warm-500">Litter not found.</div>;
+	if (!litter) return <div className="p-4 md:p-8 text-warm-500">Litter not found.</div>;
 
 	// Eden Treaty auto-deserialises ISO date strings to Date objects — convert back to readable strings
 	const fmtDate = (d: Date | string | null | undefined) =>
@@ -574,7 +574,7 @@ export function AdminLitterDetail() {
 	const statuses = ['planned', 'confirmed', 'born', 'weaning', 'available', 'completed'];
 
 	return (
-		<div className="p-8 max-w-4xl">
+		<div className="p-4 md:p-8 max-w-4xl">
 			<PageHeader
 				title={<span className="flex items-center gap-3">{litter.name}{litter.breed && <Badge variant="default">{getBreedSizeLabel(litter.breed)}</Badge>}</span>}
 				subtitle={`${(litter as typeof litter & { sire: Dog }).sire?.name ?? '—'} × ${(litter as typeof litter & { dam: Dog }).dam?.name ?? '—'}`}

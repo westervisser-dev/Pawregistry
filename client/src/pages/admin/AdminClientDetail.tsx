@@ -67,7 +67,7 @@ function AppField({ label, value }: { label: string; value: unknown }) {
 		return <span className="text-warm-800">{str}</span>;
 	};
 	return (
-		<div className="py-2.5 border-b border-black/[0.05] last:border-0 grid grid-cols-2 gap-4 items-start">
+		<div className="py-2.5 border-b border-black/[0.05] last:border-0 grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-4 items-start">
 			<dt className="text-xs text-warm-400 pt-0.5">{label}</dt>
 			<dd className="text-sm">{display()}</dd>
 		</div>
@@ -355,7 +355,7 @@ export function AdminClientDetail() {
 	};
 
 	if (loading) return <LoadingPage />;
-	if (!client) return <div className="p-8 text-warm-500">Client not found.</div>;
+	if (!client) return <div className="p-4 md:p-8 text-warm-500">Client not found.</div>;
 
 	const a = client.applicationData as unknown as Record<string, unknown>;
 
@@ -366,7 +366,7 @@ export function AdminClientDetail() {
 	};
 
 	return (
-		<div className="p-8 max-w-4xl">
+		<div className="p-4 md:p-8 max-w-4xl">
 			<Link to="/admin/clients" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">← Clients</Link>
 
 			<div className="flex items-start justify-between mb-6">

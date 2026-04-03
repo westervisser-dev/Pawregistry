@@ -227,7 +227,7 @@ export function AdminDashboard() {
 											<span className="ml-0.5 opacity-60" aria-hidden="true">{isOpen ? '▲' : '▼'}</span>
 										</button>
 										{isOpen && (
-											<div className={`absolute top-full left-0 mt-1.5 z-50 min-w-48 max-h-60 overflow-y-auto bg-white rounded-xl border shadow-lg ${g.dropdown}`}>
+											<div className={`absolute top-full right-0 mt-1.5 z-50 min-w-48 max-h-60 overflow-y-auto bg-white rounded-xl border shadow-lg ${g.dropdown}`}>
 												{g.clients.map((c) => (
 													<Link
 														key={c.id}
@@ -263,7 +263,7 @@ export function AdminDashboard() {
 							<thead>
 								<tr>
 									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Name</th>
-									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Email</th>
+									<th className="hidden md:table-cell text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Email</th>
 									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Applied</th>
 									<th className="px-[22px] pb-2.5 border-b border-black/[0.06]" />
 								</tr>
@@ -292,7 +292,7 @@ export function AdminDashboard() {
 													</span>
 												</div>
 											</td>
-											<td className="px-[22px] py-[13px] text-[12.5px] text-warm-500">
+											<td className="hidden md:table-cell px-[22px] py-[13px] text-[12.5px] text-warm-500">
 												{client.email}
 											</td>
 											<td className="px-[22px] py-[13px] text-xs text-warm-400">

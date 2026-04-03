@@ -99,10 +99,21 @@ export function AdminClients() {
 	};
 
 	return (
-		<div className="p-8">
+		<div className="p-4 md:p-8">
 			<PageHeader title="Clients" subtitle="All applications and client relationships." />
 
-			<div className="flex gap-2 mb-6 flex-wrap">
+			{/* Mobile: dropdown */}
+			<select
+				className="md:hidden w-full px-3 py-2.5 mb-6 rounded-lg border border-warm-200 bg-white text-sm text-warm-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+				value={stage}
+				onChange={(e) => { const s = e.target.value; setStage(s); load(s); }}
+			>
+				{stages.map((s) => (
+					<option key={s || 'all'} value={s}>{stageLabels[s]}</option>
+				))}
+			</select>
+			{/* Desktop: pills */}
+			<div className="hidden md:flex gap-2 mb-6 flex-wrap">
 				{stages.map((s) => (
 					<button
 						key={s || 'all'}

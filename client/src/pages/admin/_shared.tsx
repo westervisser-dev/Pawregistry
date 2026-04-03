@@ -7,6 +7,7 @@ import {
 	DndContext,
 	closestCenter,
 	PointerSensor,
+	TouchSensor,
 	useSensor,
 	useSensors,
 	type DragEndEvent,
@@ -21,17 +22,23 @@ import { CSS } from '@dnd-kit/utilities';
 
 // ─── Shared admin table wrapper ───────────────────────────────────────────────
 
-export function AdminTable({ headers, children }: { headers: string[]; children: React.ReactNode }) {
+type TableHeader = string | { label: string; hideMobile?: boolean };
+
+export function AdminTable({ headers, children }: { headers: TableHeader[]; children: React.ReactNode }) {
 	return (
-		<div className="overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%_-_2rem),transparent)] md:[mask-image:none]">
+		<div className="overflow-x-auto">
 			<table className="w-full text-sm">
 				<thead>
 					<tr className="border-b border-black/[0.06]">
-						{headers.map((h) => (
-							<th key={h} className="text-left py-3 px-4 text-[10.5px] font-medium text-warm-400 uppercase tracking-[0.06em]">
-								{h}
-							</th>
-						))}
+						{headers.map((h) => {
+							const label = typeof h === 'string' ? h : h.label;
+							const hide = typeof h === 'object' && h.hideMobile;
+							return (
+								<th key={label} className={`text-left py-3 px-4 text-[10.5px] font-medium text-warm-400 uppercase tracking-[0.06em]${hide ? ' hidden md:table-cell' : ''}`}>
+									{label}
+								</th>
+							);
+						})}
 					</tr>
 				</thead>
 				<tbody>{children}</tbody>
@@ -209,7 +216,7 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 
 	return (
 		<tr ref={setNodeRef} style={style} className="border-b border-black/[0.05] hover:bg-warm-50 bg-white transition-colors">
-			<td className="py-3 px-4 text-warm-400 text-xs font-mono w-8 tabular-nums">{index + 1}</td>
+			<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs font-mono w-8 tabular-nums">{index + 1}</td>
 			<td className="py-2 px-3 w-8">
 				<button
 					{...attributes}
@@ -231,19 +238,22 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 				<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
 				<p className="text-xs text-warm-400">{client.email}</p>
 				{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
+				{parsed && (
+					<p className="text-xs text-brand-600 mt-0.5 md:hidden">🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}</p>
+				)}
 			</td>
-			<td className="py-3 px-4">
+			<td className="hidden md:table-cell py-3 px-4">
 				{parsed ? (
 					<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
 						🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
 					</span>
 				) : <span className="text-warm-300 text-xs">—</span>}
 			</td>
-			<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
+			<td className="hidden md:table-cell py-3 px-4"><StageBadge stage={client.stage} /></td>
 			<td className="py-3 px-4">
 				<DepositStatusSelect client={client} onUpdate={onDepositUpdate} />
 			</td>
-			<td className="py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
+			<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 				{new Date(client.createdAt).toLocaleDateString()}
 			</td>
 			<td className="py-3 px-4">
@@ -267,6 +277,7 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, sta
 }) {
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+		useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
 	);
 
 	const handleDragEnd = (event: DragEndEvent) => {
@@ -285,7 +296,7 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, sta
 			</div>
 			<Card>
 				<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-					<AdminTable headers={['#', '', 'Name', 'Preference', 'Stage', 'Deposit Status', 'Applied', '']}>
+					<AdminTable headers={[{ label: '#', hideMobile: true }, '', 'Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, 'Deposit Status', { label: 'Applied', hideMobile: true }, '']}>
 						<SortableContext items={clients.map((c) => c.id)} strategy={verticalListSortingStrategy}>
 							{clients.map((client, i) => (
 								<SortableClientRow
@@ -329,7 +340,7 @@ export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {
 				<span className="text-xs text-warm-400 bg-warm-200 px-2 py-0.5 rounded-full">{clients.length}</span>
 			</div>
 			<Card>
-				<AdminTable headers={['Name', 'Preference', 'Stage', 'Deposit', 'Applied', '']}>
+				<AdminTable headers={['Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, 'Deposit', { label: 'Applied', hideMobile: true }, '']}>
 					{clients.map((client) => {
 						const parsed = formatBreedSize(pbs(client));
 						const action = actionMap[client.id];
@@ -339,15 +350,18 @@ export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {
 									<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
 									<p className="text-xs text-warm-400">{client.email}</p>
 									{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
+									{parsed && (
+										<p className="text-xs text-brand-600 mt-0.5 md:hidden">🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}</p>
+									)}
 								</td>
-								<td className="py-3 px-4">
+								<td className="hidden md:table-cell py-3 px-4">
 									{parsed ? (
 										<span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700 whitespace-nowrap">
 											🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}
 										</span>
 									) : <span className="text-warm-300 text-xs">—</span>}
 								</td>
-								<td className="py-3 px-4"><StageBadge stage={client.stage} /></td>
+								<td className="hidden md:table-cell py-3 px-4"><StageBadge stage={client.stage} /></td>
 								<td className="py-3 px-4">
 									{client.depositStatus === 'paid' ? (
 										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Deposit — Paid</span>
@@ -357,7 +371,7 @@ export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {
 										<span className="text-warm-400 text-xs">No Deposit</span>
 									)}
 								</td>
-								<td className="py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
+								<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 									{new Date(client.createdAt).toLocaleDateString()}
 								</td>
 								<td className="py-3 px-4">

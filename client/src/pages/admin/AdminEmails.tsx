@@ -65,7 +65,7 @@ export function AdminEmails() {
 	};
 
 	return (
-		<div className="p-8 max-w-5xl">
+		<div className="p-4 md:p-8 max-w-5xl">
 			<PageHeader title="Emails" subtitle="Manage automated emails sent to clients when their stage changes." />
 
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">

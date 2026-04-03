@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Outlet, NavLink, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 
 const adminNav = [
@@ -93,6 +93,11 @@ function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 export function AdminLayout() {
 	const { user, signOut } = useAuthStore();
 	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const location = useLocation();
+
+	useEffect(() => {
+		setSidebarOpen(false);
+	}, [location.pathname]);
 
 	const closeSidebar = () => setSidebarOpen(false);
 

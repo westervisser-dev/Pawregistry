@@ -57,7 +57,7 @@ export function AdminDocuments() {
 	};
 
 	return (
-		<div className="p-8 max-w-4xl">
+		<div className="p-4 md:p-8 max-w-4xl">
 			<PageHeader
 				title="Document Templates"
 				subtitle="Upload template files that clients can view and download from their portal."
