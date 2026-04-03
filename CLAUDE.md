@@ -48,7 +48,7 @@ api.templates.admin({ id }).patch({ ... })
 - Schema: `server/src/db/schema.ts` | Migrations: `server/src/db/migrations/`
 - Routes: `server/src/routes/<feature>/index.ts`, registered in `server/src/index.ts`
 - Active dirs: `auth`, `clients`, `documents`, `dogs`, `litters`, `messages`, `templates`, `updates`, `waitlist`
-- Shared types: `shared/src/index.ts`
+- Shared types: `shared/src/index.ts` | Breed/size config: `shared/src/breeds.ts` (edit per-breeder instance)
 
 **Adding a page:** Create `client/src/pages/<section>/MyPage.tsx` → add `<Route>` in `main.tsx` → add nav link in `AdminLayout.tsx` or `PortalLayout.tsx`.
 
@@ -69,13 +69,7 @@ Same pattern for `portal/`.
 
 - **Tailwind v4:** `@import "tailwindcss";` in `index.css`, `@tailwindcss/vite` in `vite.config.ts`. No `tailwind.config.js`.
 - **Fonts:** `@fontsource` — sans-serif UI, serif headings.
-- **Page titles:** Every page:
-  ```ts
-  useEffect(() => {
-    document.title = 'Page Name — Paw Registry';
-    return () => { document.title = 'Paw Registry'; };
-  }, []);
-  ```
+- **Page titles:** Use `usePageTitle('Page Name')` hook (`client/src/hooks/usePageTitle.ts`). Reads `VITE_APP_NAME` via `client/src/config/app.ts`.
 - **A11y:** Skip nav + `id="main-content"` on all layouts. `role="status"` on Spinner, `role="alert"` on errors, `role="dialog" aria-modal="true" aria-labelledby="modal-title"` on modals, `aria-hidden="true"` on decorative icons.
 
 ## Backend
@@ -157,5 +151,6 @@ Deploy from **repo root** (Railway needs full monorepo for `shared/`).
 - `DATABASE_URL`: Supabase Transaction pooler (port 6543)
 - After deploy: add Railway client URL to Supabase → Auth → Redirect URLs
 - Health check: `/health` | Secrets via Railway env UI — never hardcode | No Railway DB plugins
+- **Per-breeder instances:** `main` = boilerplate; create `breeder/<name>` branch per client. Each branch has its own Supabase project, Railway deployment, and env vars (`APP_NAME`, `VITE_APP_NAME`, `VITE_CONTACT_EMAIL`, `ADMIN_EMAIL`, `RESEND_FROM_EMAIL`). Breed config lives in `shared/src/breeds.ts` — edit per branch. Pull improvements from `main` via `git merge main`.
 
 Always ask clarifying questions to the user if assumptions need to be made 
