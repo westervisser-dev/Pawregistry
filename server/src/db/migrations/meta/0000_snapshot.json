@@ -1,9 +1,195 @@
 {
-  "id": "38c241b7-0cb1-40a4-bc1b-7995ec4e4099",
+  "id": "60eafc4a-23da-45bb-9511-4c64816f38d8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.admins": {
+      "name": "admins",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "admins_user_id_unique": {
+          "name": "admins_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      }
+    },
+    "public.client_activity": {
+      "name": "client_activity",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "actor": {
+          "name": "actor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'system'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "client_activity_client_id_clients_id_fk": {
+          "name": "client_activity_client_id_clients_id_fk",
+          "tableFrom": "client_activity",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.client_template_checklist": {
+      "name": "client_template_checklist",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "template_id": {
+          "name": "template_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checked_at": {
+          "name": "checked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploaded_file_url": {
+          "name": "uploaded_file_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "client_template_checklist_client_id_clients_id_fk": {
+          "name": "client_template_checklist_client_id_clients_id_fk",
+          "tableFrom": "client_template_checklist",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "client_template_checklist_template_id_document_templates_id_fk": {
+          "name": "client_template_checklist_template_id_document_templates_id_fk",
+          "tableFrom": "client_template_checklist",
+          "tableTo": "document_templates",
+          "columnsFrom": [
+            "template_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
     "public.clients": {
       "name": "clients",
       "schema": "",
@@ -63,7 +249,7 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'enquiry'"
+          "default": "'enquired'"
         },
         "priority": {
           "name": "priority",
@@ -71,6 +257,14 @@
           "primaryKey": false,
           "notNull": true,
           "default": 100
+        },
+        "deposit_status": {
+          "name": "deposit_status",
+          "type": "deposit_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
         },
         "puppy_id": {
           "name": "puppy_id",
@@ -140,6 +334,82 @@
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "clients_email_unique": {
+          "name": "clients_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      }
+    },
+    "public.document_templates": {
+      "name": "document_templates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_url": {
+          "name": "file_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
@@ -354,8 +624,8 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "public.go_home_checklists": {
-      "name": "go_home_checklists",
+    "public.email_logs": {
+      "name": "email_logs",
       "schema": "",
       "columns": {
         "id": {
@@ -370,65 +640,92 @@
           "primaryKey": false,
           "notNull": true
         },
-        "puppy_id": {
-          "name": "puppy_id",
+        "trigger": {
+          "name": "trigger",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "vet_check_done": {
-          "name": "vet_check_done",
-          "type": "boolean",
+        "subject": {
+          "name": "subject",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": false
+          "notNull": true
         },
-        "microchip_registered": {
-          "name": "microchip_registered",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "contract_signed": {
-          "name": "contract_signed",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "deposit_paid": {
-          "name": "deposit_paid",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "balance_paid": {
-          "name": "balance_paid",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "puppy_pack_prepared": {
-          "name": "puppy_pack_prepared",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "go_home_date": {
-          "name": "go_home_date",
+        "resend_id": {
+          "name": "resend_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "notes": {
-          "name": "notes",
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "email_logs_client_id_clients_id_fk": {
+          "name": "email_logs_client_id_clients_id_fk",
+          "tableFrom": "email_logs",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.email_templates": {
+      "name": "email_templates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "trigger": {
+          "name": "trigger",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "updated_at": {
           "name": "updated_at",
@@ -439,36 +736,17 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "go_home_checklists_client_id_clients_id_fk": {
-          "name": "go_home_checklists_client_id_clients_id_fk",
-          "tableFrom": "go_home_checklists",
-          "tableTo": "clients",
-          "columnsFrom": [
-            "client_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "go_home_checklists_puppy_id_puppies_id_fk": {
-          "name": "go_home_checklists_puppy_id_puppies_id_fk",
-          "tableFrom": "go_home_checklists",
-          "tableTo": "puppies",
-          "columnsFrom": [
-            "puppy_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "email_templates_trigger_unique": {
+          "name": "email_templates_trigger_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "trigger"
+          ]
+        }
+      }
     },
     "public.health_certs": {
       "name": "health_certs",
@@ -563,6 +841,268 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
+    "public.litter_images": {
+      "name": "litter_images",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "litter_id": {
+          "name": "litter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_path": {
+          "name": "storage_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "litter_images_litter_id_litters_id_fk": {
+          "name": "litter_images_litter_id_litters_id_fk",
+          "tableFrom": "litter_images",
+          "tableTo": "litters",
+          "columnsFrom": [
+            "litter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.litter_interests": {
+      "name": "litter_interests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "litter_id": {
+          "name": "litter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "litter_interests_client_id_clients_id_fk": {
+          "name": "litter_interests_client_id_clients_id_fk",
+          "tableFrom": "litter_interests",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "litter_interests_litter_id_litters_id_fk": {
+          "name": "litter_interests_litter_id_litters_id_fk",
+          "tableFrom": "litter_interests",
+          "tableTo": "litters",
+          "columnsFrom": [
+            "litter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.litter_notifications": {
+      "name": "litter_notifications",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "litter_id": {
+          "name": "litter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notified_at": {
+          "name": "notified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "litter_notifications_litter_id_litters_id_fk": {
+          "name": "litter_notifications_litter_id_litters_id_fk",
+          "tableFrom": "litter_notifications",
+          "tableTo": "litters",
+          "columnsFrom": [
+            "litter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "litter_notifications_client_id_clients_id_fk": {
+          "name": "litter_notifications_client_id_clients_id_fk",
+          "tableFrom": "litter_notifications",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.litter_update_opt_outs": {
+      "name": "litter_update_opt_outs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "litter_id": {
+          "name": "litter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "litter_update_opt_outs_client_id_clients_id_fk": {
+          "name": "litter_update_opt_outs_client_id_clients_id_fk",
+          "tableFrom": "litter_update_opt_outs",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "litter_update_opt_outs_litter_id_litters_id_fk": {
+          "name": "litter_update_opt_outs_litter_id_litters_id_fk",
+          "tableFrom": "litter_update_opt_outs",
+          "tableTo": "litters",
+          "columnsFrom": [
+            "litter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
     "public.litters": {
       "name": "litters",
       "schema": "",
@@ -578,6 +1118,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "breed": {
+          "name": "breed",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "sire_id": {
           "name": "sire_id",
@@ -629,14 +1175,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "purchase_price": {
-          "name": "purchase_price",
-          "type": "real",
+        "notes": {
+          "name": "notes",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "notes": {
-          "name": "notes",
+        "cover_image_url": {
+          "name": "cover_image_url",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -689,75 +1235,6 @@
             "id"
           ],
           "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
-    "public.messages": {
-      "name": "messages",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "client_id": {
-          "name": "client_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "author": {
-          "name": "author",
-          "type": "message_author",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "body": {
-          "name": "body",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "attachment_urls": {
-          "name": "attachment_urls",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "read_at": {
-          "name": "read_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "messages_client_id_clients_id_fk": {
-          "name": "messages_client_id_clients_id_fk",
-          "tableFrom": "messages",
-          "tableTo": "clients",
-          "columnsFrom": [
-            "client_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -884,6 +1361,88 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
+    "public.puppy_interests": {
+      "name": "puppy_interests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "puppy_id": {
+          "name": "puppy_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "puppy_interests_puppy_id_puppies_id_fk": {
+          "name": "puppy_interests_puppy_id_puppies_id_fk",
+          "tableFrom": "puppy_interests",
+          "tableTo": "puppies",
+          "columnsFrom": [
+            "puppy_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "puppy_interests_client_id_clients_id_fk": {
+          "name": "puppy_interests_client_id_clients_id_fk",
+          "tableFrom": "puppy_interests",
+          "tableTo": "clients",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
     "public.updates": {
       "name": "updates",
       "schema": "",
@@ -913,18 +1472,11 @@
           "notNull": true,
           "default": "'[]'::jsonb"
         },
-        "target_type": {
-          "name": "target_type",
-          "type": "update_target_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "target_id": {
-          "name": "target_id",
+        "litter_id": {
+          "name": "litter_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "is_published": {
           "name": "is_published",
@@ -935,6 +1487,12 @@
         },
         "published_at": {
           "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email_sent_at": {
+          "name": "email_sent_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -961,7 +1519,21 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "updates_litter_id_litters_id_fk": {
+          "name": "updates_litter_id_litters_id_fk",
+          "tableFrom": "updates",
+          "tableTo": "litters",
+          "columnsFrom": [
+            "litter_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     }
@@ -971,12 +1543,22 @@
       "name": "client_stage",
       "schema": "public",
       "values": [
-        "enquiry",
-        "reviewed",
+        "enquired",
+        "approved",
+        "rejected",
         "waitlisted",
+        "match_requested",
         "matched",
-        "placed",
-        "declined"
+        "matched_paid"
+      ]
+    },
+    "public.deposit_status": {
+      "name": "deposit_status",
+      "schema": "public",
+      "values": [
+        "none",
+        "pending",
+        "paid"
       ]
     },
     "public.document_type": {
@@ -1040,16 +1622,8 @@
         "confirmed",
         "born",
         "weaning",
-        "ready",
+        "available",
         "completed"
-      ]
-    },
-    "public.message_author": {
-      "name": "message_author",
-      "schema": "public",
-      "values": [
-        "admin",
-        "client"
       ]
     },
     "public.puppy_status": {
@@ -1058,18 +1632,10 @@
       "values": [
         "available",
         "reserved",
-        "placed",
+        "matched",
+        "matched_paid",
         "retained",
         "not_for_sale"
-      ]
-    },
-    "public.update_target_type": {
-      "name": "update_target_type",
-      "schema": "public",
-      "values": [
-        "litter",
-        "puppy",
-        "client"
       ]
     }
   },
