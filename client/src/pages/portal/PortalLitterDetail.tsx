@@ -285,62 +285,80 @@ export function PortalLitterDetail() {
 
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
 						{litter.puppies.map((puppy) => (
-							<div key={puppy.id} className="bg-white rounded-xl border border-warm-200 p-4 text-center">
-								<div className="text-3xl mb-2">{puppy.sex === 'male' ? '🐶' : '🐕'}</div>
-								{puppy.collarColour && (
-									<div className="flex items-center justify-center gap-1.5 mb-2">
-										<div
-											aria-hidden="true"
-											className="w-3 h-3 rounded-full border border-warm-300 flex-shrink-0"
-											style={{ backgroundColor: puppy.collarColour }}
-										/>
-										<span className="text-xs text-warm-500 capitalize">{puppy.collarColour}</span>
-									</div>
-								)}
-								<p className="text-xs font-medium text-warm-700 capitalize">{puppy.sex}</p>
-								<p className="text-xs text-warm-500 mb-2">{puppy.colour}</p>
-								<PuppyStatusBadge status={puppy.status} />
-								{puppy.status === 'available' && user && clientStage && (
-									<div className="mt-2">
-										{myInterestPuppyIds.has(puppy.id) ? (
-											<span className="text-xs text-green-600 font-medium">Interest registered ✓</span>
-										) : interestMessage[puppy.id] ? (
-											<span className="text-xs text-warm-500">{interestMessage[puppy.id]}</span>
-										) : !isWaitlistedOrLater ? (
-											<div>
-												<button
-													disabled
-													className="w-full mt-1 px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
-												>
-													Express Interest
-												</button>
-												<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
-													Waitlist required
-												</p>
+							<div key={puppy.id} className="bg-white rounded-xl border border-warm-200 overflow-hidden flex flex-col">
+								{/* Collar colour accent bar */}
+								<div
+									className="h-1.5 w-full flex-shrink-0"
+									style={{ backgroundColor: puppy.collarColour ?? '#e5e1db' }}
+									aria-hidden="true"
+								/>
+								<div className="p-4 flex flex-col flex-1">
+									{/* Collar label + sex */}
+									<div className="flex items-center justify-between mb-3">
+										{puppy.collarColour ? (
+											<div className="flex items-center gap-1.5">
+												<div
+													aria-hidden="true"
+													className="w-2.5 h-2.5 rounded-full border border-black/10 flex-shrink-0"
+													style={{ backgroundColor: puppy.collarColour }}
+												/>
+												<span className="text-xs text-warm-500 capitalize">{puppy.collarColour}</span>
 											</div>
-										) : eligibility && !eligibility.isNotified ? (
-											<div>
-												<button
-													disabled
-													className="w-full mt-1 px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
-												>
-													Express Interest
-												</button>
-												<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
-													Not yet invited
-												</p>
-											</div>
-										) : (
-											<button
-												onClick={() => expressInterest(puppy.id)}
-												disabled={submittingInterest === puppy.id}
-												className="w-full mt-1 px-2 py-1.5 bg-brand-500 text-white text-xs rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
-											>
-												{submittingInterest === puppy.id ? 'Sending…' : 'Express Interest'}
-											</button>
-										)}
+										) : <span />}
+										<span className="text-xs font-medium text-warm-600 capitalize">{puppy.sex}</span>
 									</div>
-								)}
+
+									{/* Colour */}
+									<p className="text-sm font-semibold text-warm-900 mb-1 leading-tight">{puppy.colour ?? '—'}</p>
+
+									{/* Status badge */}
+									<div className="mb-3">
+										<PuppyStatusBadge status={puppy.status} />
+									</div>
+
+									{/* CTA */}
+									{puppy.status === 'available' && user && clientStage && (
+										<div className="mt-auto">
+											{myInterestPuppyIds.has(puppy.id) ? (
+												<span className="text-xs text-green-600 font-medium">Interest registered ✓</span>
+											) : interestMessage[puppy.id] ? (
+												<span className="text-xs text-warm-500">{interestMessage[puppy.id]}</span>
+											) : !isWaitlistedOrLater ? (
+												<div>
+													<button
+														disabled
+														className="w-full px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
+													>
+														Express Interest
+													</button>
+													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
+														Waitlist required
+													</p>
+												</div>
+											) : eligibility && !eligibility.isNotified ? (
+												<div>
+													<button
+														disabled
+														className="w-full px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
+													>
+														Express Interest
+													</button>
+													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
+														Not yet invited
+													</p>
+												</div>
+											) : (
+												<button
+													onClick={() => expressInterest(puppy.id)}
+													disabled={submittingInterest === puppy.id}
+													className="w-full px-2 py-1.5 bg-brand-500 text-white text-xs rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
+												>
+													{submittingInterest === puppy.id ? 'Sending…' : 'Express Interest'}
+												</button>
+											)}
+										</div>
+									)}
+								</div>
 							</div>
 						))}
 					</div>
