@@ -9,11 +9,6 @@
 	color-scheme: light only;
 }
 
-body {
-	background-color: white;
-	color: #1c1917;
-}
-
 @theme {
 	/* ── Typography ──────────────────────────────────────── */
 	--font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;

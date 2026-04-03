@@ -105,7 +105,7 @@ export function AdminDashboard() {
 	const newCount = recentEnquiries.length;
 
 	return (
-		<div className="p-8 max-w-[1200px]">
+		<div className="p-5 md:p-8 max-w-[1200px]">
 			<PageHeader
 				title="Dashboard"
 				subtitle={`${getGreeting()} — here's your breeding programme overview.`}

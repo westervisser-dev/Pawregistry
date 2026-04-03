@@ -144,7 +144,7 @@ export function PortalLayout() {
 					</button>
 					<Link to="/" className="flex items-center gap-2">
 						<span className="text-lg">🐾</span>
-						<span className="font-serif font-bold text-[#F0EDEA] text-sm">Paw Registry</span>
+						<span className="font-serif text-[#F0EDEA] text-sm">Paw Registry</span>
 					</Link>
 					<span className="text-[10.5px] text-[rgba(240,237,234,0.4)] uppercase tracking-wider">Client Portal</span>
 				</div>
@@ -156,8 +156,8 @@ export function PortalLayout() {
 			</div>
 
 			{/* Mobile bottom navigation */}
-			<nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-sidebar-bg border-t border-white/10">
-				<div className="grid grid-cols-5 h-16">
+			<nav aria-label="Mobile navigation" className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-sidebar-bg border-t border-white/10">
+				<div className="grid grid-cols-4 h-16">
 					{portalNav.map(({ to, label, icon, end, iconFilter, requiresApproval }) => {
 						const locked = requiresApproval && clientStage === 'enquired';
 						if (locked) {
@@ -167,7 +167,7 @@ export function PortalLayout() {
 									className="flex flex-col items-center justify-center gap-0.5 text-center text-[rgba(240,237,234,0.3)] cursor-not-allowed select-none"
 								>
 									<span className="text-xl leading-none opacity-40" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
-									<span className="text-[10px] font-medium leading-tight">{label}</span>
+									<span className="text-[11px] font-medium leading-tight">{label}</span>
 								</span>
 							);
 						}
@@ -183,7 +183,7 @@ export function PortalLayout() {
 								}
 							>
 								<span className="text-xl leading-none" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
-								<span className="text-[10px] font-medium leading-tight">{label}</span>
+								<span className="text-[11px] font-medium leading-tight">{label}</span>
 							</NavLink>
 						);
 					})}

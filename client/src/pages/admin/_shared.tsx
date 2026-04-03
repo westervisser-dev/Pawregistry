@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { Card, StageBadge } from '@/components/ui';
+import { Card, StageBadge, useFocusTrap } from '@/components/ui';
 import type { Client } from '@paw-registry/shared';
 import {
 	DndContext,
@@ -57,11 +57,12 @@ export function DeleteModal({
 	deleting: boolean;
 	blockingRecords: string[] | null;
 }) {
+	const dialogRef = useFocusTrap(open, onClose);
 	if (!open) return null;
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-			<div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-			<div role="dialog" aria-modal="true" aria-labelledby="modal-title" className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+			<div className="absolute inset-0 bg-black/40 backdrop-blur-sm" aria-hidden="true" onClick={onClose} />
+			<div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="modal-title" className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
 				{blockingRecords ? (
 					<>
 						<h2 id="modal-title" className="font-serif text-lg text-warm-900 mb-2">Cannot delete</h2>

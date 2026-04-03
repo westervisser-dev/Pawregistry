@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { LoadingPage, Card, Badge } from '@/components/ui';
+import { LoadingPage, Card, Badge, useFocusTrap } from '@/components/ui';
 import type { Client, ClientApplication } from '@paw-registry/shared';
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
-function Tooltip({ text }: { text: string }) {
+function Tooltip() {
 	const [visible, setVisible] = useState(false);
 	const ref = useRef<HTMLSpanElement>(null);
 
@@ -144,16 +144,20 @@ const SEX_LABELS: Record<string, string> = {
 // ─── Stages Modal ────────────────────────────────────────────────────────────
 
 function StagesModal({ currentStage, onClose }: { currentStage: string; onClose: () => void }) {
+	const dialogRef = useFocusTrap(true, onClose);
 	return (
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center p-4"
 			style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+			aria-hidden="true"
 			onClick={onClose}
 		>
 			<div
+				ref={dialogRef}
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="modal-title"
+				aria-hidden="false"
 				className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col"
 				onClick={(e) => e.stopPropagation()}
 			>
@@ -338,6 +342,7 @@ export function PortalDashboard() {
 	const [showStages, setShowStages] = useState(false);
 	const [depositLoading, setDepositLoading] = useState(false);
 	const [showDepositConfirm, setShowDepositConfirm] = useState(false);
+	const depositDialogRef = useFocusTrap(showDepositConfirm, () => { if (!depositLoading) setShowDepositConfirm(false); });
 	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
 
 	useEffect(() => {
@@ -561,11 +566,14 @@ export function PortalDashboard() {
 				<div
 					className="fixed inset-0 z-50 flex items-center justify-center p-4"
 					style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+					aria-hidden="true"
 					onClick={() => !depositLoading && setShowDepositConfirm(false)}
 				>
 					<div
+						ref={depositDialogRef}
 						role="dialog"
 						aria-modal="true"
+						aria-hidden="false"
 						aria-labelledby="deposit-modal-title"
 						className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 flex flex-col gap-4"
 						onClick={(e) => e.stopPropagation()}
