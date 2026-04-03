@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { LitterStatusBadge } from '@/components/ui';
-import type { LitterWithDogs } from '@paw-registry/shared';
+import { getBreedSizeLabel, type LitterWithDogs } from '@paw-registry/shared';
 
 export function HomePage() {
 	const [litters, setLitters] = useState<LitterWithDogs[]>([]);
@@ -65,37 +65,54 @@ export function HomePage() {
 
 			{/* Why us */}
 			<section className="max-w-6xl mx-auto px-6 py-20">
-				<h2 className="font-serif text-3xl text-warm-900 mb-14">
-					Our Commitment
-				</h2>
-				<div>
+				<div className="mb-12">
+					<h2 className="font-serif text-3xl text-warm-900 mb-3">Our Commitment</h2>
+					<p className="text-warm-500 text-sm max-w-md leading-relaxed">Three principles that guide every decision we make in our breeding programme.</p>
+				</div>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 					{[
 						{
 							num: '01',
-							icon: '🔬',
 							title: 'Health Tested',
 							body: 'All breeding dogs undergo comprehensive health screening including OFA hips, elbows, eyes, heart, and DNA panels.',
+							icon: (
+								<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+									<path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+								</svg>
+							),
 						},
 						{
 							num: '02',
-							icon: '🌳',
 							title: 'Verified Pedigrees',
 							body: 'Multi-generation pedigrees documented and verifiable. Every dog registered with the relevant kennel club.',
+							icon: (
+								<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+									<circle cx="12" cy="8" r="3" />
+									<path d="M12 11v2M9 17h6M8 17a4 4 0 0 1 8 0" />
+									<rect x="3" y="3" width="18" height="18" rx="3" />
+								</svg>
+							),
 						},
 						{
 							num: '03',
-							icon: '🤝',
 							title: 'Lifetime Support',
-							body: 'We remain available to every family throughout the life of your dog. Our relationship doesn\'t end at placement.',
+							body: "We remain available to every family throughout the life of your dog. Our relationship doesn't end at placement.",
+							icon: (
+								<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+									<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+								</svg>
+							),
 						},
-					].map(({ num, icon, title, body }) => (
-						<div key={title} className="flex gap-6 md:gap-12 py-10 border-t border-warm-200 last:border-b items-start">
-							<span className="font-serif text-[42px] leading-none text-warm-300 shrink-0 w-14 select-none" aria-hidden="true">{num}</span>
-							<div className="flex-1 flex flex-col md:flex-row md:items-start md:gap-12">
-								<div className="flex items-center gap-3 mb-3 md:mb-0 md:w-52 shrink-0">
-									<span className="text-xl" aria-hidden="true">{icon}</span>
-									<h3 className="font-serif text-xl text-warm-900">{title}</h3>
+					].map(({ num, title, body, icon }) => (
+						<div key={title} className="bg-white border border-warm-200 rounded-2xl p-8 flex flex-col gap-8">
+							<div className="flex items-start justify-between">
+								<div className="w-11 h-11 rounded-xl bg-warm-100 flex items-center justify-center text-warm-600">
+									{icon}
 								</div>
+								<span className="font-serif text-3xl text-brand-300 leading-none select-none" aria-hidden="true">{num}</span>
+							</div>
+							<div>
+								<h3 className="font-serif text-xl text-warm-900 mb-2">{title}</h3>
 								<p className="text-warm-500 text-sm leading-relaxed">{body}</p>
 							</div>
 						</div>
@@ -162,10 +179,10 @@ export function HomePage() {
 							{litters.slice(0, 3).map((litter) => (
 								<Link
 									key={litter.id}
-									to={`/litters/${litter.id}`}
+									to="/litters"
 									className="bg-white rounded-xl border border-warm-200 overflow-hidden hover:shadow-md transition-shadow"
 								>
-										<div className="p-5">
+									<div className="p-5">
 										<div className="flex items-start justify-between mb-2">
 											<h3 className="font-medium text-warm-900">{litter.name}</h3>
 											<LitterStatusBadge status={litter.status} />
@@ -173,6 +190,11 @@ export function HomePage() {
 										<p className="text-sm text-warm-500">
 											{litter.sire?.name} × {litter.dam?.name}
 										</p>
+										{litter.breed && (
+											<span className="inline-block mt-3 px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 text-xs font-medium border border-brand-100">
+												{getBreedSizeLabel(litter.breed)}
+											</span>
+										)}
 										{litter.availableCount != null && litter.availableCount > 0 && (
 											<p className="text-sm text-brand-600 font-medium mt-2">
 												{litter.availableCount} puppy{litter.availableCount !== 1 ? 'ies' : ''} available
