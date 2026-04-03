@@ -22,7 +22,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 // ─── Shared admin table wrapper ───────────────────────────────────────────────
 
-type TableHeader = string | { label: string; hideMobile?: boolean };
+type TableHeader = string | { label: string; hideMobile?: boolean; mobileLabel?: string };
 
 export function AdminTable({ headers, children }: { headers: TableHeader[]; children: React.ReactNode }) {
 	return (
@@ -33,9 +33,15 @@ export function AdminTable({ headers, children }: { headers: TableHeader[]; chil
 						{headers.map((h) => {
 							const label = typeof h === 'string' ? h : h.label;
 							const hide = typeof h === 'object' && h.hideMobile;
+							const mobileLabel = typeof h === 'object' ? h.mobileLabel : undefined;
 							return (
 								<th key={label} className={`text-left py-3 px-4 text-[10.5px] font-medium text-warm-400 uppercase tracking-[0.06em]${hide ? ' hidden md:table-cell' : ''}`}>
-									{label}
+									{mobileLabel ? (
+										<>
+											<span className="md:hidden">{mobileLabel}</span>
+											<span className="hidden md:inline">{label}</span>
+										</>
+									) : label}
 								</th>
 							);
 						})}
@@ -216,7 +222,7 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 
 	return (
 		<tr ref={setNodeRef} style={style} className="border-b border-black/[0.05] hover:bg-warm-50 bg-white transition-colors">
-			<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs font-mono w-8 tabular-nums">{index + 1}</td>
+			<td className="py-3 px-4 text-warm-400 text-xs font-mono w-8 tabular-nums">{index + 1}</td>
 			<td className="py-2 px-3 w-8">
 				<button
 					{...attributes}
@@ -252,7 +258,8 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 			</td>
 			<td className="hidden md:table-cell py-3 px-4"><StageBadge stage={client.stage} /></td>
 			<td className="py-3 px-4">
-				<DepositStatusSelect client={client} onUpdate={onDepositUpdate} />
+				<div className="md:hidden"><StageBadge stage={client.stage} /></div>
+				<div className="hidden md:block"><DepositStatusSelect client={client} onUpdate={onDepositUpdate} /></div>
 			</td>
 			<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 				{new Date(client.createdAt).toLocaleDateString()}
@@ -297,7 +304,7 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, sta
 			</div>
 			<Card>
 				<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-					<AdminTable headers={[{ label: '#', hideMobile: true }, '', 'Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, 'Deposit Status', { label: 'Applied', hideMobile: true }, '']}>
+					<AdminTable headers={['#', '', 'Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, { label: 'Deposit Status', mobileLabel: 'Stage' }, { label: 'Applied', hideMobile: true }, '']}>
 						<SortableContext items={clients.map((c) => c.id)} strategy={verticalListSortingStrategy}>
 							{clients.map((client, i) => (
 								<SortableClientRow
@@ -341,7 +348,7 @@ export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {
 				<span className="text-xs text-warm-400 bg-warm-200 px-2 py-0.5 rounded-full">{clients.length}</span>
 			</div>
 			<Card>
-				<AdminTable headers={['Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, 'Deposit', { label: 'Applied', hideMobile: true }, '']}>
+				<AdminTable headers={['Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, { label: 'Deposit', mobileLabel: 'Stage' }, { label: 'Applied', hideMobile: true }, '']}>
 					{clients.map((client) => {
 						const parsed = formatBreedSize(pbs(client));
 						const action = actionMap[client.id];
@@ -364,13 +371,16 @@ export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {
 								</td>
 								<td className="hidden md:table-cell py-3 px-4"><StageBadge stage={client.stage} /></td>
 								<td className="py-3 px-4">
-									{client.depositStatus === 'paid' ? (
-										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Deposit — Paid</span>
-									) : client.depositStatus === 'pending' ? (
-										<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Deposit — Selected</span>
-									) : (
-										<span className="text-warm-400 text-xs">No Deposit</span>
-									)}
+									<div className="md:hidden"><StageBadge stage={client.stage} /></div>
+									<div className="hidden md:block">
+										{client.depositStatus === 'paid' ? (
+											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Deposit — Paid</span>
+										) : client.depositStatus === 'pending' ? (
+											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Deposit — Selected</span>
+										) : (
+											<span className="text-warm-400 text-xs">No Deposit</span>
+										)}
+									</div>
 								</td>
 								<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 									{new Date(client.createdAt).toLocaleDateString()}
