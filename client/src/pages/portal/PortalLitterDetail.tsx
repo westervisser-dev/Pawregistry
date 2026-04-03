@@ -124,7 +124,6 @@ export function PortalLitterDetail() {
 		setLitterInterestLoading(false);
 	};
 
-	const isApprovedOrLater = !!clientStage && ['approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
 	const isWaitlistedOrLater = !!clientStage && ['waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
 
 	if (loading) return <LoadingPage />;
@@ -154,14 +153,14 @@ export function PortalLitterDetail() {
 					</div>
 				</div>
 
-				{/* Litter interest toggle — shown for approved+ clients, greyed out for enquired/rejected */}
+				{/* Litter interest toggle — shown for all non-rejected clients, active from waitlisted onwards */}
 				{user && clientStage && clientStage !== 'rejected' && (
 					<div className="relative group/litter-btn">
 						<button
-							onClick={isApprovedOrLater ? toggleLitterInterest : undefined}
-							disabled={litterInterestLoading || !isApprovedOrLater}
+							onClick={isWaitlistedOrLater ? toggleLitterInterest : undefined}
+							disabled={litterInterestLoading || !isWaitlistedOrLater}
 							className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-								!isApprovedOrLater
+								!isWaitlistedOrLater
 									? 'bg-warm-100 text-warm-400 border border-warm-200 cursor-not-allowed'
 									: myLitterInterest
 										? 'bg-brand-50 text-brand-600 border border-brand-300 hover:bg-brand-100 disabled:opacity-50'
@@ -171,9 +170,9 @@ export function PortalLitterDetail() {
 							<span aria-hidden="true">{myLitterInterest ? '★' : '☆'}</span>
 							{litterInterestLoading ? 'Saving…' : myLitterInterest ? 'Interested' : 'Mark as interested'}
 						</button>
-						{!isApprovedOrLater && (
+						{!isWaitlistedOrLater && (
 							<div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-warm-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/litter-btn:opacity-100 pointer-events-none z-10 transition-opacity">
-								Your application must be approved first
+								You must be on the waitlist to mark interest in a litter
 							</div>
 						)}
 					</div>
