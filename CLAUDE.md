@@ -90,6 +90,8 @@ Same pattern for `portal/`.
 - **`applicationData` cast:** `client.applicationData as unknown as Record<string, unknown>` — direct cast fails.
 - **Eden tsc noise:** `'Please install Elysia before using Eden'` errors are expected when running standalone `tsc`. Build uses `vite build`.
 - **`fetchPriority`:** Not supported on `<img>` in React 18 — remove it.
+- **Drizzle named imports:** Neither `vite build` nor Bun runs tsc, so a missing named import (e.g. `desc`, `asc`, `inArray`) passes build and silently 500s at runtime. Always explicitly import every drizzle-orm function used: `eq`, `asc`, `desc`, `and`, `or`, `inArray`, `notInArray`, `isNull`, `isNotNull`, `count`, `max`, `min`, `sql`, etc.
+- **Drizzle date columns return `Date` objects:** `timestamp` / `date` columns come back as JS `Date` instances, not strings. Never render them directly in JSX — always format: `new Date(value).toLocaleDateString()` or `.toLocaleString()`. Applies to `createdAt`, `updatedAt`, `expectedDate`, `whelpDate`, `sentAt`, `checkedAt`, `signedAt`, and any other date field.
 
 ## Important Rules
 
@@ -124,22 +126,22 @@ Always let user run SQL scripts.
 | Approved | `approved` | Admin |
 | Rejected | `rejected` | Admin |
 | Waitlisted | `waitlisted` | System (all docs checked off) |
-| Placed | `placed` | Admin (litter assigned) |
 | Match Requested | `match_requested` | Admin (awaiting puppy selection) |
 | Matched | `matched` | System (puppy selected) |
 | Matched & Paid | `matched_paid` | System/Admin |
 
 **Deposit Status:** `none` (No Deposit) | `pending` (Pending) | `paid` (Paid)
 
-**Admin Clients — Three Tables:**
+**Admin Clients — Four Tables:**
 
 | Table | Filter | DnD |
 |---|---|---|
-| Waitlisted — Deposit | `stage='waitlisted'` AND `depositStatus!='none'` | ✓ |
-| Waitlisted — No Deposit | `stage='waitlisted'` AND `depositStatus='none'` | ✓ |
+| Waitlisted — Deposit | `stage` in `['waitlisted','match_requested','matched']` AND `depositStatus` in `['pending','paid']` | ✓ |
+| Waitlisted — No Deposit | `stage` in `['waitlisted','match_requested','matched']` AND `depositStatus` in `['none', null]` | ✓ |
 | Not Yet Waitlisted | `stage` in `['enquired','approved','rejected']` | ✗ |
+| Completed | `stage='matched_paid'` | ✗ |
 
-Stages `placed`, `match_requested`, `matched`, `matched_paid` managed in litter/matching flow.
+Active queue (`ACTIVE_QUEUE_STAGES`) = `['waitlisted', 'match_requested', 'matched']` — clients stay in the DnD queue until `matched_paid`. Stages `match_requested`, `matched`, `matched_paid` managed in litter/matching flow.
 
 ## Auth Model
 
