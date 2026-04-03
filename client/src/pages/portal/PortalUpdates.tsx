@@ -3,6 +3,65 @@ import { api } from '@/lib/api';
 import { LoadingPage, Card, Badge } from '@/components/ui';
 import type { UpdateWithLitter } from '@paw-registry/shared';
 
+function UpdateGallery({ urls }: { urls: string[] }) {
+	if (urls.length === 0) return null;
+
+	if (urls.length === 1) {
+		return (
+			<div className="aspect-[4/3] overflow-hidden bg-warm-100">
+				<img src={urls[0]} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+			</div>
+		);
+	}
+
+	if (urls.length === 2) {
+		return (
+			<div className="grid grid-cols-2 gap-0.5">
+				{urls.map((url, i) => (
+					<div key={i} className="aspect-square overflow-hidden bg-warm-100">
+						<img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+					</div>
+				))}
+			</div>
+		);
+	}
+
+	if (urls.length === 3) {
+		return (
+			<div className="flex gap-0.5">
+				<div className="w-2/3 aspect-square overflow-hidden bg-warm-100">
+					<img src={urls[0]} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+				</div>
+				<div className="flex-1 flex flex-col gap-0.5">
+					{urls.slice(1).map((url, i) => (
+						<div key={i} className="flex-1 overflow-hidden bg-warm-100">
+							<img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	}
+
+	// 4+ images: 2×2 grid, last cell shows +N if more than 4
+	const shown = urls.slice(0, 4);
+	const extra = urls.length - 4;
+	return (
+		<div className="grid grid-cols-2 gap-0.5">
+			{shown.map((url, i) => (
+				<div key={i} className="relative aspect-square overflow-hidden bg-warm-100">
+					<img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+					{i === 3 && extra > 0 && (
+						<div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+							<span className="text-white font-semibold text-xl">+{extra}</span>
+						</div>
+					)}
+				</div>
+			))}
+		</div>
+	);
+}
+
 export function PortalUpdates() {
 	const [updates, setUpdates] = useState<UpdateWithLitter[]>([]);
 	const [optOuts, setOptOuts] = useState<string[]>([]);
@@ -42,7 +101,7 @@ export function PortalUpdates() {
 
 	if (loading) return <LoadingPage />;
 
-	// Group updates by litterId. null = general.
+	// Group updates by litterId; null = general announcements
 	const grouped = new Map<string | null, UpdateWithLitter[]>();
 	for (const update of updates) {
 		const key = update.litterId ?? null;
@@ -50,7 +109,7 @@ export function PortalUpdates() {
 		grouped.get(key)!.push(update);
 	}
 
-	// Sort: general first, then litters in order of most recent update
+	// General section first, then litter sections
 	const sections = [...grouped.entries()].sort(([a], [b]) => {
 		if (a === null) return -1;
 		if (b === null) return 1;
@@ -71,18 +130,23 @@ export function PortalUpdates() {
 					<p className="text-warm-400 text-sm mt-1">We'll post updates here as your puppy grows.</p>
 				</Card>
 			) : (
-				<div className="flex flex-col gap-10">
+				<div className="flex flex-col gap-12">
 					{sections.map(([litterId, sectionUpdates]) => {
 						const litter = sectionUpdates[0]?.litter;
 						const isOptedOut = !!litterId && optOuts.includes(litterId);
 
 						return (
 							<section key={litterId ?? 'general'} aria-label={litter?.name ?? 'General'}>
-								{/* Section header */}
-								<div className="flex items-center justify-between mb-4">
-									<h2 className="font-serif font-bold text-warm-900 text-lg">
-										{litter?.name ?? 'General'}
-									</h2>
+								{/* Litter heading */}
+								<div className="flex items-center justify-between mb-5 pb-4 border-b border-warm-200">
+									<div>
+										<h2 className="font-serif font-bold text-warm-900 text-xl">
+											{litter?.name ?? 'General'}
+										</h2>
+										<p className="text-xs text-warm-400 mt-0.5">
+											{sectionUpdates.length} {sectionUpdates.length === 1 ? 'update' : 'updates'}
+										</p>
+									</div>
 									{!!litterId && (
 										<button
 											onClick={() => toggleOptOut(litterId)}
@@ -108,23 +172,9 @@ export function PortalUpdates() {
 								<div className="flex flex-col gap-6">
 									{sectionUpdates.map((update) => (
 										<Card key={update.id} className="overflow-hidden">
-											{update.mediaUrls.length > 0 && (
-												<div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-													{update.mediaUrls.map((url, i) => (
-														<div key={i} className="aspect-square bg-warm-100 overflow-hidden">
-															<img
-																src={url}
-																alt=""
-																loading="lazy"
-																decoding="async"
-																className="w-full h-full object-cover"
-															/>
-														</div>
-													))}
-												</div>
-											)}
+											<UpdateGallery urls={update.mediaUrls} />
 											<div className="p-6">
-												<div className="flex items-center gap-3 mb-2">
+												<div className="flex items-center gap-3 mb-3">
 													{!!update.weekNumber && (
 														<Badge variant="amber">Week {update.weekNumber}</Badge>
 													)}

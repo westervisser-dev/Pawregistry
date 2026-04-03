@@ -17,12 +17,14 @@ export function AdminUpdates() {
 	const [litters, setLitters] = useState<Litter[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [form, setForm] = useState(EMPTY_FORM);
+	const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([]);
 	const [saving, setSaving] = useState(false);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [publishingId, setPublishingId] = useState<string | null>(null);
 	const [publishSendEmail, setPublishSendEmail] = useState(false);
 	const [uploadingId, setUploadingId] = useState<string | null>(null);
-	const fileInputRef = useRef<HTMLInputElement>(null);
+	const formFileRef = useRef<HTMLInputElement>(null);
+	const updateFileRef = useRef<HTMLInputElement>(null);
 	const [pendingUploadId, setPendingUploadId] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -44,10 +46,31 @@ export function AdminUpdates() {
 	const reload = () =>
 		api.updates.admin.get().then(({ data }) => { if (data) setUpdates(data as UpdateWithLitter[]); });
 
+	const addPendingFiles = (files: FileList) => {
+		const newFiles = Array.from(files).map((file) => ({
+			file,
+			preview: URL.createObjectURL(file),
+		}));
+		setPendingFiles((prev) => [...prev, ...newFiles]);
+	};
+
+	const removePendingFile = (index: number) => {
+		setPendingFiles((prev) => {
+			URL.revokeObjectURL(prev[index].preview);
+			return prev.filter((_, i) => i !== index);
+		});
+	};
+
+	const clearPendingFiles = (files: { file: File; preview: string }[]) => {
+		files.forEach((f) => URL.revokeObjectURL(f.preview));
+		setPendingFiles([]);
+	};
+
 	const submit = async () => {
 		if (!form.title) return;
 		setSaving(true);
-		await api.updates.post({
+
+		const res = await api.updates.post({
 			title: form.title,
 			body: form.body,
 			litterId: form.litterId || null,
@@ -55,6 +78,15 @@ export function AdminUpdates() {
 			isPublished: form.isPublished,
 			sendEmail: form.sendEmail,
 		});
+
+		const created = res.data as UpdateWithLitter | undefined;
+		if (created && pendingFiles.length > 0) {
+			for (const { file } of pendingFiles) {
+				await (api.updates as any)[created.id].media.post({ file });
+			}
+		}
+
+		clearPendingFiles(pendingFiles);
 		setSaving(false);
 		setForm(EMPTY_FORM);
 		reload();
@@ -122,6 +154,50 @@ export function AdminUpdates() {
 						rows={4}
 						className="px-3 py-2.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"
 					/>
+
+					{/* Photo attachments */}
+					<div>
+						{pendingFiles.length > 0 && (
+							<div className="flex gap-2 flex-wrap mb-3">
+								{pendingFiles.map(({ preview }, i) => (
+									<div key={i} className="relative w-20 h-20 group">
+										<img
+											src={preview}
+											alt=""
+											className="w-full h-full object-cover rounded-lg border border-warm-200"
+										/>
+										<button
+											type="button"
+											onClick={() => removePendingFile(i)}
+											className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-warm-800 text-white text-xs rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+											aria-label="Remove photo"
+										>
+											✕
+										</button>
+									</div>
+								))}
+							</div>
+						)}
+						<button
+							type="button"
+							onClick={() => formFileRef.current?.click()}
+							className="text-sm text-warm-500 hover:text-warm-700 border border-dashed border-warm-300 rounded-lg px-4 py-2 w-full text-center transition-colors hover:border-warm-400"
+						>
+							+ Add photos
+						</button>
+						<input
+							ref={formFileRef}
+							type="file"
+							accept="image/*,video/*"
+							multiple
+							className="hidden"
+							onChange={(e) => {
+								if (e.target.files) addPendingFiles(e.target.files);
+								e.target.value = '';
+							}}
+						/>
+					</div>
+
 					<input
 						value={form.weekNumber}
 						onChange={(e) => setForm((f) => ({ ...f, weekNumber: e.target.value }))}
@@ -172,7 +248,7 @@ export function AdminUpdates() {
 										<span className="text-xs text-warm-400 font-medium">
 											{u.litter?.name ?? 'General'}
 										</span>
-										{u.weekNumber && (
+										{!!u.weekNumber && (
 											<Badge variant="amber">Week {u.weekNumber}</Badge>
 										)}
 										<Badge variant={u.isPublished ? 'green' : 'amber'}>
@@ -216,18 +292,16 @@ export function AdminUpdates() {
 								</div>
 							)}
 
-							{/* Actions for drafts / media upload */}
+							{/* Actions */}
 							<div className="flex items-center gap-3 mt-3 pt-3 border-t border-warm-100">
-								{/* Media upload */}
 								<button
-									onClick={() => { setPendingUploadId(u.id); fileInputRef.current?.click(); }}
+									onClick={() => { setPendingUploadId(u.id); updateFileRef.current?.click(); }}
 									disabled={uploadingId === u.id}
 									className="text-xs text-warm-500 hover:text-warm-700 disabled:opacity-50"
 								>
 									{uploadingId === u.id ? 'Uploading…' : '+ Add photo'}
 								</button>
 
-								{/* Publish draft */}
 								{!u.isPublished && (
 									<div className="flex items-center gap-3 ml-auto">
 										<label className="flex items-center gap-1.5 text-xs text-warm-500 cursor-pointer">
@@ -254,9 +328,9 @@ export function AdminUpdates() {
 				</div>
 			)}
 
-			{/* Hidden file input for media upload */}
+			{/* Hidden file input for existing-update media */}
 			<input
-				ref={fileInputRef}
+				ref={updateFileRef}
 				type="file"
 				accept="image/*,video/*"
 				className="hidden"
