@@ -19,6 +19,7 @@ export function AdminUpdates() {
 	const [form, setForm] = useState(EMPTY_FORM);
 	const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([]);
 	const [saving, setSaving] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 	const [deletingId, setDeletingId] = useState<string | null>(null);
 	const [publishingId, setPublishingId] = useState<string | null>(null);
 	const [publishSendEmail, setPublishSendEmail] = useState(false);
@@ -81,9 +82,12 @@ export function AdminUpdates() {
 
 		const created = res.data as UpdateWithLitter | undefined;
 		if (created && pendingFiles.length > 0) {
-			for (const { file } of pendingFiles) {
-				await (api.updates as any)[created.id].media.post({ file });
+			setUploadProgress({ current: 0, total: pendingFiles.length });
+			for (let i = 0; i < pendingFiles.length; i++) {
+				await (api.updates as any)[created.id].media.post({ file: pendingFiles[i].file });
+				setUploadProgress({ current: i + 1, total: pendingFiles.length });
 			}
+			setUploadProgress(null);
 		}
 
 		clearPendingFiles(pendingFiles);
@@ -226,14 +230,28 @@ export function AdminUpdates() {
 							</label>
 						)}
 					</div>
-					<div className="flex justify-end">
-						<button
-							onClick={submit}
-							disabled={saving || !form.title}
-							className="px-5 py-2 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 disabled:opacity-50"
-						>
-							{saving ? 'Posting…' : 'Post Update'}
-						</button>
+					<div className="flex flex-col gap-2">
+						{uploadProgress && (
+							<div className="h-1.5 bg-warm-200 rounded-full overflow-hidden">
+								<div
+									className="h-full bg-brand-500 rounded-full transition-all duration-300"
+									style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+								/>
+							</div>
+						)}
+						<div className="flex justify-end">
+							<button
+								onClick={submit}
+								disabled={saving || !form.title}
+								className="px-5 py-2 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 disabled:opacity-50 min-w-36 text-center"
+							>
+								{uploadProgress
+									? `Uploading ${uploadProgress.current}/${uploadProgress.total}…`
+									: saving
+										? 'Posting…'
+										: 'Post Update'}
+							</button>
+						</div>
 					</div>
 				</div>
 			</Card>

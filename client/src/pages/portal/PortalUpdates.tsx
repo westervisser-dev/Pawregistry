@@ -3,62 +3,158 @@ import { api } from '@/lib/api';
 import { LoadingPage, Card, Badge } from '@/components/ui';
 import type { UpdateWithLitter } from '@paw-registry/shared';
 
+function Lightbox({ urls, initialIndex, onClose }: { urls: string[]; initialIndex: number; onClose: () => void }) {
+	const [index, setIndex] = useState(initialIndex);
+
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') onClose();
+			if (e.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1));
+			if (e.key === 'ArrowRight') setIndex((i) => Math.min(urls.length - 1, i + 1));
+		};
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	}, [onClose, urls.length]);
+
+	// Trap scroll behind modal
+	useEffect(() => {
+		document.body.style.overflow = 'hidden';
+		return () => { document.body.style.overflow = ''; };
+	}, []);
+
+	return (
+		<div
+			className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
+			onClick={onClose}
+			role="dialog"
+			aria-modal="true"
+			aria-label="Image viewer"
+		>
+			<button
+				className="absolute top-4 right-4 text-white/80 hover:text-white text-2xl w-10 h-10 flex items-center justify-center"
+				onClick={onClose}
+				aria-label="Close"
+			>
+				✕
+			</button>
+
+			<img
+				src={urls[index]}
+				alt=""
+				className="max-w-[90vw] max-h-[88vh] object-contain select-none"
+				onClick={(e) => e.stopPropagation()}
+			/>
+
+			{urls.length > 1 && (
+				<>
+					<button
+						className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-20 transition-colors"
+						onClick={(e) => { e.stopPropagation(); setIndex((i) => i - 1); }}
+						disabled={index === 0}
+						aria-label="Previous image"
+					>
+						←
+					</button>
+					<button
+						className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full w-10 h-10 flex items-center justify-center disabled:opacity-20 transition-colors"
+						onClick={(e) => { e.stopPropagation(); setIndex((i) => i + 1); }}
+						disabled={index === urls.length - 1}
+						aria-label="Next image"
+					>
+						→
+					</button>
+					<div className="absolute bottom-4 text-white/60 text-sm select-none">
+						{index + 1} / {urls.length}
+					</div>
+				</>
+			)}
+		</div>
+	);
+}
+
+function GalleryThumb({ url, onClick }: { url: string; onClick: () => void }) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="overflow-hidden bg-warm-100 w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+			aria-label="View photo"
+		>
+			<img
+				src={url}
+				alt=""
+				loading="lazy"
+				decoding="async"
+				className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+			/>
+		</button>
+	);
+}
+
 function UpdateGallery({ urls }: { urls: string[] }) {
+	const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
 	if (urls.length === 0) return null;
 
+	const open = (i: number) => setLightboxIndex(i);
+	const close = () => setLightboxIndex(null);
+
+	let grid: React.ReactNode;
+
 	if (urls.length === 1) {
-		return (
-			<div className="aspect-[4/3] overflow-hidden bg-warm-100">
-				<img src={urls[0]} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+		grid = (
+			<div className="h-56 sm:h-64">
+				<GalleryThumb url={urls[0]} onClick={() => open(0)} />
 			</div>
 		);
-	}
-
-	if (urls.length === 2) {
-		return (
-			<div className="grid grid-cols-2 gap-0.5">
-				{urls.map((url, i) => (
-					<div key={i} className="aspect-square overflow-hidden bg-warm-100">
-						<img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+	} else if (urls.length === 2) {
+		grid = (
+			<div className="h-44 sm:h-52 grid grid-cols-2 gap-0.5">
+				{urls.map((url, i) => <GalleryThumb key={i} url={url} onClick={() => open(i)} />)}
+			</div>
+		);
+	} else if (urls.length === 3) {
+		grid = (
+			<div className="h-44 sm:h-52 flex gap-0.5">
+				<div className="w-2/3">
+					<GalleryThumb url={urls[0]} onClick={() => open(0)} />
+				</div>
+				<div className="flex-1 flex flex-col gap-0.5">
+					{urls.slice(1).map((url, i) => (
+						<div key={i} className="flex-1">
+							<GalleryThumb url={url} onClick={() => open(i + 1)} />
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	} else {
+		// 4+ images: 2×2, last cell shows +N overlay
+		const shown = urls.slice(0, 4);
+		const extra = urls.length - 4;
+		grid = (
+			<div className="h-44 sm:h-52 grid grid-cols-2 gap-0.5">
+				{shown.map((url, i) => (
+					<div key={i} className="relative overflow-hidden">
+						<GalleryThumb url={url} onClick={() => open(i)} />
+						{i === 3 && extra > 0 && (
+							<div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+								<span className="text-white font-semibold text-xl">+{extra}</span>
+							</div>
+						)}
 					</div>
 				))}
 			</div>
 		);
 	}
 
-	if (urls.length === 3) {
-		return (
-			<div className="flex gap-0.5">
-				<div className="w-2/3 aspect-square overflow-hidden bg-warm-100">
-					<img src={urls[0]} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-				</div>
-				<div className="flex-1 flex flex-col gap-0.5">
-					{urls.slice(1).map((url, i) => (
-						<div key={i} className="flex-1 overflow-hidden bg-warm-100">
-							<img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-						</div>
-					))}
-				</div>
-			</div>
-		);
-	}
-
-	// 4+ images: 2×2 grid, last cell shows +N if more than 4
-	const shown = urls.slice(0, 4);
-	const extra = urls.length - 4;
 	return (
-		<div className="grid grid-cols-2 gap-0.5">
-			{shown.map((url, i) => (
-				<div key={i} className="relative aspect-square overflow-hidden bg-warm-100">
-					<img src={url} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-					{i === 3 && extra > 0 && (
-						<div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-							<span className="text-white font-semibold text-xl">+{extra}</span>
-						</div>
-					)}
-				</div>
-			))}
-		</div>
+		<>
+			{grid}
+			{lightboxIndex !== null && (
+				<Lightbox urls={urls} initialIndex={lightboxIndex} onClose={close} />
+			)}
+		</>
 	);
 }
 
