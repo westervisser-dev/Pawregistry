@@ -1,13 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, EmptyState } from '@/components/ui';
-import type { Update } from '@paw-registry/shared';
+import type { Litter, UpdateWithLitter } from '@paw-registry/shared';
+
+const EMPTY_FORM = {
+	litterId: '',
+	title: '',
+	body: '',
+	weekNumber: '',
+	isPublished: false,
+	sendEmail: false,
+};
 
 export function AdminUpdates() {
-	const [updates, setUpdates] = useState<Update[]>([]);
+	const [updates, setUpdates] = useState<UpdateWithLitter[]>([]);
+	const [litters, setLitters] = useState<Litter[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [form, setForm] = useState({ title: '', body: '', targetType: 'litter', targetId: '', weekNumber: '', isPublished: false });
+	const [form, setForm] = useState(EMPTY_FORM);
 	const [saving, setSaving] = useState(false);
+	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [publishingId, setPublishingId] = useState<string | null>(null);
+	const [publishSendEmail, setPublishSendEmail] = useState(false);
+	const [uploadingId, setUploadingId] = useState<string | null>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [pendingUploadId, setPendingUploadId] = useState<string | null>(null);
 
 	useEffect(() => {
 		document.title = 'Updates — Paw Registry Admin';
@@ -15,34 +31,84 @@ export function AdminUpdates() {
 	}, []);
 
 	useEffect(() => {
-		api.updates.admin.get().then(({ data }) => {
-			if (data) setUpdates(data as Update[]);
+		Promise.all([
+			api.updates.admin.get(),
+			(api.litters.admin as any).all.get(),
+		]).then(([updatesRes, littersRes]) => {
+			if (updatesRes.data) setUpdates(updatesRes.data as UpdateWithLitter[]);
+			if (littersRes.data) setLitters(littersRes.data as Litter[]);
 			setLoading(false);
 		});
 	}, []);
 
+	const reload = () =>
+		api.updates.admin.get().then(({ data }) => { if (data) setUpdates(data as UpdateWithLitter[]); });
+
 	const submit = async () => {
+		if (!form.title) return;
 		setSaving(true);
 		await api.updates.post({
 			title: form.title,
 			body: form.body,
-			targetType: form.targetType as 'litter' | 'puppy' | 'client',
-			targetId: form.targetId,
+			litterId: form.litterId || null,
 			weekNumber: form.weekNumber ? parseInt(form.weekNumber) : undefined,
 			isPublished: form.isPublished,
+			sendEmail: form.sendEmail,
 		});
 		setSaving(false);
-		setForm({ title: '', body: '', targetType: 'litter', targetId: '', weekNumber: '', isPublished: false });
-		api.updates.admin.get().then(({ data }) => { if (data) setUpdates(data as Update[]); });
+		setForm(EMPTY_FORM);
+		reload();
+	};
+
+	const publishDraft = async (update: UpdateWithLitter) => {
+		setPublishingId(update.id);
+		await (api.updates as any)[update.id].patch({
+			isPublished: true,
+			sendEmail: publishSendEmail,
+		});
+		setPublishingId(null);
+		setPublishSendEmail(false);
+		reload();
+	};
+
+	const deleteUpdate = async (id: string) => {
+		if (!confirm('Delete this update? This cannot be undone.')) return;
+		setDeletingId(id);
+		await (api.updates as any)[id].delete();
+		setDeletingId(null);
+		reload();
+	};
+
+	const uploadMedia = async (updateId: string, file: File) => {
+		setUploadingId(updateId);
+		await (api.updates as any)[updateId].media.post({ file });
+		setUploadingId(null);
+		reload();
+	};
+
+	const removeMedia = async (updateId: string, url: string) => {
+		await (api.updates as any)[updateId].media.delete({ url });
+		reload();
 	};
 
 	return (
 		<div className="p-4 md:p-8 max-w-4xl">
 			<PageHeader title="Updates" subtitle="Post puppy journal updates to clients." />
 
+			{/* Create form */}
 			<Card className="p-6 mb-8">
 				<h2 className="font-medium text-warm-900 mb-4">New Update</h2>
 				<div className="flex flex-col gap-4">
+					<select
+						value={form.litterId}
+						onChange={(e) => setForm((f) => ({ ...f, litterId: e.target.value }))}
+						className="px-3 py-2.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+					>
+						<option value="">General announcement (all portal clients)</option>
+						{litters.map((l) => (
+							<option key={l.id} value={l.id}>{l.name}</option>
+						))}
+					</select>
 					<input
 						value={form.title}
 						onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
@@ -56,42 +122,38 @@ export function AdminUpdates() {
 						rows={4}
 						className="px-3 py-2.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"
 					/>
-					<div className="grid grid-cols-3 gap-3">
-						<select
-							value={form.targetType}
-							onChange={(e) => setForm((f) => ({ ...f, targetType: e.target.value }))}
-							className="px-3 py-2 border border-warm-200 rounded-lg text-sm"
-						>
-							<option value="litter">Litter</option>
-							<option value="puppy">Puppy</option>
-							<option value="client">Client</option>
-						</select>
-						<input
-							value={form.targetId}
-							onChange={(e) => setForm((f) => ({ ...f, targetId: e.target.value }))}
-							placeholder="Target ID"
-							className="px-3 py-2 border border-warm-200 rounded-lg text-sm"
-						/>
-						<input
-							value={form.weekNumber}
-							onChange={(e) => setForm((f) => ({ ...f, weekNumber: e.target.value }))}
-							placeholder="Week # (optional)"
-							type="number"
-							className="px-3 py-2 border border-warm-200 rounded-lg text-sm"
-						/>
-					</div>
-					<div className="flex items-center justify-between">
+					<input
+						value={form.weekNumber}
+						onChange={(e) => setForm((f) => ({ ...f, weekNumber: e.target.value }))}
+						placeholder="Week # (optional)"
+						type="number"
+						min={1}
+						className="px-3 py-2 border border-warm-200 rounded-lg text-sm w-40"
+					/>
+					<div className="flex flex-col gap-2">
 						<label className="flex items-center gap-2 text-sm text-warm-700 cursor-pointer">
 							<input
 								type="checkbox"
 								checked={form.isPublished}
-								onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked }))}
+								onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked, sendEmail: e.target.checked ? f.sendEmail : false }))}
 							/>
 							Publish immediately
 						</label>
+						{form.isPublished && (
+							<label className="flex items-center gap-2 text-sm text-warm-700 cursor-pointer ml-5">
+								<input
+									type="checkbox"
+									checked={form.sendEmail}
+									onChange={(e) => setForm((f) => ({ ...f, sendEmail: e.target.checked }))}
+								/>
+								Notify clients by email
+							</label>
+						)}
+					</div>
+					<div className="flex justify-end">
 						<button
 							onClick={submit}
-							disabled={saving || !form.title || !form.targetId}
+							disabled={saving || !form.title}
 							className="px-5 py-2 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 disabled:opacity-50"
 						>
 							{saving ? 'Posting…' : 'Post Update'}
@@ -103,22 +165,110 @@ export function AdminUpdates() {
 			{loading ? <LoadingPage /> : (
 				<div className="flex flex-col gap-4">
 					{updates.map((u) => (
-						<Card key={u.id} className="p-4 flex items-start justify-between">
-							<div>
-								<p className="font-medium text-warm-900">{u.title}</p>
-								<p className="text-sm text-warm-500 mt-1 line-clamp-1">{u.body}</p>
-								<p className="text-xs text-warm-400 mt-1">
-									{u.targetType} · {new Date(u.createdAt).toLocaleDateString()}
-								</p>
+						<Card key={u.id} className="p-4">
+							<div className="flex items-start justify-between gap-4">
+								<div className="flex-1 min-w-0">
+									<div className="flex items-center gap-2 flex-wrap mb-1">
+										<span className="text-xs text-warm-400 font-medium">
+											{u.litter?.name ?? 'General'}
+										</span>
+										{u.weekNumber && (
+											<Badge variant="amber">Week {u.weekNumber}</Badge>
+										)}
+										<Badge variant={u.isPublished ? 'green' : 'amber'}>
+											{u.isPublished ? 'Published' : 'Draft'}
+										</Badge>
+										{!!u.emailSentAt && (
+											<Badge variant="green">Email sent</Badge>
+										)}
+									</div>
+									<p className="font-medium text-warm-900">{u.title}</p>
+									<p className="text-sm text-warm-500 mt-0.5 line-clamp-2">{u.body}</p>
+									<p className="text-xs text-warm-400 mt-1">
+										{new Date(u.createdAt).toLocaleDateString()}
+									</p>
+								</div>
+								<button
+									onClick={() => deleteUpdate(u.id)}
+									disabled={deletingId === u.id}
+									className="text-xs text-warm-400 hover:text-red-500 shrink-0 disabled:opacity-50"
+									aria-label="Delete update"
+								>
+									{deletingId === u.id ? '…' : '✕'}
+								</button>
 							</div>
-							<Badge variant={u.isPublished ? 'green' : 'amber'}>
-								{u.isPublished ? 'Published' : 'Draft'}
-							</Badge>
+
+							{/* Media thumbnails */}
+							{u.mediaUrls.length > 0 && (
+								<div className="flex gap-2 mt-3 flex-wrap">
+									{u.mediaUrls.map((url) => (
+										<div key={url} className="relative group w-16 h-16">
+											<img src={url} alt="" className="w-full h-full object-cover rounded-md" />
+											<button
+												onClick={() => removeMedia(u.id, url)}
+												className="absolute inset-0 bg-black/50 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+												aria-label="Remove image"
+											>
+												✕
+											</button>
+										</div>
+									))}
+								</div>
+							)}
+
+							{/* Actions for drafts / media upload */}
+							<div className="flex items-center gap-3 mt-3 pt-3 border-t border-warm-100">
+								{/* Media upload */}
+								<button
+									onClick={() => { setPendingUploadId(u.id); fileInputRef.current?.click(); }}
+									disabled={uploadingId === u.id}
+									className="text-xs text-warm-500 hover:text-warm-700 disabled:opacity-50"
+								>
+									{uploadingId === u.id ? 'Uploading…' : '+ Add photo'}
+								</button>
+
+								{/* Publish draft */}
+								{!u.isPublished && (
+									<div className="flex items-center gap-3 ml-auto">
+										<label className="flex items-center gap-1.5 text-xs text-warm-500 cursor-pointer">
+											<input
+												type="checkbox"
+												checked={publishingId === u.id ? publishSendEmail : false}
+												onChange={(e) => { setPublishingId(u.id); setPublishSendEmail(e.target.checked); }}
+											/>
+											Send email
+										</label>
+										<button
+											onClick={() => publishDraft(u)}
+											disabled={publishingId === u.id}
+											className="px-3 py-1 bg-brand-500 text-white text-xs font-medium rounded-lg hover:bg-brand-600 disabled:opacity-50"
+										>
+											{publishingId === u.id ? 'Publishing…' : 'Publish'}
+										</button>
+									</div>
+								)}
+							</div>
 						</Card>
 					))}
 					{updates.length === 0 && <EmptyState icon="📷" title="No updates yet" />}
 				</div>
 			)}
+
+			{/* Hidden file input for media upload */}
+			<input
+				ref={fileInputRef}
+				type="file"
+				accept="image/*,video/*"
+				className="hidden"
+				onChange={(e) => {
+					const file = e.target.files?.[0];
+					if (file && pendingUploadId) {
+						uploadMedia(pendingUploadId, file);
+						setPendingUploadId(null);
+					}
+					e.target.value = '';
+				}}
+			/>
 		</div>
 	);
 }

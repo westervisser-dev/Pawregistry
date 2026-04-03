@@ -57,7 +57,6 @@ export const clientStageEnum = pgEnum('client_stage', [
 	'matched_paid',
 ]);
 export const depositStatusEnum = pgEnum('deposit_status', ['none', 'pending', 'paid']);
-export const updateTargetTypeEnum = pgEnum('update_target_type', ['litter', 'puppy', 'client']);
 export const documentTypeEnum = pgEnum('document_type', [
 	'contract',
 	'health_record',
@@ -146,6 +145,7 @@ export const littersRelations = relations(litters, ({ one, many }) => ({
 	images: many(litterImages),
 	notifications: many(litterNotifications),
 	interests: many(litterInterests),
+	updateOptOuts: many(litterUpdateOptOuts),
 }));
 
 // ─── Puppies ─────────────────────────────────────────────────────────────────
@@ -231,10 +231,10 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
 	puppy: one(puppies, { fields: [clients.puppyId], references: [puppies.id] }),
 	litter: one(litters, { fields: [clients.litterId], references: [litters.id] }),
 	documents: many(documents),
-	updates: many(updates),
 	puppyInterests: many(puppyInterests),
 	notifications: many(litterNotifications),
 	litterInterests: many(litterInterests),
+	updateOptOuts: many(litterUpdateOptOuts),
 }));
 
 // ─── Updates ─────────────────────────────────────────────────────────────────
@@ -244,17 +244,31 @@ export const updates = pgTable('updates', {
 	title: text('title').notNull(),
 	body: text('body').notNull(),
 	mediaUrls: jsonb('media_urls').$type<string[]>().notNull().default([]),
-	targetType: updateTargetTypeEnum('target_type').notNull(),
-	targetId: text('target_id').notNull(),
+	litterId: text('litter_id').references(() => litters.id, { onDelete: 'set null' }),
 	isPublished: boolean('is_published').notNull().default(false),
 	publishedAt: timestamp('published_at', { withTimezone: true }),
+	emailSentAt: timestamp('email_sent_at', { withTimezone: true }),
 	weekNumber: integer('week_number'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const updatesRelations = relations(updates, ({ one }) => ({
-	litter: one(litters, { fields: [updates.targetId], references: [litters.id] }),
+	litter: one(litters, { fields: [updates.litterId], references: [litters.id] }),
+}));
+
+// ─── Litter Update Opt-Outs ───────────────────────────────────────────────────
+
+export const litterUpdateOptOuts = pgTable('litter_update_opt_outs', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+	litterId: text('litter_id').notNull().references(() => litters.id, { onDelete: 'cascade' }),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const litterUpdateOptOutsRelations = relations(litterUpdateOptOuts, ({ one }) => ({
+	client: one(clients, { fields: [litterUpdateOptOuts.clientId], references: [clients.id] }),
+	litter: one(litters, { fields: [litterUpdateOptOuts.litterId], references: [litters.id] }),
 }));
 
 // ─── Documents ───────────────────────────────────────────────────────────────

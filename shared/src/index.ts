@@ -203,20 +203,29 @@ export interface ClientApplication {
 
 // ─── Update (puppy journal posts) ────────────────────────────────────────────
 
-export type UpdateTargetType = 'litter' | 'puppy' | 'client';
-
 export interface Update {
 	id: string;
 	title: string;
 	body: string;
 	mediaUrls: string[];
-	targetType: UpdateTargetType;
-	targetId: string;
-	publishedAt: string | null;
+	litterId: string | null;
 	isPublished: boolean;
+	publishedAt: string | null;
+	emailSentAt: string | null;
 	weekNumber: number | null; // week of life (1, 2, 3…)
 	createdAt: string;
 	updatedAt: string;
+}
+
+export interface UpdateWithLitter extends Update {
+	litter: { id: string; name: string } | null;
+}
+
+export interface LitterUpdateOptOut {
+	id: string;
+	clientId: string;
+	litterId: string;
+	createdAt: string;
 }
 
 // ─── Document ────────────────────────────────────────────────────────────────
