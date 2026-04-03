@@ -576,8 +576,11 @@ export function AdminLitterDetail() {
 	return (
 		<div className="p-4 md:p-8 max-w-4xl">
 			<PageHeader
-				title={<span className="flex items-center gap-3">{litter.name}{litter.breed && <Badge variant="default">{getBreedSizeLabel(litter.breed)}</Badge>}</span>}
-				subtitle={`${(litter as typeof litter & { sire: Dog }).sire?.name ?? '—'} × ${(litter as typeof litter & { dam: Dog }).dam?.name ?? '—'}`}
+				title={litter.name}
+				subtitle={[
+					`${(litter as typeof litter & { sire: Dog }).sire?.name ?? '—'} × ${(litter as typeof litter & { dam: Dog }).dam?.name ?? '—'}`,
+					litter.breed ? getBreedSizeLabel(litter.breed) : null,
+				].filter(Boolean).join(' · ')}
 				action={
 					<button onClick={() => navigate('/admin/litters')} className="text-sm text-warm-500 hover:text-warm-700">
 						← Back
@@ -862,13 +865,13 @@ export function AdminLitterDetail() {
 				{/* Notify bar */}
 				{!matchingLoading && (interestedWaitlisted.length > 0 || matchingClients.length > 0 || notifications.length > 0) && (
 					<>
-						<div className={`mb-4 rounded-lg border p-3 flex items-center justify-between gap-3 transition-colors ${notifyOpen ? 'bg-amber-50 border-amber-300' : 'bg-warm-50 border-warm-200'}`}>
-							<p className={`text-xs ${notifications.length > 0 ? 'text-blue-600 font-medium' : 'text-warm-500'}`}>
+						<div className={`mb-4 rounded-lg border p-3 flex flex-wrap items-center gap-2 transition-colors ${notifyOpen ? 'bg-amber-50 border-amber-300' : 'bg-warm-50 border-warm-200'}`}>
+							<p className={`text-xs flex-1 min-w-0 ${notifications.length > 0 ? 'text-blue-600 font-medium' : 'text-warm-500'}`}>
 								{notifications.length > 0
 									? `${notifications.length} client${notifications.length !== 1 ? 's' : ''} already notified about this litter`
 									: 'No clients notified yet'}
 							</p>
-							<div className="flex items-center gap-2 flex-shrink-0">
+							<div className="flex items-center gap-2 flex-wrap">
 								{notifyOpen && (
 									<span className="text-xs text-amber-700 font-medium">
 										{selectedIds.size === 0 ? 'Select clients below' : `${selectedIds.size} selected`}

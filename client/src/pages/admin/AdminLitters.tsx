@@ -39,7 +39,7 @@ export function AdminLitters() {
 			/>
 			{loading ? <LoadingPage /> : (
 				<Card>
-					<AdminTable headers={['Name', 'Status', { label: 'Sire × Dam', hideMobile: true }, { label: 'Matches', hideMobile: true }, { label: 'Public ?', hideMobile: true }, '']}>
+					<AdminTable headers={['Name', 'Status', { label: 'Sire × Dam', hideMobile: true }, 'Matches', { label: 'Public ?', hideMobile: true }, '']}>
 						{litters.map((litter) => (
 							<tr key={litter.id} className="border-b border-black/[0.05] hover:bg-warm-50">
 								<td className="py-3 px-4">
@@ -50,7 +50,7 @@ export function AdminLitters() {
 								</td>
 								<td className="py-3 px-4"><LitterStatusBadge status={litter.status} /></td>
 								<td className="hidden md:table-cell py-3 px-4 text-warm-500 text-xs">{(litter as unknown as { sire: Dog; dam: Dog }).sire?.name ?? litter.sireId} × {(litter as unknown as { sire: Dog; dam: Dog }).dam?.name ?? litter.damId}</td>
-								<td className="hidden md:table-cell py-3 px-4">
+								<td className="py-3 px-4">
 									{matchCounts[litter.id] != null ? (
 										matchCounts[litter.id] > 0 ? (
 											<span className="inline-flex items-center gap-1 text-xs font-medium text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">

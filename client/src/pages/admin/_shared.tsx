@@ -186,11 +186,11 @@ export function DepositStatusSelect({ client, onUpdate }: { client: Client; onUp
 			value={client.depositStatus}
 			onChange={(e) => handleChange(e.target.value)}
 			disabled={saving}
-			className={`text-xs font-medium px-2 py-1 rounded-full border appearance-none cursor-pointer disabled:opacity-50 ${cls}`}
+			className={`text-xs font-medium px-2 py-1 rounded-full border appearance-none cursor-pointer disabled:opacity-50 max-w-[90px] md:max-w-none ${cls}`}
 		>
-			<option value="none">No Deposit</option>
-			<option value="pending">Deposit — Selected</option>
-			<option value="paid">Deposit — Paid</option>
+			<option value="none">None</option>
+			<option value="pending">Pending</option>
+			<option value="paid">Paid</option>
 		</select>
 	);
 }
@@ -221,7 +221,8 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 				<button
 					{...attributes}
 					{...listeners}
-					className="cursor-grab active:cursor-grabbing text-warm-300 hover:text-warm-500 flex items-center justify-center py-1"
+					style={{ touchAction: 'none' }}
+					className="cursor-grab active:cursor-grabbing text-warm-300 hover:text-warm-500 flex items-center justify-center min-h-[44px] min-w-[44px]"
 					tabIndex={-1}
 				>
 					<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
