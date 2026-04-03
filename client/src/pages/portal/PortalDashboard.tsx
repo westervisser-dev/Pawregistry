@@ -38,6 +38,114 @@ function Tooltip() {
 	);
 }
 
+// ─── Client Action Center ────────────────────────────────────────────────────
+
+type ActionColor = 'amber' | 'blue' | 'purple' | 'green';
+
+const ACTION_PILL: Record<ActionColor, string> = {
+	amber: 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-800',
+	blue: 'bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800',
+	purple: 'bg-violet-100 hover:bg-violet-200 border-violet-300 text-violet-800',
+	green: 'bg-green-100 hover:bg-green-200 border-green-300 text-green-800',
+};
+
+const ACTION_DOT: Record<ActionColor, string> = {
+	amber: 'bg-amber-500',
+	blue: 'bg-blue-500',
+	purple: 'bg-violet-500',
+	green: 'bg-green-500',
+};
+
+type TemplateItem = { id: string; name: string; checkedAt: string | null };
+
+type Action =
+	| { type: 'link'; label: string; to: string; color: ActionColor }
+	| { type: 'button'; label: string; onClick: () => void; color: ActionColor };
+
+function ClientActionCenter({
+	client,
+	templates,
+	onOpenDepositModal,
+}: {
+	client: Client;
+	templates: TemplateItem[] | null;
+	onOpenDepositModal: () => void;
+}) {
+	const actions: Action[] = [];
+
+	if (client.stage === 'approved' && templates !== null) {
+		const total = templates.length;
+		const uploaded = templates.filter((t) => t.checkedAt !== null).length;
+		if (total > 0 && uploaded < total) {
+			actions.push({
+				type: 'link',
+				label: `Upload your documents (${uploaded} of ${total} complete)`,
+				to: '/portal/documents',
+				color: 'blue',
+			});
+		}
+	}
+
+	if (client.stage === 'waitlisted' && client.depositStatus === 'none') {
+		actions.push({
+			type: 'button',
+			label: 'Set a deposit to improve your waitlist position',
+			onClick: onOpenDepositModal,
+			color: 'amber',
+		});
+	}
+
+	if (client.stage === 'match_requested') {
+		actions.push({
+			type: 'link',
+			label: 'Browse available litters and express interest',
+			to: '/portal/litters',
+			color: 'purple',
+		});
+	}
+
+	if (client.stage === 'matched') {
+		actions.push({
+			type: 'link',
+			label: 'Check your documents for payment details',
+			to: '/portal/documents',
+			color: 'green',
+		});
+	}
+
+	if (actions.length === 0) return null;
+
+	return (
+		<div className="mb-5 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+			<p className="text-xs font-semibold text-amber-700 uppercase tracking-[0.06em] mb-3">
+				⚡ What's next for you
+			</p>
+			<div className="flex flex-wrap gap-2">
+				{actions.map((action, i) => {
+					const pillClass = `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors cursor-pointer ${ACTION_PILL[action.color]}`;
+					const dot = <span className={`w-1.5 h-1.5 rounded-full ${ACTION_DOT[action.color]}`} aria-hidden="true" />;
+
+					if (action.type === 'link') {
+						return (
+							<Link key={i} to={action.to} className={pillClass}>
+								{dot}
+								{action.label}
+							</Link>
+						);
+					}
+
+					return (
+						<button key={i} type="button" onClick={action.onClick} className={pillClass}>
+							{dot}
+							{action.label}
+						</button>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
 // ─── Stage Data ──────────────────────────────────────────────────────────────
 
 const STAGES = [
@@ -344,6 +452,7 @@ export function PortalDashboard() {
 	const [showDepositConfirm, setShowDepositConfirm] = useState(false);
 	const depositDialogRef = useFocusTrap(showDepositConfirm, () => { if (!depositLoading) setShowDepositConfirm(false); });
 	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
+	const [templates, setTemplates] = useState<TemplateItem[] | null>(null);
 
 	useEffect(() => {
 		document.title = 'Dashboard — My Portal';
@@ -353,11 +462,17 @@ export function PortalDashboard() {
 	useEffect(() => {
 		api.clients.me.get().then(({ data }) => {
 			if (data) {
-				setClient(data as Client);
-				if ((data as Client).stage === 'waitlisted') {
+				const c = data as Client;
+				setClient(c);
+				if (c.stage === 'waitlisted') {
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(api.clients.me as any)['waitlist-position'].get().then(({ data: pos }: { data: { position: number | null; total: number | null } | null }) => {
 						if (pos) setWaitlistPosition(pos);
+					});
+				}
+				if (c.stage === 'approved') {
+					api.templates.my.get().then(({ data: tmpl }) => {
+						if (tmpl) setTemplates(tmpl as TemplateItem[]);
 					});
 				}
 			}
@@ -390,6 +505,13 @@ export function PortalDashboard() {
 		<div>
 			{/* Welcome banner */}
 			<WelcomeBanner firstName={client.firstName} stage={client.stage} />
+
+			{/* Action center */}
+			<ClientActionCenter
+				client={client}
+				templates={templates}
+				onOpenDepositModal={() => setShowDepositConfirm(true)}
+			/>
 
 			{/* Two-column top row */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-5">
