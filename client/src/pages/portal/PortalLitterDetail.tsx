@@ -293,25 +293,6 @@ export function PortalLitterDetail() {
 									aria-hidden="true"
 								/>
 								<div className="p-4 flex flex-col flex-1">
-									{/* Paw icon */}
-									<div className="mb-3">
-										<svg
-											aria-hidden="true"
-											viewBox="0 0 64 64"
-											className="w-9 h-9"
-											fill="currentColor"
-											style={{ color: puppy.collarColour ?? '#c4bdb4' }}
-										>
-											{/* Paw pads */}
-											<ellipse cx="14" cy="18" rx="6" ry="8" />
-											<ellipse cx="28" cy="12" rx="6" ry="8" />
-											<ellipse cx="42" cy="12" rx="6" ry="8" />
-											<ellipse cx="56" cy="18" rx="6" ry="8" />
-											{/* Main pad */}
-											<path d="M10 34c0-10 8-16 22-16s22 6 22 16c0 10-6 18-22 18S10 44 10 34z" />
-										</svg>
-									</div>
-
 									{/* Collar label + sex */}
 									<div className="flex items-center justify-between mb-3">
 										{puppy.collarColour ? (
