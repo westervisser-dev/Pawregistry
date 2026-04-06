@@ -12,6 +12,25 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 		return { error };
 	}
 
+	componentDidCatch(error: Error) {
+		// After a new deployment, old chunk hashes no longer exist → 404 on dynamic import.
+		// Auto-reload fetches the new index.html and resolves it transparently.
+		const isChunkError =
+			error.name === 'ChunkLoadError' ||
+			/Failed to fetch dynamically imported module/.test(error.message) ||
+			/Importing a module script failed/.test(error.message) ||
+			/Loading chunk \d+ failed/.test(error.message);
+
+		if (isChunkError) {
+			// Guard against infinite reload loops (only reload once per 10s)
+			const lastReload = sessionStorage.getItem('chunk_reload_at');
+			if (!lastReload || Date.now() - Number(lastReload) > 10_000) {
+				sessionStorage.setItem('chunk_reload_at', String(Date.now()));
+				window.location.reload();
+			}
+		}
+	}
+
 	render() {
 		if (this.state.error) {
 			return (
