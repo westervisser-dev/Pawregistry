@@ -13,11 +13,14 @@ import { createClient } from '@supabase/supabase-js';
 import postgres from 'postgres';
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://zcwhufmgfzttwdhakxzc.supabase.co';
-const SUPABASE_KEY =
-	'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpjd2h1Zm1nZnp0dHdkaGFreHpjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzc0NzEwMSwiZXhwIjoyMDg5MzIzMTAxfQ.w5VSOnMl-Wcyl1YXABNOll82WwKN4IiGCea0W_fI18A';
-const DB_URL =
-	'postgresql://postgres.zcwhufmgfzttwdhakxzc:Wvisser22!!!@aws-1-eu-west-1.pooler.supabase.com:6543/postgres';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const DB_URL = process.env.DATABASE_URL;
+
+if (!SUPABASE_URL || !SUPABASE_KEY || !DB_URL) {
+	console.error('Missing required env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, DATABASE_URL');
+	process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
 const db = postgres(DB_URL, { ssl: 'require' });

@@ -44,34 +44,39 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 	.post(
 		'/session',
 		async ({ body, error }) => {
-			const { data, error: authError } = await supabase.auth.getUser(body.accessToken);
-			if (authError || !data.user) {
-				return error(401, { error: 'Unauthorized', message: 'Invalid token' });
+			try {
+				const { data, error: authError } = await supabase.auth.getUser(body.accessToken);
+				if (authError || !data.user) {
+					return error(401, { error: 'Unauthorized', message: 'Invalid token' });
+				}
+
+				const user = data.user;
+
+				// Link the Supabase user ID to the client record (first login)
+				const client = await db.query.clients.findFirst({
+					where: eq(clients.email, user.email ?? ''),
+				});
+
+				if (client && !client.userId) {
+					await db
+						.update(clients)
+						.set({ userId: user.id, updatedAt: new Date() })
+						.where(eq(clients.id, client.id));
+				}
+
+				const isAdmin = await isAdminUser(user.id);
+
+				return {
+					userId: user.id,
+					email: user.email,
+					hasClientRecord: !!client,
+					isAdmin,
+					clientStage: client?.stage ?? null,
+				};
+			} catch (e) {
+				console.error('[/auth/session error]', e);
+				throw e;
 			}
-
-			const user = data.user;
-
-			// Link the Supabase user ID to the client record (first login)
-			const client = await db.query.clients.findFirst({
-				where: eq(clients.email, user.email ?? ''),
-			});
-
-			if (client && !client.userId) {
-				await db
-					.update(clients)
-					.set({ userId: user.id, updatedAt: new Date() })
-					.where(eq(clients.id, client.id));
-			}
-
-			const isAdmin = await isAdminUser(user.id);
-
-			return {
-				userId: user.id,
-				email: user.email,
-				hasClientRecord: !!client,
-				isAdmin,
-				clientStage: client?.stage ?? null,
-			};
 		},
 		{ body: t.Object({ accessToken: t.String() }) }
 	);
