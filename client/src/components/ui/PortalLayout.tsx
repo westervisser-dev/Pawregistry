@@ -31,7 +31,7 @@ function PortalSidebar({ email, clientStage, signOut, onLinkClick }: SidebarProp
 			<div className="px-5 pt-7 pb-6 border-b border-white/10">
 				<Link to="/" className="flex items-center gap-3" onClick={onLinkClick}>
 					<div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0 p-0.5">
-						<span className="text-lg leading-none">🐾</span>
+						<img src="/logo-icon.png" alt="Teddydoodles" className="w-full h-full object-contain" />
 					</div>
 					<div>
 						<div className="font-serif text-[16px] text-[#F0EDEA] tracking-[0.01em]">{APP_NAME}</div>
@@ -143,9 +143,8 @@ export function PortalLayout() {
 						<span className="block h-0.5 w-5 bg-[rgba(240,237,234,0.5)]" />
 						<span className="block h-0.5 w-5 bg-[rgba(240,237,234,0.5)]" />
 					</button>
-					<Link to="/" className="flex items-center gap-2">
-						<span className="text-lg">🐾</span>
-						<span className="font-serif text-[#F0EDEA] text-sm">{APP_NAME}</span>
+					<Link to="/" className="flex items-center">
+						<img src="/logo-horizontal.png" alt="Teddydoodles" className="h-7 w-auto" />
 					</Link>
 					<span className="text-[10.5px] text-[rgba(240,237,234,0.4)] uppercase tracking-wider">Client Portal</span>
 				</div>

@@ -34,7 +34,7 @@ function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
 			<div className="px-5 pb-6 pt-7 border-b border-white/10">
 				<Link to="/" className="flex items-center gap-3" onClick={onLinkClick}>
 					<div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0 p-0.5">
-						<span className="text-lg">🐾</span>
+						<img src="/logo-icon.png" alt="Teddydoodles" className="w-full h-full object-contain" />
 					</div>
 					<div>
 						<span className="font-serif text-[16px] text-[#F0EDEA] block leading-tight">{APP_NAME}</span>
@@ -142,9 +142,8 @@ export function AdminLayout() {
 						<span className="block h-0.5 w-5 bg-white/60" />
 						<span className="block h-0.5 w-5 bg-white/60" />
 					</button>
-					<Link to="/" className="flex items-center gap-2">
-						<span className="text-lg">🐾</span>
-						<span className="font-serif text-white text-sm">{APP_NAME}</span>
+					<Link to="/" className="flex items-center">
+						<img src="/logo-horizontal.png" alt="Teddydoodles" className="h-7 w-auto" />
 					</Link>
 					<span className="text-[10px] text-white/40 uppercase tracking-wider">Admin</span>
 				</div>
