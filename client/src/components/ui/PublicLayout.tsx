@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { CONTACT_EMAIL } from '@/config/app';
 
 const navLinks = [
-	{ to: '/dogs', label: 'Our Dogs' },
 	{ to: '/litters', label: 'Litters' },
 	{ to: '/apply', label: 'Apply' },
 	{ to: '/about', label: 'About' },
@@ -167,8 +166,7 @@ export function PublicLayout() {
 					<div>
 						<h4 className="text-white font-medium mb-3 text-sm uppercase tracking-wider">Links</h4>
 						<div className="flex flex-col gap-2 text-sm">
-							<Link to="/dogs" className="hover:text-white transition-colors">Our Dogs</Link>
-							<Link to="/litters" className="hover:text-white transition-colors">Available Litters</Link>
+<Link to="/litters" className="hover:text-white transition-colors">Available Litters</Link>
 							<Link to="/apply" className="hover:text-white transition-colors">Apply for a Puppy</Link>
 							<Link to="/about" className="hover:text-white transition-colors">About Us</Link>
 						</div>
