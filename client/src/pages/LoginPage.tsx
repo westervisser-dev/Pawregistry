@@ -28,8 +28,7 @@ export function LoginPage() {
 		}
 		if (data && 'token' in data && data.token) {
 			const { error: authError } = await supabase.auth.verifyOtp({
-				email,
-				token: data.token,
+				token_hash: data.token,
 				type: 'magiclink',
 			});
 			setLoading(false);
