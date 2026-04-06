@@ -26,6 +26,18 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 				}
 			}
 
+			if (process.env.BYPASS_OTP === 'true') {
+				const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+					type: 'magiclink',
+					email: body.email,
+					options: { redirectTo: `${process.env.CLIENT_URL}/portal/callback` },
+				});
+				if (linkError) {
+					return error(500, { error: 'Auth error', message: linkError.message });
+				}
+				return { message: 'Bypass active.', token: linkData.properties.hashed_token };
+			}
+
 			const { error: authError } = await supabase.auth.signInWithOtp({
 				email: body.email,
 				options: { emailRedirectTo: `${process.env.CLIENT_URL}/portal/callback` },
@@ -35,7 +47,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 				return error(500, { error: 'Auth error', message: authError.message });
 			}
 
-			return { message: 'Magic link sent — check your email.' };
+			return { message: 'Magic link sent — check your email.', token: null };
 		},
 		{ body: t.Object({ email: t.String({ format: 'email' }) }) }
 	)

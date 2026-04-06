@@ -20,12 +20,29 @@ export function LoginPage() {
 		if (!email) return;
 		setLoading(true);
 		setError('');
-		const { error: apiError } = await api.auth['magic-link'].post({ email });
-		setLoading(false);
+		const { data, error: apiError } = await api.auth['magic-link'].post({ email });
 		if (apiError) {
+			setLoading(false);
 			setError('No application found for this email address.');
 			return;
 		}
+		if (data && 'token' in data && data.token) {
+			const { error: authError } = await supabase.auth.verifyOtp({
+				email,
+				token: data.token,
+				type: 'magiclink',
+			});
+			setLoading(false);
+			if (authError) {
+				setError('Auto sign-in failed. Please try again.');
+				return;
+			}
+			await init();
+			const { isAdmin } = useAuthStore.getState();
+			navigate(isAdmin ? '/admin' : '/portal', { replace: true });
+			return;
+		}
+		setLoading(false);
 		setSent(true);
 	};
 
