@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Link, NavLink } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { APP_NAME, CONTACT_EMAIL } from '@/config/app';
+import { CONTACT_EMAIL } from '@/config/app';
 
 const navLinks = [
 	{ to: '/dogs', label: 'Our Dogs' },
@@ -26,9 +26,9 @@ export function PublicLayout() {
 			</a>
 			<header className="bg-white border-b border-warm-200 sticky top-0 z-50">
 				<div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-					<Link to="/" className="flex items-center gap-2" onClick={closeMenu}>
-						<span className="text-2xl">🐾</span>
-						<span className="font-serif text-xl font-bold text-warm-900">{APP_NAME}</span>
+					<Link to="/" onClick={closeMenu} className="flex items-center gap-3">
+						<img src="/logo-icon.png" alt="" className="h-13 w-auto" aria-hidden="true" />
+						<span className="font-sans font-light uppercase tracking-[0.22em] text-sm text-warm-800">Teddy Doodles</span>
 					</Link>
 
 					{/* Desktop nav */}
@@ -157,9 +157,8 @@ export function PublicLayout() {
 			<footer className="bg-warm-900 text-warm-400 py-12">
 				<div className="max-w-6xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
 					<div>
-						<div className="flex items-center gap-2 mb-4">
-							<span className="text-xl">🐾</span>
-							<span className="font-serif text-white font-bold">{APP_NAME}</span>
+						<div className="mb-4">
+							<span className="font-sans font-light uppercase tracking-[0.22em] text-xl text-white">Teddy Doodles</span>
 						</div>
 						<p className="text-sm leading-relaxed">
 							Thoughtful, ethical breeding with a lifelong commitment to every puppy we place.
