@@ -7,7 +7,8 @@ const navLinks = [
 	{ to: '/litters', label: 'Litters' },
 	{ to: '/apply', label: 'Apply' },
 	{ to: '/faq', label: 'FAQ' },
-	{ to: '/about', label: 'About' },
+	{ to: '/about', label: 'Why Teddy Doodles' },
+	{ to: '/founder', label: 'Meet the Founder' },
 ];
 
 export function PublicLayout() {
@@ -170,7 +171,8 @@ export function PublicLayout() {
 <Link to="/litters" className="hover:text-white transition-colors">Available Litters</Link>
 							<Link to="/apply" className="hover:text-white transition-colors">Apply for a Puppy</Link>
 							<Link to="/faq" className="hover:text-white transition-colors">FAQ</Link>
-							<Link to="/about" className="hover:text-white transition-colors">About Us</Link>
+							<Link to="/about" className="hover:text-white transition-colors">Why Teddy Doodles</Link>
+							<Link to="/founder" className="hover:text-white transition-colors">Meet the Founder</Link>
 						</div>
 					</div>
 					<div>
