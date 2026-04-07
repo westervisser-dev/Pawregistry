@@ -118,6 +118,39 @@ export function HomePage() {
 				</div>
 			</section>
 
+			{/* TODO: restore dogs teaser when breed pages are ready
+			<section className="bg-warm-50 border-t border-warm-100">
+				<div className="max-w-6xl mx-auto px-6 py-10 md:py-16 flex flex-col md:flex-row gap-10 items-center">
+					<div className="w-full md:w-1/2 rounded-2xl overflow-hidden aspect-[4/3] flex-shrink-0">
+						<img
+							src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=85&auto=format&fit=crop"
+							srcSet="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&q=80&auto=format&fit=crop 600w, https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=85&auto=format&fit=crop 800w"
+							sizes="(max-width: 768px) 100vw, 50vw"
+							alt="A happy doodle dog"
+							loading="lazy"
+							decoding="async"
+							className="w-full h-full object-cover"
+						/>
+					</div>
+					<div>
+						<span className="text-brand-400 text-xs font-semibold uppercase tracking-widest mb-3 block">Our dogs</span>
+						<h2 className="font-serif text-3xl font-bold text-warm-900 mb-3 leading-tight">
+							Health-tested.<br />Temperament-first.
+						</h2>
+						<p className="text-warm-500 leading-relaxed mb-6 text-sm max-w-sm">
+							Every dog in our programme is OFA-screened and registered. Browse our breeding dogs and learn about the lines behind every litter.
+						</p>
+						<Link
+							to="/dogs"
+							className="inline-block px-6 py-3 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors font-medium text-sm"
+						>
+							Meet our dogs
+						</Link>
+					</div>
+				</div>
+			</section>
+			*/}
+
 			{/* Current litters */}
 			{(littersLoading || litters.length > 0) && (
 				<section className="bg-brand-50 py-10 md:py-20">
