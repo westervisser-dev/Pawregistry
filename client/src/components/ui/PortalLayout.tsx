@@ -112,41 +112,78 @@ export function PortalLayout() {
 			>
 				Skip to content
 			</a>
-			{/* Mobile backdrop */}
-			{sidebarOpen && (
-				<div
-					className="fixed inset-0 z-40 bg-black/30 md:hidden"
-					onClick={closeSidebar}
-				/>
-			)}
-
-			{/* Sidebar — dark charcoal, off-canvas on mobile, always visible on md+ */}
-			<aside className={`
-				fixed inset-y-0 left-0 z-50 w-[220px] bg-sidebar-bg flex flex-col
-				transform transition-transform duration-200
-				${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-				md:translate-x-0 md:static md:z-auto
-			`}>
+			{/* Sidebar — desktop only */}
+			<aside className="hidden md:flex flex-col w-[220px] bg-sidebar-bg shrink-0">
 				<PortalSidebar email={user?.email} clientStage={clientStage} signOut={signOut} onLinkClick={closeSidebar} />
 			</aside>
 
 			{/* Main */}
 			<div className="flex-1 flex flex-col min-w-0">
-				{/* Mobile top bar */}
-				<div className="md:hidden sticky top-0 z-30 bg-sidebar-bg h-14 flex items-center px-4 gap-3">
-					<button
-						onClick={() => setSidebarOpen(true)}
-						className="flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-white/[0.06] transition-colors"
-						aria-label="Open menu"
+				{/* Mobile header — public style */}
+				<div className="md:hidden sticky top-0 z-30 bg-white border-b border-warm-200">
+					<div className="h-16 flex items-center justify-between px-6">
+						<Link to="/" className="flex items-center gap-3" onClick={closeSidebar}>
+							<img src="/logo-icon.png" alt="" className="h-10 w-auto" aria-hidden="true" />
+							<div>
+								<span className="font-sans font-light uppercase tracking-[0.22em] text-sm text-warm-800 block">{APP_NAME}</span>
+								<span className="text-[10px] text-warm-400 uppercase tracking-wider">Client Portal</span>
+							</div>
+						</Link>
+						<button
+							onClick={() => setSidebarOpen((o) => !o)}
+							className="flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-warm-100 transition-colors"
+							aria-label="Toggle menu"
+							aria-expanded={sidebarOpen}
+						>
+							<span className={`block h-0.5 w-5 bg-warm-700 transition-transform duration-200 origin-center ${sidebarOpen ? 'rotate-45 translate-y-2' : ''}`} />
+							<span className={`block h-0.5 w-5 bg-warm-700 transition-opacity duration-200 ${sidebarOpen ? 'opacity-0' : ''}`} />
+							<span className={`block h-0.5 w-5 bg-warm-700 transition-transform duration-200 origin-center ${sidebarOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+						</button>
+					</div>
+					<div
+						className="overflow-hidden transition-[grid-template-rows] duration-200 ease-out"
+						style={{ display: 'grid', gridTemplateRows: sidebarOpen ? '1fr' : '0fr' }}
 					>
-						<span className="block h-0.5 w-5 bg-[rgba(240,237,234,0.5)]" />
-						<span className="block h-0.5 w-5 bg-[rgba(240,237,234,0.5)]" />
-						<span className="block h-0.5 w-5 bg-[rgba(240,237,234,0.5)]" />
-					</button>
-					<Link to="/" className="flex items-center">
-						<img src="/logo-horizontal.png" alt="Teddydoodles" className="h-7 w-auto" />
-					</Link>
-					<span className="text-[10.5px] text-[rgba(240,237,234,0.4)] uppercase tracking-wider">Client Portal</span>
+						<div className="min-h-0 border-t border-warm-100">
+							<div className="px-6 py-4 flex flex-col gap-1">
+								{portalNav.map(({ to, label, requiresApproval }) => {
+									const locked = requiresApproval && clientStage === 'enquired';
+									if (locked) {
+										return (
+											<span
+												key={to}
+												title="Available once your application is approved"
+												className="py-3 text-sm font-medium border-b border-warm-50 last:border-0 text-warm-300 cursor-not-allowed select-none"
+											>
+												{label}
+											</span>
+										);
+									}
+									return (
+										<NavLink
+											key={to}
+											to={to}
+											end={to === '/portal'}
+											onClick={closeSidebar}
+											className={({ isActive }) =>
+												`py-3 text-sm font-medium border-b border-warm-50 last:border-0 transition-colors ${
+													isActive ? 'text-brand-600' : 'text-warm-700'
+												}`
+											}
+										>
+											{label}
+										</NavLink>
+									);
+								})}
+								<div className="pt-3 mt-1 border-t border-warm-100 flex items-center justify-between">
+									<p className="text-xs text-warm-400 truncate">{user?.email}</p>
+									<button onClick={signOut} className="text-sm text-warm-500 hover:text-warm-700 transition-colors shrink-0 ml-4">
+										Sign out
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
 				</div>
 
 				{/* Page content */}
