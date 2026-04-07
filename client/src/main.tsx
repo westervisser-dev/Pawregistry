@@ -78,6 +78,7 @@ const LittersPage = lazy$(() => import('@/pages/public/LittersPage'), 'LittersPa
 const ApplyPage = lazy$(() => import('@/pages/public/ApplyPage'), 'ApplyPage');
 const AboutPage = lazy$(() => import('@/pages/public/AboutPage'), 'AboutPage');
 const FaqPage = lazy$(() => import('@/pages/public/FaqPage'), 'FaqPage');
+const FounderPage = lazy$(() => import('@/pages/public/FounderPage'), 'FounderPage');
 
 // Auth
 const LoginPage = lazy$(() => import('@/pages/LoginPage'), 'LoginPage');
@@ -125,6 +126,7 @@ function App() {
 <Route path="/litters" element={<LittersPage />} />
 						<Route path="/apply" element={<ApplyPage />} />
 						<Route path="/about" element={<AboutPage />} />
+						<Route path="/founder" element={<FounderPage />} />
 							<Route path="/faq" element={<FaqPage />} />
 					</Route>
 

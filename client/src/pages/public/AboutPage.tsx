@@ -3,7 +3,7 @@ import { usePageTitle } from '@/hooks/usePageTitle';
 import { APP_NAME } from '@/config/app';
 
 export function AboutPage() {
-	usePageTitle('About Us');
+	usePageTitle('Why Teddy Doodles');
 
 	return (
 		<div>
