@@ -75,6 +75,16 @@ const faqs: FaqItem[] = [
 			'We charge a standard flat rate of R2,000. Please chat to us should you wish to arrange your own courier.',
 		],
 	},
+	{
+		question: 'Are your puppies KUSA registered?',
+		answer: [
+			'At Teddy Doodle, our focus is on raising exceptional companion dogs with outstanding temperaments, health, and early-life care.',
+			'KUSA registration (Kennel Union of Southern Africa) applies specifically to recognised purebred dogs intended for showing or formal breeding programmes. As we specialise in carefully curated, small-scale bred companion puppies (including poodle mixes), KUSA registration is not applicable.',
+			'What we prioritise instead: thoughtful pairing of parent dogs, the health and wellbeing of each puppy, early socialisation in a home environment, and matching each puppy to the right family and lifestyle.',
+			'For most families, these factors are far more important than pedigree paperwork — as they directly impact your puppy\'s personality, adaptability, and overall experience in your home.',
+			'We are always happy to guide you through our process and answer any questions, ensuring you feel completely confident in your decision.',
+		],
+	},
 ];
 
 function FaqAccordion({ items }: { items: FaqItem[] }) {
