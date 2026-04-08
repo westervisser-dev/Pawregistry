@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
 		items: [
 			{ to: '/about', label: 'Why Teddy Doodles' },
 			{ to: '/founder', label: 'Meet the Founder' },
+			{ to: '/reviews', label: 'Our Reviews' },
 			{ to: '/faq', label: 'FAQ' },
 		],
 	},
@@ -332,6 +333,7 @@ export function PublicLayout() {
 							<Link to="/faq" className="hover:text-white transition-colors">FAQ</Link>
 							<Link to="/about" className="hover:text-white transition-colors">Why Teddy Doodles</Link>
 							<Link to="/founder" className="hover:text-white transition-colors">Meet the Founder</Link>
+							<Link to="/reviews" className="hover:text-white transition-colors">Our Reviews</Link>
 							<Link to="/contact" className="hover:text-white transition-colors">Contact Us</Link>
 						</div>
 					</div>
