@@ -361,6 +361,13 @@ export function AdminClientDetail() {
 		'1_year': 'In about a year',
 	};
 
+	const budgetLabels: Record<string, string> = {
+		r5k_r10k: 'R5,000 – R10,000',
+		r10k_r20k: 'R10,000 – R20,000',
+		r30k_r40k: 'R30,000 – R40,000',
+		r40k_plus: 'R40,000+',
+	};
+
 	return (
 		<div className="p-4 md:p-8 max-w-4xl">
 			<Link to="/admin/clients" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">← Clients</Link>
@@ -522,6 +529,7 @@ export function AdminClientDetail() {
 						<dl className="divide-y divide-black/[0.05]">
 							{!!a.puppyPurpose && <AppField label="Purpose" value={a.puppyPurpose} />}
 							{!!a.readyTimeframe && <AppField label="Ready timeframe" value={readyLabels[a.readyTimeframe as string] ?? a.readyTimeframe} />}
+							{!!a.budget && <AppField label="Budget" value={budgetLabels[a.budget as string] ?? a.budget} />}
 							{!!a.preferredBreedSize && (
 								<div className="py-2.5 border-b border-black/[0.05] grid grid-cols-2 gap-4 items-start">
 									<dt className="text-xs text-warm-400 pt-0.5">First choice</dt>

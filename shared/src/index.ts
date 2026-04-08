@@ -199,6 +199,7 @@ export interface ClientApplication {
 	considerOtherColour: boolean;
 	considerOtherBreedSize: boolean;
 	considerRehome: boolean;
+	budget: 'r5k_r10k' | 'r10k_r20k' | 'r30k_r40k' | 'r40k_plus' | null;
 }
 
 // ─── Update (puppy journal posts) ────────────────────────────────────────────

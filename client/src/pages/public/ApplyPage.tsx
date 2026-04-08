@@ -66,6 +66,8 @@ interface FormData {
 	depositIntent: boolean;
 	petInsurance: boolean;
 	wantsSettlingGuidance: boolean;
+	// Budget
+	budget: 'r5k_r10k' | 'r10k_r20k' | 'r30k_r40k' | 'r40k_plus' | '';
 }
 
 const initial: FormData = {
@@ -101,6 +103,7 @@ const initial: FormData = {
 	depositIntent: false,
 	petInsurance: false,
 	wantsSettlingGuidance: false,
+	budget: '',
 };
 
 const steps: Step[] = ['personal', 'home', 'experience', 'preferences', 'deposit', 'done'];
@@ -362,6 +365,7 @@ export function ApplyPage() {
 				considerOtherBreedSize: form.considerOtherBreedSize,
 				considerRehome: form.considerRehome,
 				puppyEnergyPreference: form.puppyEnergyPreference || null,
+				budget: form.budget || null,
 				petInsurance: form.petInsurance,
 				wantsSettlingGuidance: form.wantsSettlingGuidance,
 			},
@@ -881,6 +885,19 @@ export function ApplyPage() {
 							value={form.puppyEnergyPreference}
 							onChange={(v) => set('puppyEnergyPreference', v)}
 							cols={3}
+						/>
+
+						<ButtonGroup
+							label="What is your budget for a puppy?"
+							options={[
+								{ value: 'r5k_r10k', label: 'R5k – R10k' },
+								{ value: 'r10k_r20k', label: 'R10k – R20k' },
+								{ value: 'r30k_r40k', label: 'R30k – R40k' },
+								{ value: 'r40k_plus', label: 'R40k+' },
+							]}
+							value={form.budget}
+							onChange={(v) => set('budget', v as FormData['budget'])}
+							cols={2}
 						/>
 
 						<Toggle
