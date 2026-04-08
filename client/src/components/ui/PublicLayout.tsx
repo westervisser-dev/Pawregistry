@@ -1,17 +1,167 @@
-import { useState } from 'react';
-import { Outlet, Link, NavLink } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Outlet, Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_WHATSAPP, CONTACT_INSTAGRAM, CONTACT_FACEBOOK } from '@/config/app';
 
-const navLinks = [
-	// { to: '/dogs', label: 'Our Dogs' }, // TODO: restore when breed pages are ready
-	{ to: '/litters', label: 'Litters' },
-	{ to: '/apply', label: 'Apply' },
-	{ to: '/faq', label: 'FAQ' },
-	{ to: '/about', label: 'Why Teddy Doodles' },
-	{ to: '/founder', label: 'Meet the Founder' },
-	{ to: '/contact', label: 'Contact Us' },
+type NavItem =
+	| { type: 'link'; to: string; label: string }
+	| { type: 'dropdown'; label: string; items: { to: string; label: string }[] };
+
+const navItems: NavItem[] = [
+	{ type: 'link', to: '/apply', label: 'Apply' },
+	{
+		type: 'dropdown',
+		label: 'Our Dogs',
+		items: [
+			{ to: '/dogs', label: 'Our Breeds' },
+			{ to: '/litters', label: 'Litters' },
+		],
+	},
+	{
+		type: 'dropdown',
+		label: 'About Us',
+		items: [
+			{ to: '/about', label: 'Why Teddy Doodles' },
+			{ to: '/founder', label: 'Meet the Founder' },
+			{ to: '/faq', label: 'FAQ' },
+		],
+	},
+	{ type: 'link', to: '/contact', label: 'Contact Us' },
 ];
+
+function DesktopDropdown({ label, items }: { label: string; items: { to: string; label: string }[] }) {
+	const [open, setOpen] = useState(false);
+	const ref = useRef<HTMLDivElement>(null);
+	const location = useLocation();
+	const isActive = items.some((item) => location.pathname.startsWith(item.to));
+
+	useEffect(() => {
+		function onClickOutside(e: MouseEvent) {
+			if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+		}
+		document.addEventListener('mousedown', onClickOutside);
+		return () => document.removeEventListener('mousedown', onClickOutside);
+	}, []);
+
+	return (
+		<div ref={ref} className="relative">
+			<button
+				onClick={() => setOpen((o) => !o)}
+				onMouseEnter={() => setOpen(true)}
+				onMouseLeave={() => setOpen(false)}
+				className={`flex items-center gap-1 text-sm font-medium transition-colors ${
+					isActive ? 'text-brand-600' : 'text-warm-600 hover:text-warm-900'
+				}`}
+				aria-haspopup="true"
+				aria-expanded={open}
+			>
+				{label}
+				<svg
+					width="12"
+					height="12"
+					viewBox="0 0 12 12"
+					fill="none"
+					aria-hidden="true"
+					className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+				>
+					<path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+				</svg>
+			</button>
+
+			<div
+				onMouseEnter={() => setOpen(true)}
+				onMouseLeave={() => setOpen(false)}
+				className={`absolute left-1/2 -translate-x-1/2 top-full pt-3 transition-all duration-200 ${
+					open ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none -translate-y-1'
+				}`}
+			>
+				<div className="bg-white rounded-xl shadow-lg border border-warm-100 py-1.5 min-w-[180px] overflow-hidden">
+					{items.map(({ to, label: itemLabel }) => (
+						<NavLink
+							key={to}
+							to={to}
+							onClick={() => setOpen(false)}
+							className={({ isActive: active }) =>
+								`block px-4 py-2.5 text-sm transition-colors ${
+									active
+										? 'text-brand-600 bg-brand-50'
+										: 'text-warm-700 hover:text-warm-900 hover:bg-warm-50'
+								}`
+							}
+						>
+							{itemLabel}
+						</NavLink>
+					))}
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function MobileDropdown({
+	label,
+	items,
+	closeMenu,
+}: {
+	label: string;
+	items: { to: string; label: string }[];
+	closeMenu: () => void;
+}) {
+	const [open, setOpen] = useState(false);
+	const location = useLocation();
+	const isActive = items.some((item) => location.pathname.startsWith(item.to));
+
+	return (
+		<div className="border-b border-warm-50 last:border-0">
+			<button
+				onClick={() => setOpen((o) => !o)}
+				className={`w-full flex items-center justify-between py-3 text-sm font-medium transition-colors ${
+					isActive ? 'text-brand-600' : 'text-warm-700'
+				}`}
+				aria-haspopup="true"
+				aria-expanded={open}
+			>
+				{label}
+				<svg
+					width="12"
+					height="12"
+					viewBox="0 0 12 12"
+					fill="none"
+					aria-hidden="true"
+					className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+				>
+					<path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+				</svg>
+			</button>
+
+			<div
+				className="overflow-hidden transition-[grid-template-rows] duration-200 ease-out"
+				style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr' }}
+			>
+				<div className="min-h-0">
+					<div className="pb-1 flex flex-col pl-3">
+						{items.map(({ to, label: itemLabel }) => (
+							<NavLink
+								key={to}
+								to={to}
+								onClick={() => { setOpen(false); closeMenu(); }}
+								className={({ isActive: active }) =>
+									`py-2.5 text-sm border-l-2 pl-3 transition-colors ${
+										active
+											? 'text-brand-600 border-brand-400'
+											: 'text-warm-600 border-warm-200 hover:text-warm-900'
+									}`
+								}
+							>
+								{itemLabel}
+							</NavLink>
+						))}
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
 
 export function PublicLayout() {
 	const { user, isAdmin } = useAuthStore();
@@ -36,21 +186,23 @@ export function PublicLayout() {
 
 					{/* Desktop nav */}
 					<nav className="hidden md:flex items-center gap-8">
-						{navLinks.map(({ to, label }) => (
-							<NavLink
-								key={to}
-								to={to}
-								className={({ isActive }) =>
-									`text-sm font-medium transition-colors ${
-										isActive
-											? 'text-brand-600'
-											: 'text-warm-600 hover:text-warm-900'
-									}`
-								}
-							>
-								{label}
-							</NavLink>
-						))}
+						{navItems.map((item) =>
+							item.type === 'link' ? (
+								<NavLink
+									key={item.to}
+									to={item.to}
+									className={({ isActive }) =>
+										`text-sm font-medium transition-colors ${
+											isActive ? 'text-brand-600' : 'text-warm-600 hover:text-warm-900'
+										}`
+									}
+								>
+									{item.label}
+								</NavLink>
+							) : (
+								<DesktopDropdown key={item.label} label={item.label} items={item.items} />
+							)
+						)}
 					</nav>
 
 					<div className="flex items-center gap-2">
@@ -97,27 +249,31 @@ export function PublicLayout() {
 					</div>
 				</div>
 
-				{/* Mobile menu — CSS grid transition for smooth open/close */}
+				{/* Mobile menu */}
 				<div
 					className="md:hidden overflow-hidden transition-[grid-template-rows] duration-200 ease-out"
 					style={{ display: 'grid', gridTemplateRows: menuOpen ? '1fr' : '0fr' }}
 				>
 					<div className="min-h-0 border-t border-black/[0.05] bg-white">
-						<div className="px-6 py-4 flex flex-col gap-1">
-							{navLinks.map(({ to, label }) => (
-								<NavLink
-									key={to}
-									to={to}
-									onClick={closeMenu}
-									className={({ isActive }) =>
-										`py-3 text-sm font-medium border-b border-warm-50 last:border-0 transition-colors ${
-											isActive ? 'text-brand-600' : 'text-warm-700'
-										}`
-									}
-								>
-									{label}
-								</NavLink>
-							))}
+						<div className="px-6 py-4 flex flex-col">
+							{navItems.map((item) =>
+								item.type === 'link' ? (
+									<NavLink
+										key={item.to}
+										to={item.to}
+										onClick={closeMenu}
+										className={({ isActive }) =>
+											`py-3 text-sm font-medium border-b border-warm-50 last:border-0 transition-colors ${
+												isActive ? 'text-brand-600' : 'text-warm-700'
+											}`
+										}
+									>
+										{item.label}
+									</NavLink>
+								) : (
+									<MobileDropdown key={item.label} label={item.label} items={item.items} closeMenu={closeMenu} />
+								)
+							)}
 							<div className="pt-3">
 								{user ? (
 									<div className="flex flex-col gap-2">
@@ -170,7 +326,7 @@ export function PublicLayout() {
 					<div>
 						<h4 className="text-white font-medium mb-3 text-sm uppercase tracking-wider">Links</h4>
 						<div className="flex flex-col gap-2 text-sm">
-							{/* <Link to="/dogs" className="hover:text-white transition-colors">Our Dogs</Link> */}
+							<Link to="/dogs" className="hover:text-white transition-colors">Our Breeds</Link>
 							<Link to="/litters" className="hover:text-white transition-colors">Available Litters</Link>
 							<Link to="/apply" className="hover:text-white transition-colors">Apply for a Puppy</Link>
 							<Link to="/faq" className="hover:text-white transition-colors">FAQ</Link>

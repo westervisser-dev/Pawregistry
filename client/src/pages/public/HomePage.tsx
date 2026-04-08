@@ -118,7 +118,6 @@ export function HomePage() {
 				</div>
 			</section>
 
-			{/* TODO: restore dogs teaser when breed pages are ready
 			<section className="bg-warm-50 border-t border-warm-100">
 				<div className="max-w-6xl mx-auto px-6 py-10 md:py-16 flex flex-col md:flex-row gap-10 items-center">
 					<div className="w-full md:w-1/2 rounded-2xl overflow-hidden aspect-[4/3] flex-shrink-0">
@@ -149,7 +148,6 @@ export function HomePage() {
 					</div>
 				</div>
 			</section>
-			*/}
 
 			{/* Current litters */}
 			{(littersLoading || litters.length > 0) && (
