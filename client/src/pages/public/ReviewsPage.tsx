@@ -4,52 +4,76 @@ import { APP_NAME } from '@/config/app';
 
 const reviews = [
 	{
-		name: 'Sarah & James T.',
-		location: 'London',
+		name: 'Keilah',
+		location: 'Cape Town',
 		rating: 5,
-		date: 'March 2025',
-		body: "From the very first conversation we knew we were in the right hands. The team was patient, incredibly knowledgeable, and never once made us feel rushed. Our Cockapoo, Milo, has been the most wonderful addition to our family. We still get check-in messages months later — that kind of care is rare.",
-		puppy: 'Cockapoo',
+		date: 'April 2026',
+		avatar: '/avatars/keilah.png',
+		body: "We are so happy with our adorable Maltipoo from Teddy Doodles. She arrived healthy, happy, and confident. Roxzee stayed in touch with us during the whole process, and her love for dogs was evident in every update she sent. It's clear she pours her heart into raising well-adjusted puppies, and we couldn't have asked for a better experience.",
+		puppy: 'Maltipoo',
 	},
 	{
-		name: 'Emily R.',
-		location: 'Manchester',
+		name: 'Clerissa',
+		location: 'Cape Town',
 		rating: 5,
-		date: 'January 2025',
-		body: "I was nervous about the whole process but the team made it so smooth. We received regular photo and video updates as our puppy grew, which was magical. She matched us with exactly the right puppy for our lifestyle. Our little Bonnie is now 5 months old and absolutely perfect.",
-		puppy: 'Cavapoo',
+		date: 'April 2026',
+		avatar: '/avatars/clerissa.png',
+		body: "An absolutely wonderful experience with Teddy Doodles. Rox was incredible from start to finish — her communication was excellent and she kept us updated every step of the way. We received so many photos and updates as our puppy grew, which made the whole process feel really special and reassuring. You can truly see how much love and care goes into raising these puppies. We couldn't be happier with our little Aussie and would highly recommend Teddy Doodles to anyone looking for a well raised, happy pup.",
+		puppy: 'Aussiedoodle',
 	},
 	{
-		name: 'The Morrison Family',
-		location: 'Edinburgh',
+		name: 'Liezel',
+		location: 'Nelspruit',
 		rating: 5,
-		date: 'November 2024',
-		body: "What sets Teddy Doodles apart is the honesty. We were told upfront what to expect — the good and the challenging — which helped us prepare properly. The breeder was vetted, the puppy was healthy, and the support didn't end at collection. We couldn't be happier.",
-		puppy: 'Labradoodle',
+		date: 'April 2026',
+		avatar: '/avatars/liezel.png',
+		body: "After hearing so many scam stories, I was nervous but Teddy Doodles came highly recommended. The whole process was smooth, with constant updates and amazing care throughout. Gigi is a beautiful little girl who has brought so much joy into our home. Thank you, Teddy Doodles!",
+		puppy: null,
 	},
 	{
-		name: 'Daniel & Priya K.',
-		location: 'Bristol',
+		name: 'Renne Augustus',
+		location: null,
 		rating: 5,
-		date: 'October 2024',
-		body: "We had tried another route before and had a terrible experience. Coming to Teddy Doodles was a breath of fresh air. Every question was answered thoroughly, every concern was taken seriously. Our boy Archie is now 8 months old, healthy, and impossibly happy.",
-		puppy: 'Goldendoodle',
+		date: 'January 2026',
+		avatar: '/avatars/renne.png',
+		body: "I just had to share how amazing Roxy from Teddy Doodles is! As a first-time pet owner, I had a million questions (and some were pretty silly, haha), and she answered them all with so much patience and care. She kept us updated with pics and vids of Milo (our adorable Shih Tzu ball of fluff!) before we even brought him home. Roxy's recommendations for the vet and groomer were spot on, and Milo's settled in like he's been with us forever. He's the feistiest, most intelligent little guy, and we ADORE him. If you're looking for a breeder who truly cares, Teddy Doodles is the way to go — our experience was stress-free and so joyful!",
+		puppy: 'Shih Tzu',
 	},
 	{
-		name: 'Louise H.',
-		location: 'Birmingham',
+		name: 'Victoria',
+		location: null,
 		rating: 5,
-		date: 'August 2024',
-		body: "The personalised matching process is unlike anything I expected. They really listened to my living situation and recommended a breed that suited me perfectly — not just what was available. Luna has transformed my life. I tell everyone about Teddy Doodles.",
-		puppy: 'Miniature Poodle',
+		date: 'September 2025',
+		avatar: '/avatars/victoria.png',
+		body: "I got my little Bella from Teddy Doodles and the whole experience was just wonderful. Everything was so easy, and I couldn't be happier with my sweet, healthy pup. Highly recommend Teddy Doodles!",
+		puppy: null,
 	},
 	{
-		name: 'Tom & Claire B.',
-		location: 'Leeds',
+		name: 'Georgie',
+		location: null,
 		rating: 5,
-		date: 'June 2024',
-		body: "From application to collection, every step was transparent and stress-free. The updates we received while waiting were so thoughtful — we fell in love with our puppy weeks before we even met him. The ongoing support has been brilliant. Highly, highly recommend.",
-		puppy: 'Spoodle',
+		date: 'September 2025',
+		avatar: '/avatars/georgie.png',
+		body: "I can't say enough good things about Teddy Doodles! I got my gorgeous Cavalier boy, Tommy, from them and the whole experience was honestly a dream. Everything was made so simple — no stress, no hassle — just an exciting and smooth process from start to finish. Tommy is the sweetest little boy, healthy, playful, and already such a big part of our family. It was clear from the beginning how much care and love goes into raising these puppies. I felt so comfortable the whole way through, and I'd happily recommend Teddy Doodles to anyone looking for their perfect pup. Thank you for giving me my best little companion!",
+		puppy: 'Cavalier Spaniel',
+	},
+	{
+		name: '@paiegyy_babe',
+		location: null,
+		rating: 5,
+		date: 'September 2025',
+		avatar: '/avatars/paiegyyBabe.png',
+		body: "I had such a wonderful experience with Teddy Doodles when buying my Cavalier Spaniel puppy. The whole process was so easy and stress-free. From the very first message, communication was clear and friendly, and I always felt reassured that my puppy was in the best hands. My little Cavalier is healthy, happy, and has the sweetest temperament — you can tell he was raised with so much love and care. I truly appreciate the honesty and professionalism throughout the process. I would 100% recommend Teddy Doodles to anyone looking for a well-bred, beautiful puppy. Thank you for making this such a positive and exciting experience!",
+		puppy: 'Cavalier Spaniel',
+	},
+	{
+		name: 'Tash',
+		location: null,
+		rating: 5,
+		date: 'September 2025',
+		avatar: '/avatars/tash.png',
+		body: "I'm over the moon with my Cavalier boy, Kingston, from Teddy Doodles! From the very beginning, everything was so easy and straightforward — no confusion, no stress, just clear communication and such a friendly experience. Kingston is absolutely perfect — healthy, full of personality, and already so loved. You can tell he's come from a breeder who puts genuine care and heart into raising their puppies. I'm so grateful for the smooth process and for the beautiful boy I now get to call mine. I'll definitely recommend Teddy Doodles to anyone looking for their forever puppy!",
+		puppy: 'Cavalier Spaniel',
 	},
 ];
 
@@ -126,9 +150,18 @@ export function ReviewsPage() {
 							className="bg-white border border-warm-200 rounded-2xl p-6 flex flex-col gap-4"
 						>
 							<div className="flex items-start justify-between gap-3">
-								<div>
-									<p className="font-medium text-warm-900 text-sm">{review.name}</p>
-									<p className="text-warm-400 text-xs mt-0.5">{review.location}</p>
+								<div className="flex items-center gap-3">
+									<img
+										src={review.avatar}
+										alt={review.name}
+										className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+										loading="lazy"
+										decoding="async"
+									/>
+									<div>
+										<p className="font-medium text-warm-900 text-sm">{review.name}</p>
+										{review.location && <p className="text-warm-400 text-xs mt-0.5">{review.location}</p>}
+									</div>
 								</div>
 								<span className="text-xs text-warm-400 flex-shrink-0">{review.date}</span>
 							</div>
@@ -139,14 +172,16 @@ export function ReviewsPage() {
 								"{review.body}"
 							</blockquote>
 
-							<div className="border-t border-warm-100 pt-3">
-								<span className="inline-flex items-center gap-1.5 text-xs text-brand-600 font-medium bg-brand-50 px-2.5 py-1 rounded-full">
-									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-										<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-									</svg>
-									{review.puppy}
-								</span>
-							</div>
+							{review.puppy && (
+								<div className="border-t border-warm-100 pt-3">
+									<span className="inline-flex items-center gap-1.5 text-xs text-brand-600 font-medium bg-brand-50 px-2.5 py-1 rounded-full">
+										<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+											<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+										</svg>
+										{review.puppy}
+									</span>
+								</div>
+							)}
 						</article>
 					))}
 				</div>
