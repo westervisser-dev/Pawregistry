@@ -61,8 +61,11 @@ interface FormData {
 	considerOtherColour: boolean;
 	considerRehome: boolean;
 	agreedToContract: boolean;
+	puppyEnergyPreference: 'calm' | 'moderate' | 'active' | '';
 	// Deposit
 	depositIntent: boolean;
+	petInsurance: boolean;
+	wantsSettlingGuidance: boolean;
 }
 
 const initial: FormData = {
@@ -94,7 +97,10 @@ const initial: FormData = {
 	preferredColour: '', considerOtherColour: false,
 	considerRehome: false,
 	agreedToContract: false,
+	puppyEnergyPreference: '',
 	depositIntent: false,
+	petInsurance: false,
+	wantsSettlingGuidance: false,
 };
 
 const steps: Step[] = ['personal', 'home', 'experience', 'preferences', 'deposit', 'done'];
@@ -164,7 +170,7 @@ function Textarea({ label, required, ...props }: { label: string; required?: boo
 
 function Toggle({ label, checked, onChange, required }: { label: string; checked: boolean; onChange: (v: boolean) => void; required?: boolean }) {
 	return (
-		<label className="flex items-start gap-3 cursor-pointer">
+		<label className="flex items-center gap-3 cursor-pointer">
 			<input
 				type="checkbox"
 				checked={checked}
@@ -173,7 +179,7 @@ function Toggle({ label, checked, onChange, required }: { label: string; checked
 			/>
 			<div
 				aria-hidden="true"
-				className={`w-10 h-6 rounded-full flex-shrink-0 transition-colors flex items-center mt-0.5 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 peer-focus-visible:ring-offset-1 ${checked ? 'bg-brand-500' : 'bg-warm-200'}`}
+				className={`w-10 h-6 rounded-full flex-shrink-0 transition-colors flex items-center peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400 peer-focus-visible:ring-offset-1 ${checked ? 'bg-brand-500' : 'bg-warm-200'}`}
 			>
 				<div className={`w-4 h-4 rounded-full bg-white shadow-sm mx-1 transition-transform ${checked ? 'translate-x-4' : ''}`} />
 			</div>
@@ -355,6 +361,9 @@ export function ApplyPage() {
 				considerOtherColour: form.considerOtherColour,
 				considerOtherBreedSize: form.considerOtherBreedSize,
 				considerRehome: form.considerRehome,
+				puppyEnergyPreference: form.puppyEnergyPreference || null,
+				petInsurance: form.petInsurance,
+				wantsSettlingGuidance: form.wantsSettlingGuidance,
 			},
 		});
 		setSubmitting(false);
@@ -535,11 +544,16 @@ export function ApplyPage() {
 							/>
 						)}
 
-						<Textarea
-							label="Describe your activity level and hobbies"
-							value={form.activityLevel}
-							onChange={(e) => set('activityLevel', e.target.value)}
-							placeholder="e.g. active, enjoy hiking and outdoor activities…"
+						<ButtonGroup
+							label="How active is your household?"
+							options={[
+								{ value: 'calm', label: 'Calm' },
+								{ value: 'moderate', label: 'Moderate' },
+								{ value: 'active', label: 'Active' },
+							]}
+							value={form.activityLevel as 'calm' | 'moderate' | 'active' | ''}
+							onChange={(v) => set('activityLevel', v)}
+							cols={3}
 						/>
 
 						<Toggle label="All family members are on board with getting a puppy" checked={form.allFamilyMembersAgree} onChange={(v) => set('allFamilyMembersAgree', v)} />
@@ -857,6 +871,18 @@ export function ApplyPage() {
 							onChange={(v) => set('considerOtherColour', v)}
 						/>
 
+						<ButtonGroup
+							label="Are you looking for a calm or more active puppy?"
+							options={[
+								{ value: 'calm', label: 'Calm' },
+								{ value: 'moderate', label: 'Moderate' },
+								{ value: 'active', label: 'Active' },
+							]}
+							value={form.puppyEnergyPreference}
+							onChange={(v) => set('puppyEnergyPreference', v)}
+							cols={3}
+						/>
+
 						<Toggle
 							label="I would consider adopting a rehome case (an older dog whose circumstances have changed)"
 							checked={form.considerRehome}
@@ -944,6 +970,19 @@ export function ApplyPage() {
 									<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> Can upgrade to priority at any time</li>
 								</ul>
 							</button>
+						</div>
+
+						<div className="flex flex-col gap-4 pt-2">
+							<Toggle
+								label="I am happy to take out pet insurance for an initial trial month"
+								checked={form.petInsurance}
+								onChange={(v) => set('petInsurance', v)}
+							/>
+							<Toggle
+								label="I would like assistance with settling my puppy and potty training guidance"
+								checked={form.wantsSettlingGuidance}
+								onChange={(v) => set('wantsSettlingGuidance', v)}
+							/>
 						</div>
 					</div>
 				)}
