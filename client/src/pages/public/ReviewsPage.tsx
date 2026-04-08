@@ -142,7 +142,7 @@ export function ReviewsPage() {
 			</section>
 
 			{/* Reviews grid */}
-			<section className="max-w-6xl mx-auto px-6 py-14 md:py-20">
+			<section className="max-w-6xl mx-auto px-6 pt-14 pb-10 md:pt-20 md:pb-12">
 				<div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
 					{reviews.map((review) => (
 						<article
@@ -189,7 +189,7 @@ export function ReviewsPage() {
 
 			{/* CTA */}
 			<section className="bg-warm-50 border-t border-warm-100">
-				<div className="max-w-6xl mx-auto px-6 py-14 md:py-20 text-center">
+				<div className="max-w-6xl mx-auto px-6 pt-8 pb-14 md:pt-10 md:pb-20 text-center">
 					<h2 className="font-serif text-3xl md:text-4xl text-warm-900 mb-4">
 						Ready to start your journey?
 					</h2>
