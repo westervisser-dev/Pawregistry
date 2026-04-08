@@ -405,35 +405,35 @@ function WelcomeBanner({ firstName, stage }: { firstName: string; stage: string 
 	const isPositiveStage = ['approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(stage);
 
 	return (
-		<div className="bg-sidebar-bg rounded-2xl px-7 py-7 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
-			<div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-brand-500/[0.15] pointer-events-none" />
-			<div className="absolute -bottom-12 right-16 w-30 h-30 rounded-full bg-brand-500/[0.08] pointer-events-none" />
+		<div className="bg-gradient-to-br from-warm-50 to-brand-50 rounded-2xl px-7 py-7 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden border border-brand-100/60">
+			<div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-brand-200/25 pointer-events-none" />
+			<div className="absolute -bottom-12 right-16 w-30 h-30 rounded-full bg-brand-300/15 pointer-events-none" />
 
 			<div className="relative z-[1]">
-				<h1 className="font-serif text-[26px] text-[#F0EDEA] leading-[1.15]">
+				<h1 className="font-serif text-[26px] text-warm-900 leading-[1.15]">
 					Welcome back, {firstName} 👋
 				</h1>
-				<p className="text-[13px] text-[rgba(240,237,234,0.45)] mt-1.5">
+				<p className="text-[13px] text-warm-500 mt-1.5">
 					Here's the latest on your puppy journey.
 				</p>
 			</div>
 
 			<div className={`relative z-[1] flex items-center gap-2 rounded-full px-5 py-2.5 border ${
 				isPositiveStage
-					? 'bg-[rgba(74,160,65,0.15)] border-[rgba(74,160,65,0.35)]'
-					: 'bg-white/10 border-white/20'
+					? 'bg-[#EAF7E8] border-[rgba(74,160,65,0.25)]'
+					: 'bg-white border-warm-200'
 			}`}>
 				{isPositiveStage && (
 					<div className="w-2 h-2 rounded-full bg-[#5DBB55] shrink-0" />
 				)}
 				<div>
 					<div className={`text-[13px] font-medium tracking-[0.02em] ${
-						isPositiveStage ? 'text-[#7DD977]' : 'text-[#F0EDEA]'
+						isPositiveStage ? 'text-[#3A7835]' : 'text-warm-700'
 					}`}>
 						{stageLabel}
 					</div>
 					<div className={`text-[11px] mt-px ${
-						isPositiveStage ? 'text-[rgba(125,217,119,0.55)]' : 'text-[rgba(240,237,234,0.4)]'
+						isPositiveStage ? 'text-[rgba(58,120,53,0.55)]' : 'text-warm-400'
 					}`}>
 						Application stage
 					</div>
