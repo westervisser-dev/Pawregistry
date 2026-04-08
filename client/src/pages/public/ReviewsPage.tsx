@@ -28,7 +28,7 @@ const reviews = [
 		date: 'April 2026',
 		avatar: '/avatars/liezel.png',
 		body: "After hearing so many scam stories, I was nervous but Teddy Doodles came highly recommended. The whole process was smooth, with constant updates and amazing care throughout. Gigi is a beautiful little girl who has brought so much joy into our home. Thank you, Teddy Doodles!",
-		puppy: null,
+		puppy: 'Mini Poodle',
 	},
 	{
 		name: 'Renne Augustus',
@@ -46,7 +46,7 @@ const reviews = [
 		date: 'September 2025',
 		avatar: '/avatars/victoria.png',
 		body: "I got my little Bella from Teddy Doodles and the whole experience was just wonderful. Everything was so easy, and I couldn't be happier with my sweet, healthy pup. Highly recommend Teddy Doodles!",
-		puppy: null,
+		puppy: 'Cavalier King Charles',
 	},
 	{
 		name: 'Georgie',
