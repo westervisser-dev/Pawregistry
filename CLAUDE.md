@@ -114,8 +114,9 @@ git add -A && git commit -m "feat: <description>" && git push origin dev
 - Only push to `main` (production) when the user explicitly asks to go to prod
 - When going to prod: run the same SQL on prod Supabase first, then:
 ```bash
-git checkout main && git merge dev && git push origin main && git checkout dev
+git checkout main && git merge dev --no-edit && git push origin main && git checkout dev
 ```
+- Always use `--no-edit` on merges to avoid being dropped into a Vim/editor prompt
 ---
 
 ## Storage Buckets

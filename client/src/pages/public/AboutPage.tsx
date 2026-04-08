@@ -52,7 +52,7 @@ export function AboutPage() {
 					</div>
 					<div className="rounded-2xl overflow-hidden h-72 md:h-80 bg-warm-100">
 						<img
-							src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=85&auto=format&fit=crop"
+							src="/about-why.avif"
 							alt="A happy doodle dog looking at the camera"
 							loading="lazy"
 							decoding="async"

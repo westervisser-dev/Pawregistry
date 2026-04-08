@@ -1,0 +1,17 @@
+:{$PORT:80} {
+	root * /app/client/dist
+	encode gzip
+
+	# Never cache index.html — ensures users always get the latest entry point after a deploy
+	@html path *.html
+	header @html Cache-Control "no-cache, no-store, must-revalidate"
+
+	# Hashed assets (JS/CSS/fonts) are immutable — cache forever
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+	file_server
+
+	# SPA fallback — serve index.html for all unmatched routes
+	try_files {path} /index.html
+}
