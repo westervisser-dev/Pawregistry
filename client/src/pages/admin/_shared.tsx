@@ -36,7 +36,7 @@ export function AdminTable({ headers, children }: { headers: TableHeader[]; chil
 							const hide = typeof h === 'object' && h.hideMobile;
 							const mobileLabel = typeof h === 'object' ? h.mobileLabel : undefined;
 							return (
-								<th key={label} className={`text-left py-3 px-4 text-[10.5px] font-medium text-warm-400 uppercase tracking-[0.06em]${hide ? ' hidden md:table-cell' : ''}`}>
+								<th key={label} className={`text-left py-3 px-2 md:px-4 text-[10.5px] font-medium text-warm-400 uppercase tracking-[0.06em]${hide ? ' hidden md:table-cell' : ''}`}>
 									{mobileLabel ? (
 										<>
 											<span className="md:hidden">{mobileLabel}</span>
@@ -205,8 +205,8 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 
 	return (
 		<tr ref={setNodeRef} style={style} className="border-b border-black/[0.05] hover:bg-warm-50 bg-white transition-colors">
-			<td className="py-3 px-4 text-warm-400 text-xs font-mono w-8 tabular-nums">{index + 1}</td>
-			<td className="py-2 px-3 w-8">
+			<td className="py-3 px-2 md:px-4 text-warm-400 text-xs font-mono w-8 tabular-nums">{index + 1}</td>
+			<td className="py-2 px-1 md:px-3 w-8">
 				<button
 					{...attributes}
 					{...listeners}
@@ -224,7 +224,7 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 					</svg>
 				</button>
 			</td>
-			<td className="py-3 px-4">
+			<td className="py-3 px-2 md:px-4">
 				<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
 				<p className="text-xs text-warm-400">{client.email}</p>
 				{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
@@ -240,14 +240,14 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 				) : <span className="text-warm-300 text-xs">—</span>}
 			</td>
 			<td className="hidden md:table-cell py-3 px-4"><StageBadge stage={client.stage} /></td>
-			<td className="py-3 px-4">
+			<td className="py-3 px-2 md:px-4">
 				<div className="md:hidden"><StageBadge stage={client.stage} /></div>
 				<div className="hidden md:block"><DepositStatusSelect client={client} onUpdate={onDepositUpdate} /></div>
 			</td>
 			<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 				{new Date(client.createdAt).toLocaleDateString()}
 			</td>
-			<td className="py-3 px-4">
+			<td className="py-3 px-2 md:px-4">
 				<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
 					View →
 				</Link>
@@ -337,7 +337,7 @@ export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {
 						const action = actionMap[client.id];
 						return (
 							<tr key={client.id} className="border-b border-black/[0.05] hover:bg-warm-50 bg-white transition-colors">
-								<td className="py-3 px-4">
+								<td className="py-3 px-2 md:px-4">
 									<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
 									<p className="text-xs text-warm-400">{client.email}</p>
 									{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
@@ -353,7 +353,7 @@ export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {
 									) : <span className="text-warm-300 text-xs">—</span>}
 								</td>
 								<td className="hidden md:table-cell py-3 px-4"><StageBadge stage={client.stage} /></td>
-								<td className="py-3 px-4">
+								<td className="py-3 px-2 md:px-4">
 									<div className="md:hidden"><StageBadge stage={client.stage} /></div>
 									<div className="hidden md:block">
 										{client.depositStatus === 'paid' ? (
@@ -368,7 +368,7 @@ export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {
 								<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 									{new Date(client.createdAt).toLocaleDateString()}
 								</td>
-								<td className="py-3 px-4">
+								<td className="py-3 px-2 md:px-4">
 									<Link to={`/admin/clients/${client.id}`} className="text-sm text-brand-600 hover:underline">
 										View →
 									</Link>
