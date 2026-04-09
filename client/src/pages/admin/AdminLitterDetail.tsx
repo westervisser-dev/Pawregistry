@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, PuppyStatusBadge, EmptyState } from '@/components/ui';
-import type { Dog, Litter, LitterImage, LitterStatus, MatchingClient } from '@paw-registry/shared';
+import type { Litter, LitterImage, LitterStatus, MatchingClient } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES, buildBreedSize, parseBreedSize, getBreedSizeLabel } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
 
@@ -40,7 +40,7 @@ function NotifyTimer({ since }: { since: string }) {
 export function AdminLitterDetail() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
-	const [litter, setLitter] = useState<Litter & { sire: Dog; dam: Dog; puppies: unknown[]; images: LitterImage[] } | null>(null);
+	const [litter, setLitter] = useState<Litter & { puppies: unknown[]; images: LitterImage[] } | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [formError, setFormError] = useState('');
@@ -72,9 +72,8 @@ export function AdminLitterDetail() {
 	const [masterListLoading, setMasterListLoading] = useState(false);
 
 	// New-litter form state
-	const [dogs, setDogs] = useState<Dog[]>([]);
-	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; sireId: string; damId: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
-		name: '', breedKey: '', sizeKey: '', sireId: '', damId: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
+	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
+		name: '', breedKey: '', sizeKey: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
 	});
 	const [galleryImages, setGalleryImages] = useState<LitterImage[]>([]);
 	const [galleryError, setGalleryError] = useState('');
@@ -87,10 +86,7 @@ export function AdminLitterDetail() {
 	useEffect(() => {
 		if (!id) return;
 		if (id === 'new') {
-			api.dogs.get().then(({ data }) => {
-				if (data) setDogs(data as Dog[]);
-				setLoading(false);
-			});
+			setLoading(false);
 			return;
 		}
 		setLoading(true);
@@ -140,8 +136,8 @@ export function AdminLitterDetail() {
 
 	const createLitter = async () => {
 		setFormError('');
-		if (!newForm.name.trim() || !newForm.breedKey || !newForm.sireId || !newForm.damId) {
-			setFormError('Name, Breed, Sire, and Dam are required.');
+		if (!newForm.name.trim() || !newForm.breedKey) {
+			setFormError('Name and Breed are required.');
 			return;
 		}
 		setSaving(true);
@@ -150,8 +146,6 @@ export function AdminLitterDetail() {
 			const { data, error } = await api.litters.post({
 				name: newForm.name,
 				...(breedValue ? { breed: breedValue } : {}),
-				sireId: newForm.sireId,
-				damId: newForm.damId,
 				status: newForm.status as 'planned' | 'confirmed' | 'born' | 'weaning' | 'available' | 'completed',
 				...(newForm.expectedDate ? { expectedDate: newForm.expectedDate } : {}),
 				...(newForm.notes ? { notes: newForm.notes } : {}),
@@ -379,36 +373,6 @@ export function AdminLitterDetail() {
 									))}
 								</select>
 							)}
-						</div>
-						<div>
-							<label className="block text-xs font-medium text-warm-500 mb-1">
-								Sire (Father)<span className="text-red-400 ml-0.5">*</span>
-							</label>
-							<select
-								value={newForm.sireId}
-								onChange={(e) => setF('sireId', e.target.value)}
-								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-							>
-								<option value="">Select sire…</option>
-								{dogs.filter((d) => d.sex === 'male').map((d) => (
-									<option key={d.id} value={d.id}>{d.name}</option>
-								))}
-							</select>
-						</div>
-						<div>
-							<label className="block text-xs font-medium text-warm-500 mb-1">
-								Dam (Mother)<span className="text-red-400 ml-0.5">*</span>
-							</label>
-							<select
-								value={newForm.damId}
-								onChange={(e) => setF('damId', e.target.value)}
-								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-							>
-								<option value="">Select dam…</option>
-								{dogs.filter((d) => d.sex === 'female').map((d) => (
-									<option key={d.id} value={d.id}>{d.name}</option>
-								))}
-							</select>
 						</div>
 						<div>
 							<label className="block text-xs font-medium text-warm-500 mb-1">Status</label>

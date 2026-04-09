@@ -74,8 +74,6 @@ const lazy$ = <M, K extends keyof M>(
 
 // Public
 const HomePage = lazy$(() => import('@/pages/public/HomePage'), 'HomePage');
-// const DogsPage = lazy$(() => import('@/pages/public/DogsPage'), 'DogsPage'); // TODO: restore when breed pages are ready
-// const DogProfilePage = lazy$(() => import('@/pages/public/DogProfilePage'), 'DogProfilePage');
 const LittersPage = lazy$(() => import('@/pages/public/LittersPage'), 'LittersPage');
 const ApplyPage = lazy$(() => import('@/pages/public/ApplyPage'), 'ApplyPage');
 const AboutPage = lazy$(() => import('@/pages/public/AboutPage'), 'AboutPage');
@@ -100,8 +98,6 @@ const PortalPreferences = lazy$(() => import('@/pages/portal/PortalPreferences')
 
 // Admin
 const AdminDashboard = lazy$(() => import('@/pages/admin/AdminDashboard'), 'AdminDashboard');
-const AdminDogs = lazy$(() => import('@/pages/admin/AdminDogs'), 'AdminDogs');
-const AdminDogDetail = lazy$(() => import('@/pages/admin/AdminDogDetail'), 'AdminDogDetail');
 const AdminLitters = lazy$(() => import('@/pages/admin/AdminLitters'), 'AdminLitters');
 const AdminLitterDetail = lazy$(() => import('@/pages/admin/AdminLitterDetail'), 'AdminLitterDetail');
 const AdminClients = lazy$(() => import('@/pages/admin/AdminClients'), 'AdminClients');
@@ -127,9 +123,7 @@ function App() {
 					{/* Public site */}
 					<Route element={<PublicLayout />}>
 						<Route path="/" element={<HomePage />} />
-						{/* <Route path="/dogs" element={<DogsPage />} /> */}
-						{/* <Route path="/dogs/:id" element={<DogProfilePage />} /> */}
-<Route path="/litters" element={<LittersPage />} />
+						<Route path="/litters" element={<LittersPage />} />
 						<Route path="/apply" element={<ApplyPage />} />
 						<Route path="/about" element={<AboutPage />} />
 						<Route path="/founder" element={<FounderPage />} />
@@ -160,8 +154,6 @@ function App() {
 					<Route element={<AdminGuard />}>
 						<Route element={<AdminLayout />}>
 							<Route path="/admin" element={<AdminDashboard />} />
-							<Route path="/admin/dogs" element={<AdminDogs />} />
-							<Route path="/admin/dogs/:id" element={<AdminDogDetail />} />
 							<Route path="/admin/litters" element={<AdminLitters />} />
 							<Route path="/admin/litters/:id" element={<AdminLitterDetail />} />
 							<Route path="/admin/clients" element={<AdminClients />} />

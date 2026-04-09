@@ -126,11 +126,6 @@ export function LittersPage() {
 									</div>
 
 									<div className="flex flex-col gap-1 flex-1">
-										{(litter.sire?.name || litter.dam?.name) && (
-											<p className="text-sm text-warm-500">
-												{litter.sire?.name} × {litter.dam?.name}
-											</p>
-										)}
 										{litter.expectedDate && !litter.whelpDate && (
 											<p className="text-xs text-warm-400">
 												Expected {new Date(litter.expectedDate).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}

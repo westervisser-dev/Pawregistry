@@ -13,14 +13,14 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		return db.query.litters.findMany({
 			where: eq(litters.isPublic, true),
 			orderBy: [desc(litters.createdAt)],
-			with: { sire: true, dam: true, puppies: true, images: { orderBy: [asc(litterImages.createdAt)], limit: 1 } },
+			with: { puppies: true, images: { orderBy: [asc(litterImages.createdAt)], limit: 1 } },
 		});
 	})
 
 	.get('/:id', async ({ params, error }) => {
 		const litter = await db.query.litters.findFirst({
 			where: eq(litters.id, params.id),
-			with: { sire: true, dam: true, puppies: true, images: { orderBy: [asc(litterImages.createdAt)] } },
+			with: { puppies: true, images: { orderBy: [asc(litterImages.createdAt)] } },
 		});
 		if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
 		return litter;
@@ -319,7 +319,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	.get('/admin/all', async () => {
 		return db.query.litters.findMany({
 			orderBy: [desc(litters.createdAt)],
-			with: { sire: true, dam: true, puppies: true },
+			with: { puppies: true },
 		});
 	})
 
@@ -652,8 +652,6 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			body: t.Object({
 				name: t.String(),
 				breed: t.Optional(t.Nullable(t.String())),
-				sireId: t.String(),
-				damId: t.String(),
 				status: t.Optional(t.Union([
 					t.Literal('planned'), t.Literal('confirmed'), t.Literal('born'),
 					t.Literal('weaning'), t.Literal('available'), t.Literal('completed'),

@@ -1,60 +1,6 @@
-// ─── Dog ────────────────────────────────────────────────────────────────────
+// ─── Sex type (shared by puppies and client preferences) ────────────────────
 
 export type DogSex = 'male' | 'female';
-export type DogStatus = 'active' | 'retired' | 'deceased';
-
-export interface Dog {
-	id: string;
-	name: string;
-	callName: string | null;
-	registeredName: string | null;
-	breed: string;
-	sex: DogSex;
-	dob: string; // ISO date string
-	colour: string;
-	status: DogStatus;
-	sireId: string | null;
-	damId: string | null;
-	microchipNumber: string | null;
-	registrationNumber: string | null;
-	profileImageUrl: string | null;
-	imageUrls: string[];
-	notes: string | null;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface DogWithPedigree extends Dog {
-	sire: Dog | null;
-	dam: Dog | null;
-}
-
-// ─── Health Certificate ──────────────────────────────────────────────────────
-
-export type HealthCertType =
-	| 'ofa_hips'
-	| 'ofa_elbows'
-	| 'ofa_eyes'
-	| 'ofa_heart'
-	| 'dna_panel'
-	| 'brucellosis'
-	| 'other';
-
-export type HealthCertResult = 'pass' | 'fail' | 'pending' | 'excellent' | 'good' | 'fair';
-
-export interface HealthCert {
-	id: string;
-	dogId: string;
-	type: HealthCertType;
-	result: HealthCertResult;
-	certNumber: string | null;
-	issuedBy: string | null;
-	issuedAt: string;
-	expiresAt: string | null;
-	documentUrl: string | null;
-	notes: string | null;
-	createdAt: string;
-}
 
 // ─── Litter ──────────────────────────────────────────────────────────────────
 
@@ -64,8 +10,6 @@ export interface Litter {
 	id: string;
 	name: string; // e.g. "Spring 2025 Litter"
 	breed: string | null;
-	sireId: string;
-	damId: string;
 	status: LitterStatus;
 	whelpDate: string | null;
 	expectedDate: string | null;
@@ -89,8 +33,6 @@ export interface LitterImage {
 }
 
 export interface LitterWithDogs extends Litter {
-	sire: Dog;
-	dam: Dog;
 	puppies: Puppy[];
 	images: LitterImage[];
 }
@@ -102,7 +44,6 @@ export type PuppyStatus = 'available' | 'reserved' | 'matched' | 'matched_paid' 
 export interface Puppy {
 	id: string;
 	litterId: string;
-	dogId: string | null; // set once graduated to a full Dog record
 	collarColour: string;
 	sex: DogSex;
 	colour: string;

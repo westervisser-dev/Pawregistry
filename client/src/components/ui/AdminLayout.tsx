@@ -5,7 +5,6 @@ import { APP_NAME } from '@/config/app';
 
 const adminNav = [
 	{ to: '/admin', label: 'Dashboard', icon: '▪', end: true },
-	{ to: '/admin/dogs', label: 'Dogs', icon: '🐕' },
 	{ to: '/admin/litters', label: 'Litters', icon: '🐾', iconFilter: 'brightness(0) invert(1)' },
 	{ to: '/admin/clients', label: 'Clients', icon: '👥' },
 	{ divider: true },

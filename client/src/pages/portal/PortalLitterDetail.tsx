@@ -262,30 +262,6 @@ export function PortalLitterDetail() {
 				</div>
 			)}
 
-			{/* Parents */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-				{[
-					{ label: 'Sire (Father)', dog: litter.sire },
-					{ label: 'Dam (Mother)', dog: litter.dam },
-				].map(({ label, dog }) => (
-					<div
-						key={label}
-						className="flex items-center gap-4 p-4 bg-white rounded-xl border border-warm-200"
-					>
-						<div className="w-12 h-12 rounded-full bg-warm-100 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
-							{dog?.profileImageUrl ? (
-								<img src={dog.profileImageUrl} alt={dog.name} className="w-full h-full object-cover" />
-							) : '🐕'}
-						</div>
-						<div>
-							<p className="text-xs text-warm-400 uppercase tracking-wide">{label}</p>
-							<p className="font-medium text-warm-900">{dog?.name}</p>
-							<p className="text-xs text-warm-500">{dog?.colour}{dog?.breed ? ` · ${formatBreed(dog.breed)}` : ''}</p>
-						</div>
-					</div>
-				))}
-			</div>
-
 			{/* Puppies */}
 			{(litter.puppies?.length ?? 0) > 0 && (
 				<div className="mb-8">

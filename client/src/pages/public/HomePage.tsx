@@ -132,18 +132,18 @@ export function HomePage() {
 						/>
 					</div>
 					<div>
-						<span className="text-brand-400 text-xs font-semibold uppercase tracking-widest mb-3 block">Our dogs</span>
+						<span className="text-brand-400 text-xs font-semibold uppercase tracking-widest mb-3 block">Our litters</span>
 						<h2 className="font-serif text-3xl font-bold text-warm-900 mb-3 leading-tight">
 							Health-tested.<br />Temperament-first.
 						</h2>
 						<p className="text-warm-500 leading-relaxed mb-6 text-sm max-w-sm">
-							Every dog in our programme is OFA-screened and registered. Browse our breeding dogs and learn about the lines behind every litter.
+							Every litter comes from health-screened parents with verified pedigrees. Browse our upcoming and current litters to find your perfect match.
 						</p>
 						<Link
-							to="/dogs"
+							to="/litters"
 							className="inline-block px-6 py-3 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors font-medium text-sm"
 						>
-							Meet our dogs
+							View litters
 						</Link>
 					</div>
 				</div>
@@ -184,10 +184,7 @@ export function HomePage() {
 											<h3 className="font-medium text-warm-900">{litter.name}</h3>
 											<LitterStatusBadge status={litter.status} />
 										</div>
-										<p className="text-sm text-warm-500">
-											{litter.sire?.name} × {litter.dam?.name}
-										</p>
-										{litter.breed && (
+														{litter.breed && (
 											<span className="inline-block mt-3 px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 text-xs font-medium border border-brand-100">
 												{getBreedSizeLabel(litter.breed)}
 											</span>
