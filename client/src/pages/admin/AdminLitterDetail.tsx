@@ -676,7 +676,7 @@ export function AdminLitterDetail() {
 					<EmptyState icon="🐶" title="No puppies recorded yet" />
 				) : (
 					<div className="divide-y divide-black/[0.05]">
-						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null }>).map((p) => {
+						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null; client: { id: string; firstName: string; lastName: string } | null }>).map((p) => {
 							const pendingInterests = puppyInterests.filter((i) => i.puppyId === p.id && i.status === 'pending');
 							const allInterests = puppyInterests.filter((i) => i.puppyId === p.id);
 							const isExpanded = expandedPuppy === p.id;
@@ -685,7 +685,14 @@ export function AdminLitterDetail() {
 								<div key={p.id}>
 									<div className="flex items-center gap-3 py-3">
 										<span className="w-4 h-4 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
-										<span className="text-sm font-medium text-warm-800 flex-1">{p.colour} · {p.sex}</span>
+										<span className="text-sm font-medium text-warm-800 flex-1">
+											{p.colour} · {p.sex}
+											{!!p.client && (
+												<Link to={`/admin/clients/${p.client.id}`} className="ml-2 text-xs font-normal text-brand-600 hover:underline">
+													{p.client.firstName} {p.client.lastName}
+												</Link>
+											)}
+										</span>
 										{/* Inline status selector */}
 										<select
 											value={p.status}

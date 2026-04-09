@@ -59,19 +59,42 @@ const ACTION_DOT: Record<ActionColor, string> = {
 
 type TemplateItem = { id: string; name: string; checkedAt: string | null };
 
+type PendingNotification = { litterId: string; litterName: string; breed: string | null };
+
 type Action =
 	| { type: 'link'; label: string; to: string; color: ActionColor }
-	| { type: 'button'; label: string; onClick: () => void; color: ActionColor };
+	| { type: 'button'; label: string; onClick: () => void; color: ActionColor }
+	| { type: 'dismissible-link'; label: string; to: string; color: ActionColor; dismissKey: string };
 
 function ClientActionCenter({
 	client,
 	templates,
+	pendingNotifications,
 	onOpenDepositModal,
 }: {
 	client: Client;
 	templates: TemplateItem[] | null;
+	pendingNotifications: PendingNotification[];
 	onOpenDepositModal: () => void;
 }) {
+	const [dismissed, setDismissed] = useState<Set<string>>(() => {
+		try {
+			const raw = localStorage.getItem('dismissed_litter_notifications');
+			return new Set(raw ? JSON.parse(raw) : []);
+		} catch {
+			return new Set();
+		}
+	});
+
+	function dismiss(key: string) {
+		setDismissed((prev) => {
+			const next = new Set(prev);
+			next.add(key);
+			try { localStorage.setItem('dismissed_litter_notifications', JSON.stringify([...next])); } catch { /* ignore */ }
+			return next;
+		});
+	}
+
 	const actions: Action[] = [];
 
 	if (client.stage === 'approved' && templates !== null) {
@@ -114,6 +137,18 @@ function ClientActionCenter({
 		});
 	}
 
+	for (const notif of pendingNotifications) {
+		if (!dismissed.has(notif.litterId)) {
+			actions.push({
+				type: 'dismissible-link',
+				label: `New litter available — select your puppy${notif.litterName ? ` from ${notif.litterName}` : ''}`,
+				to: `/portal/litters/${notif.litterId}`,
+				color: 'purple',
+				dismissKey: notif.litterId,
+			});
+		}
+	}
+
 	if (actions.length === 0) return null;
 
 	return (
@@ -125,6 +160,25 @@ function ClientActionCenter({
 				{actions.map((action, i) => {
 					const pillClass = `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors cursor-pointer ${ACTION_PILL[action.color]}`;
 					const dot = <span className={`w-1.5 h-1.5 rounded-full ${ACTION_DOT[action.color]}`} aria-hidden="true" />;
+
+					if (action.type === 'dismissible-link') {
+						return (
+							<span key={i} className="inline-flex items-center">
+								<Link to={action.to} className={`${pillClass} rounded-r-none border-r-0`}>
+									{dot}
+									{action.label}
+								</Link>
+								<button
+									type="button"
+									aria-label="Dismiss"
+									onClick={() => dismiss(action.dismissKey)}
+									className={`inline-flex items-center justify-center px-2 py-1.5 rounded-r-full border text-xs transition-colors cursor-pointer ${ACTION_PILL[action.color]}`}
+								>
+									✕
+								</button>
+							</span>
+						);
+					}
 
 					if (action.type === 'link') {
 						return (
@@ -461,6 +515,7 @@ export function PortalDashboard() {
 	const depositDialogRef = useFocusTrap(showDepositConfirm, () => { if (!depositLoading) setShowDepositConfirm(false); });
 	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
 	const [templates, setTemplates] = useState<TemplateItem[] | null>(null);
+	const [pendingNotifications, setPendingNotifications] = useState<PendingNotification[]>([]);
 
 	usePageTitle('Dashboard');
 
@@ -479,6 +534,12 @@ export function PortalDashboard() {
 					api.templates.my.get().then(({ data: tmpl }) => {
 						if (tmpl) setTemplates(tmpl as TemplateItem[]);
 					});
+				}
+				if (['waitlisted', 'match_requested'].includes(c.stage)) {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					(api.litters.portal as any)['my-pending-notifications'].get().then(({ data: notifs }: { data: PendingNotification[] | null }) => {
+						if (notifs) setPendingNotifications(notifs);
+					}).catch(() => {});
 				}
 			}
 			setLoading(false);
@@ -515,6 +576,7 @@ export function PortalDashboard() {
 			<ClientActionCenter
 				client={client}
 				templates={templates}
+				pendingNotifications={pendingNotifications}
 				onOpenDepositModal={() => setShowDepositConfirm(true)}
 			/>
 

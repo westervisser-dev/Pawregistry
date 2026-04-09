@@ -20,7 +20,10 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	.get('/:id', async ({ params, error }) => {
 		const litter = await db.query.litters.findFirst({
 			where: eq(litters.id, params.id),
-			with: { puppies: true, images: { orderBy: [asc(litterImages.createdAt)] } },
+			with: {
+				puppies: { with: { client: { columns: { id: true, firstName: true, lastName: true } } } },
+				images: { orderBy: [asc(litterImages.createdAt)] },
+			},
 		});
 		if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
 		return litter;
@@ -311,6 +314,34 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			columns: { litterId: true },
 		});
 		return interests.map((i) => i.litterId);
+	})
+
+	// Client: get litters the client has been notified about but hasn't expressed puppy interest in yet
+	.get('/portal/my-pending-notifications', async ({ user }) => {
+		if (!user) return [];
+		const client = await db.query.clients.findFirst({
+			where: eq(clients.userId, user.id),
+			columns: { id: true, stage: true },
+		});
+		if (!client) return [];
+		if (!['waitlisted', 'match_requested'].includes(client.stage)) return [];
+
+		const notifs = await db.query.litterNotifications.findMany({
+			where: eq(litterNotifications.clientId, client.id),
+			with: { litter: { columns: { id: true, name: true, breed: true } } },
+		});
+		if (notifs.length === 0) return [];
+
+		// Filter out litters where client already expressed interest in a puppy
+		const existingInterests = await db.query.puppyInterests.findMany({
+			where: eq(puppyInterests.clientId, client.id),
+			with: { puppy: { columns: { litterId: true } } },
+		});
+		const interestLitterIds = new Set(existingInterests.map((i) => i.puppy.litterId));
+
+		return notifs
+			.filter((n) => !interestLitterIds.has(n.litterId))
+			.map((n) => ({ litterId: n.litterId, litterName: n.litter.name, breed: n.litter.breed }));
 	})
 
 	// ── Admin routes ──
