@@ -145,6 +145,7 @@ export interface Client {
 	priority: number; // lower = higher priority on waitlist
 	depositStatus: DepositStatus; // 'none' | 'pending' (expressed intent) | 'paid' (confirmed by admin)
 	depositTier: DepositTier;    // 'r5000' | 'r500' | null — set at application, null for free list
+	depositChosenAt: string | null; // when the deposit tier was selected (or last changed)
 	puppyId: string | null;
 	litterId: string | null;
 	applicationData: ClientApplication;

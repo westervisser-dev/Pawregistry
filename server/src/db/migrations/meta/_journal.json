@@ -15,6 +15,13 @@
       "when": 1775664419430,
       "tag": "0001_strange_mad_thinker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775723663846,
+      "tag": "0002_happy_anthem",
+      "breakpoints": true
     }
   ]
 }

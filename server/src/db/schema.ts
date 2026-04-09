@@ -221,6 +221,7 @@ export const clients = pgTable('clients', {
 	priority: integer('priority').notNull().default(100),
 	depositStatus: depositStatusEnum('deposit_status').notNull().default('none'),
 	depositTier: depositTierEnum('deposit_tier'),
+	depositChosenAt: timestamp('deposit_chosen_at', { withTimezone: true }),
 	puppyId: text('puppy_id').references(() => puppies.id),
 	litterId: text('litter_id').references(() => litters.id),
 	applicationData: jsonb('application_data').notNull().$type<Record<string, unknown>>(),
