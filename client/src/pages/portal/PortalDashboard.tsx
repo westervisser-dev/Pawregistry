@@ -64,6 +64,7 @@ type PendingNotification = { litterId: string; litterName: string; breed: string
 type Action =
 	| { type: 'link'; label: string; to: string; color: ActionColor }
 	| { type: 'button'; label: string; onClick: () => void; color: ActionColor }
+	| { type: 'status'; label: string; color: ActionColor }
 	| { type: 'dismissible-link'; label: string; to: string; color: ActionColor; dismissKey: string };
 
 function ClientActionCenter({
@@ -121,9 +122,8 @@ function ClientActionCenter({
 
 	if (client.stage === 'match_requested') {
 		actions.push({
-			type: 'link',
-			label: 'Browse available litters and express interest',
-			to: '/portal/litters',
+			type: 'status',
+			label: '🐾 Hold tight — we\'re reviewing your selection towards a final match',
 			color: 'purple',
 		});
 	}
@@ -160,6 +160,15 @@ function ClientActionCenter({
 				{actions.map((action, i) => {
 					const pillClass = `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors cursor-pointer ${ACTION_PILL[action.color]}`;
 					const dot = <span className={`w-1.5 h-1.5 rounded-full ${ACTION_DOT[action.color]}`} aria-hidden="true" />;
+
+					if (action.type === 'status') {
+						return (
+							<span key={i} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium ${ACTION_PILL[action.color]} cursor-default`}>
+								{dot}
+								{action.label}
+							</span>
+						);
+					}
 
 					if (action.type === 'dismissible-link') {
 						return (

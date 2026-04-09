@@ -166,6 +166,16 @@ export function AdminDashboard() {
 						item: 'hover:bg-green-50 text-green-900',
 					},
 					{
+						key: 'confirm_match',
+						clients: allClients.filter((c) => c.stage === 'match_requested'),
+						label: (n: number) => `${n} ${n === 1 ? 'client has' : 'clients have'} requested a match`,
+						hash: 'stage',
+						pill: 'bg-pink-100 hover:bg-pink-200 border-pink-300 text-pink-800',
+						dot: 'bg-pink-500',
+						dropdown: 'border-pink-200',
+						item: 'hover:bg-pink-50 text-pink-900',
+					},
+					{
 						key: 'confirm_payment',
 						clients: allClients.filter((c) => c.stage === 'matched'),
 						label: (n: number) => `${n} ${n === 1 ? 'client' : 'clients'} awaiting payment confirmation`,
