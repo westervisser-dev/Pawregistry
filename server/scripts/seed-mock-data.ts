@@ -1088,7 +1088,7 @@ async function main() {
 		await db`
 			INSERT INTO clients (
 				id, user_id, first_name, last_name, email, phone, city, country,
-				stage, priority, deposit_status, puppy_id, litter_id,
+				stage, priority, deposit_status, deposit_tier, puppy_id, litter_id,
 				application_data, admin_notes, created_at, updated_at
 			) VALUES (
 				${client.id}, NULL, ${client.firstName}, ${client.lastName},
