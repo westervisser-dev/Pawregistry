@@ -73,6 +73,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				applicationData: body.applicationData,
 				depositStatus: body.depositStatus ?? 'none',
 				depositTier: body.depositTier ?? null,
+				depositChosenAt: body.depositTier ? new Date() : null,
 				stage: 'enquired',
 			}).returning();
 			sendStageEmail(client.id, 'enquired').catch(console.error);
@@ -328,10 +329,10 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		'/admin/:id',
 		async ({ params, body, error }) => {
 			// Fetch current values for change detection
-			const current = (body.stage || body.depositStatus !== undefined || body.adminNotes !== undefined)
+			const current = (body.stage || body.depositStatus !== undefined || body.adminNotes !== undefined || body.depositTier !== undefined)
 				? await db.query.clients.findFirst({
 					where: eq(clients.id, params.id),
-					columns: { stage: true, depositStatus: true, adminNotes: true },
+					columns: { stage: true, depositStatus: true, adminNotes: true, depositTier: true },
 				})
 				: null;
 
@@ -346,9 +347,15 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				newPriority = (maxPriority ?? 0) + 10;
 			}
 
+			const tierChanged = body.depositTier !== undefined && body.depositTier !== current?.depositTier;
 			const [updated] = await db
 				.update(clients)
-				.set({ ...body, ...(newPriority !== undefined ? { priority: newPriority } : {}), updatedAt: new Date() })
+				.set({
+					...body,
+					...(newPriority !== undefined ? { priority: newPriority } : {}),
+					...(tierChanged ? { depositChosenAt: new Date() } : {}),
+					updatedAt: new Date(),
+				})
 				.where(eq(clients.id, params.id))
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Client not found' });

@@ -71,7 +71,19 @@ export function AdminClients() {
 	// Active queue: all stages from waitlisted through matched (position persists until matched_paid)
 	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'match_requested', 'matched'];
 	const queueClients = clients.filter((c) => (ACTIVE_QUEUE_STAGES as string[]).includes(c.stage));
-	const depositQueueClients = queueClients.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid');
+	const depositQueueClients = queueClients
+		.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid')
+		.sort((a, b) => {
+			// R5000 before R500
+			if (a.depositTier !== b.depositTier) {
+				if (a.depositTier === 'r5000') return -1;
+				if (b.depositTier === 'r5000') return 1;
+			}
+			// Within same tier: oldest depositChosenAt first
+			const aTime = a.depositChosenAt ? new Date(a.depositChosenAt).getTime() : new Date(a.createdAt).getTime();
+			const bTime = b.depositChosenAt ? new Date(b.depositChosenAt).getTime() : new Date(b.createdAt).getTime();
+			return aTime - bTime;
+		});
 	const noDepositQueueClients = queueClients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
 	const notYetWaitlistedClients = clients.filter((c) => (PRE_WAITLIST_STAGES as string[]).includes(c.stage));
 	const completedClients = clients.filter((c) => c.stage === 'matched_paid');
