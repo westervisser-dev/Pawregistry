@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { api } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage } from '@paw-registry/shared';
 import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
@@ -118,6 +119,32 @@ export function PortalLitterDetail() {
 			if (data) setClientStage(data.stage);
 		}).catch(() => {});
 	}, [id, user]);
+
+	// Real-time: update puppy statuses when another client expresses interest
+	useEffect(() => {
+		if (!id) return;
+
+		const channel = supabase
+			.channel(`litter-puppies-${id}`)
+			.on(
+				'postgres_changes',
+				{ event: 'UPDATE', schema: 'public', table: 'puppies', filter: `litter_id=eq.${id}` },
+				(payload) => {
+					setLitter((prev) => {
+						if (!prev) return prev;
+						return {
+							...prev,
+							puppies: prev.puppies.map((p) =>
+								p.id === payload.new.id ? { ...p, status: payload.new.status as string } : p
+							),
+						};
+					});
+				}
+			)
+			.subscribe();
+
+		return () => { supabase.removeChannel(channel); };
+	}, [id]);
 
 	usePageTitle('Litter');
 
