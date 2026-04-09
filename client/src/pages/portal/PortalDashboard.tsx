@@ -57,7 +57,7 @@ const ACTION_DOT: Record<ActionColor, string> = {
 	green: 'bg-green-500',
 };
 
-type TemplateItem = { id: string; name: string; checkedAt: string | null };
+type TemplateItem = { id: string; name: string; checkedAt: string | null; uploadedFileUrl: string | null };
 
 type PendingNotification = { litterId: string; litterName: string; breed: string | null };
 
@@ -98,9 +98,18 @@ function ClientActionCenter({
 
 	const actions: Action[] = [];
 
+	if (client.stage === 'enquired') {
+		actions.push({
+			type: 'status',
+			label: 'Application received — we\'ll be in touch shortly',
+			color: 'blue',
+		});
+	}
+
 	if (client.stage === 'approved' && templates !== null) {
 		const total = templates.length;
-		const uploaded = templates.filter((t) => t.checkedAt !== null).length;
+		const checked = templates.filter((t) => t.checkedAt !== null).length;
+		const uploaded = templates.filter((t) => t.uploadedFileUrl !== null).length;
 		if (total > 0 && uploaded < total) {
 			actions.push({
 				type: 'link',
@@ -108,7 +117,21 @@ function ClientActionCenter({
 				to: '/portal/documents',
 				color: 'blue',
 			});
+		} else if (total > 0 && uploaded === total && checked < total) {
+			actions.push({
+				type: 'status',
+				label: 'Documents submitted — we\'re reviewing them now',
+				color: 'blue',
+			});
 		}
+	}
+
+	if (client.stage === 'waitlisted' && client.depositStatus === 'pending') {
+		actions.push({
+			type: 'status',
+			label: 'Deposit payment received — we\'re confirming it now',
+			color: 'amber',
+		});
 	}
 
 	if (client.stage === 'waitlisted' && client.depositStatus === 'none') {

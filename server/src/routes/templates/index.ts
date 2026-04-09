@@ -56,11 +56,12 @@ export const templatesRoutes = new Elysia({ prefix: '/templates' })
 			where: eq(clientTemplateChecklist.clientId, client.id),
 		});
 
-		const checkedMap = new Map(checklistItems.map((c) => [c.templateId, c.checkedAt]));
+		const checklistMap = new Map(checklistItems.map((c) => [c.templateId, c]));
 
 		return templates.map((t) => ({
 			...t,
-			checkedAt: checkedMap.get(t.id) ?? null,
+			checkedAt: checklistMap.get(t.id)?.checkedAt ?? null,
+			uploadedFileUrl: checklistMap.get(t.id)?.uploadedFileUrl ?? null,
 		}));
 	})
 
