@@ -250,6 +250,13 @@ const SEX_LABELS: Record<string, string> = {
 	no_preference: 'No preference',
 };
 
+const BUDGET_LABELS: Record<string, string> = {
+	r5k_r10k: 'R5,000 – R10,000',
+	r10k_r20k: 'R10,000 – R20,000',
+	r30k_r40k: 'R30,000 – R40,000',
+	r40k_plus: 'R40,000+',
+};
+
 // ─── Stages Modal ────────────────────────────────────────────────────────────
 
 function StagesModal({ currentStage, onClose }: { currentStage: string; onClose: () => void }) {
@@ -614,6 +621,12 @@ export function PortalDashboard() {
 							</div>
 						)}
 					</div>
+					{!!app?.budget && (
+						<div className="mt-3 pt-3 border-t border-black/[0.06]">
+							<p className="text-[10px] uppercase tracking-[0.07em] text-warm-400 mb-1">Budget</p>
+							<p className="text-[13px] text-warm-800">{BUDGET_LABELS[app.budget as string] ?? String(app.budget)}</p>
+						</div>
+					)}
 				</Card>
 			</div>
 

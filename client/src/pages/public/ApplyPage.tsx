@@ -63,9 +63,11 @@ interface FormData {
 	agreedToContract: boolean;
 	puppyEnergyPreference: 'calm' | 'moderate' | 'active' | '';
 	// Deposit
-	depositIntent: boolean;
+	depositTier: 'r5000' | 'r500' | 'free' | '';
 	petInsurance: boolean;
 	wantsSettlingGuidance: boolean;
+	// Budget
+	budget: 'r5k_r10k' | 'r10k_r20k' | 'r30k_r40k' | 'r40k_plus' | '';
 }
 
 const initial: FormData = {
@@ -98,9 +100,10 @@ const initial: FormData = {
 	considerRehome: false,
 	agreedToContract: false,
 	puppyEnergyPreference: '',
-	depositIntent: false,
+	depositTier: '',
 	petInsurance: false,
 	wantsSettlingGuidance: false,
+	budget: '',
 };
 
 const steps: Step[] = ['personal', 'home', 'experience', 'preferences', 'deposit', 'done'];
@@ -246,6 +249,9 @@ export function ApplyPage() {
 			if (!f.firstName.trim() || !f.lastName.trim() || !f.email.trim() || !f.phone.trim() || !f.city.trim())
 				return 'Please fill in all required fields before continuing.';
 		}
+		if (s === 'deposit') {
+			if (!f.depositTier) return 'Please select which waiting list you would like to join.';
+		}
 		if (s === 'preferences') {
 			const sizes = BREED_SIZES[f.preferredBreed] ?? [];
 			if (
@@ -290,7 +296,8 @@ export function ApplyPage() {
 			}
 		}
 		setSubmitting(true);
-		const depositStatus = form.depositIntent ? 'pending' : 'none';
+		const depositStatus = (form.depositTier === 'r5000' || form.depositTier === 'r500') ? 'pending' : 'none';
+		const depositTier = (form.depositTier === 'r5000' || form.depositTier === 'r500') ? form.depositTier : null;
 		const preferredBreedSize = form.preferredSize
 			? `${form.preferredBreed} - ${form.preferredSize}`
 			: form.preferredBreed;
@@ -311,6 +318,7 @@ export function ApplyPage() {
 			city: form.city || undefined,
 			country: form.country,
 			depositStatus,
+			depositTier,
 			applicationData: {
 				// Existing
 				livingType: form.livingType,
@@ -362,6 +370,7 @@ export function ApplyPage() {
 				considerOtherBreedSize: form.considerOtherBreedSize,
 				considerRehome: form.considerRehome,
 				puppyEnergyPreference: form.puppyEnergyPreference || null,
+				budget: form.budget || null,
 				petInsurance: form.petInsurance,
 				wantsSettlingGuidance: form.wantsSettlingGuidance,
 			},
@@ -390,13 +399,17 @@ export function ApplyPage() {
 				<p className="text-warm-600 leading-relaxed">
 					Thank you for applying. We'll review your application and be in touch within a few days.
 				</p>
-				{form.depositIntent ? (
+				{form.depositTier === 'r5000' ? (
 					<div className="mt-6 p-4 bg-brand-50 border border-brand-200 rounded-lg text-sm text-brand-800">
-						<span className="font-semibold">Deposit requested —</span> Once your application is approved, we'll reach out with deposit payment details to secure your priority spot.
+						<span className="font-semibold">Secured deposit (R5,000) requested —</span> Once approved, we'll reach out with payment details to place you on the priority secured list.
+					</div>
+				) : form.depositTier === 'r500' ? (
+					<div className="mt-6 p-4 bg-brand-50 border border-brand-200 rounded-lg text-sm text-brand-800">
+						<span className="font-semibold">Standard list fee (R500) requested —</span> Once approved, we'll reach out with payment details to place you on the standard waiting list.
 					</div>
 				) : (
 					<div className="mt-6 p-4 bg-warm-50 border border-warm-200 rounded-lg text-sm text-warm-600">
-						You can pay a deposit at any time after your application is reviewed to move to priority placement.
+						You've joined the free waiting list. You can pay a deposit at any time after your application is reviewed to move to a priority position.
 					</div>
 				)}
 				<div className="mt-8 p-4 bg-white border border-warm-200 rounded-lg text-sm text-warm-700">
@@ -883,6 +896,19 @@ export function ApplyPage() {
 							cols={3}
 						/>
 
+						<ButtonGroup
+							label="What is your budget for a puppy?"
+							options={[
+								{ value: 'r5k_r10k', label: 'R5k – R10k' },
+								{ value: 'r10k_r20k', label: 'R10k – R20k' },
+								{ value: 'r30k_r40k', label: 'R30k – R40k' },
+								{ value: 'r40k_plus', label: 'R40k+' },
+							]}
+							value={form.budget}
+							onChange={(v) => set('budget', v as FormData['budget'])}
+							cols={2}
+						/>
+
 						<Toggle
 							label="I would consider adopting a rehome case (an older dog whose circumstances have changed)"
 							checked={form.considerRehome}
@@ -909,67 +935,96 @@ export function ApplyPage() {
 					<div className="flex flex-col gap-6">
 						<div>
 							<h2 className="font-serif text-xl font-bold text-warm-900 mb-1">Deposit & Waiting List</h2>
-							<p className="text-sm text-warm-500">Securing a deposit is optional — but it does make a difference to your position.</p>
+							<p className="text-sm text-warm-500">Puppies are offered in three stages. Choose the list you’d like to join.</p>
 						</div>
 
 						<div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 leading-relaxed">
-							<span className="font-semibold">How the waiting list works:</span> Once approved, clients are placed on our waiting list in order of application. Clients who have paid a deposit are given priority over those who haven’t — they move to the top of the list and are matched first when a litter becomes available.
+							<span className="font-semibold">How the waiting list works:</span> Puppies are offered to the R5,000 secured list first, then the R500 standard list, and finally the free list — in that order of priority.
 						</div>
 
-						<p className="text-sm font-medium text-warm-700 mb-3">Your deposit preference<span className="text-red-500 ml-0.5">*</span></p>
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-							{/* Pay Deposit option */}
-							<button
-								type="button"
-								onClick={() => set('depositIntent', true)}
-								className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${
-									form.depositIntent
-										? 'border-brand-400 bg-brand-50'
-										: 'border-warm-200 bg-white hover:border-warm-300'
-									}`}
-							>
-								<div className="flex items-center justify-between">
-									<span className="text-2xl">⭐</span>
-									{form.depositIntent && (
-										<span className="text-xs font-semibold text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">Selected</span>
-									)}
-								</div>
-								<div>
-									<p className="font-semibold text-warm-900 text-sm">Yes, I’d like to pay a deposit</p>
-									<p className="text-xs text-warm-500 mt-1">Secure priority placement on the waiting list. We’ll be in touch with payment details after your application is reviewed.</p>
-								</div>
-								<ul className="text-xs text-warm-600 space-y-1">
-									<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Priority position on the waitlist</li>
-									<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Matched before non-deposit clients</li>
-									<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Payment arranged outside the app</li>
-								</ul>
-							</button>
+						<div>
+							<p className="text-sm font-medium text-warm-700 mb-3">Which list would you like to join?<span className="text-red-500 ml-0.5">*</span></p>
+							<div className="flex flex-col gap-3">
 
-							{/* Skip Deposit option */}
-							<button
-								type="button"
-								onClick={() => set('depositIntent', false)}
-								className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${
-									!form.depositIntent
-										? 'border-warm-400 bg-warm-50'
-										: 'border-warm-200 bg-white hover:border-warm-300'
-									}`}
-							>
-								<div className="flex items-center justify-between">
-									<span className="text-2xl">🕐</span>
-									{!form.depositIntent && (
-										<span className="text-xs font-semibold text-warm-600 bg-warm-200 px-2 py-0.5 rounded-full">Selected</span>
-									)}
-								</div>
-								<div>
-									<p className="font-semibold text-warm-900 text-sm">Not right now — I’ll decide later</p>
-									<p className="text-xs text-warm-500 mt-1">You can pay a deposit at any time after your application is reviewed. You’ll still be on the list — just in the standard queue.</p>
-								</div>
-								<ul className="text-xs text-warm-600 space-y-1">
-									<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> Standard position on the waitlist</li>
-									<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> Can upgrade to priority at any time</li>
-								</ul>
-							</button>
+								{/* R5,000 secured deposit */}
+								<button
+									type="button"
+									onClick={() => set('depositTier', 'r5000')}
+									className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${form.depositTier === 'r5000' ? 'border-brand-400 bg-brand-50' : 'border-warm-200 bg-white hover:border-warm-300'}`}
+								>
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-2">
+											<span className="text-2xl">⭐</span>
+											<span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 border border-brand-200">Highest priority</span>
+										</div>
+										{form.depositTier === 'r5000' && (
+											<span className="text-xs font-semibold text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">Selected</span>
+										)}
+									</div>
+									<div>
+										<p className="font-semibold text-warm-900 text-sm">Secured Waiting List — R5,000 deposit</p>
+										<p className="text-xs text-warm-500 mt-1">First to be notified when puppies are born. You choose first from the litter. Payment arranged after your application is approved.</p>
+									</div>
+									<ul className="text-xs text-warm-600 space-y-1">
+										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Notified first when a litter is born</li>
+										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> First pick from the litter</li>
+										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Payment arranged outside the app</li>
+									</ul>
+								</button>
+
+								{/* R500 standard list fee */}
+								<button
+									type="button"
+									onClick={() => set('depositTier', 'r500')}
+									className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${form.depositTier === 'r500' ? 'border-brand-400 bg-brand-50' : 'border-warm-200 bg-white hover:border-warm-300'}`}
+								>
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-2">
+											<span className="text-2xl">🐾</span>
+											<span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-warm-100 text-warm-600 border border-warm-200">Second priority</span>
+										</div>
+										{form.depositTier === 'r500' && (
+											<span className="text-xs font-semibold text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">Selected</span>
+										)}
+									</div>
+									<div>
+										<p className="font-semibold text-warm-900 text-sm">Standard Waiting List — R500 list fee</p>
+										<p className="text-xs text-warm-500 mt-1">Offered puppies still available after the secured list. Second priority — offered before the free list. Payment arranged after approval.</p>
+									</div>
+									<ul className="text-xs text-warm-600 space-y-1">
+										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Offered puppies after secured-list families</li>
+										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Priority over the free waiting list</li>
+										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Payment arranged outside the app</li>
+									</ul>
+								</button>
+
+								{/* Free list */}
+								<button
+									type="button"
+									onClick={() => set('depositTier', 'free')}
+									className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${form.depositTier === 'free' ? 'border-warm-400 bg-warm-50' : 'border-warm-200 bg-white hover:border-warm-300'}`}
+								>
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-2">
+											<span className="text-2xl">🕐</span>
+											<span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-warm-100 text-warm-500 border border-warm-200">Third priority</span>
+										</div>
+										{form.depositTier === 'free' && (
+											<span className="text-xs font-semibold text-warm-600 bg-warm-200 px-2 py-0.5 rounded-full">Selected</span>
+										)}
+									</div>
+									<div>
+										<p className="font-semibold text-warm-900 text-sm">Free Waiting List — No fee</p>
+										<p className="text-xs text-warm-500 mt-1">Offered puppies still available after the first two lists. Availability is posted and whoever enquires first gets priority — no queue position held.</p>
+									</div>
+									<ul className="text-xs text-warm-600 space-y-1">
+										<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> No upfront fee</li>
+										<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> First come, first served when available</li>
+										<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> Can upgrade to a paid list at any time</li>
+									</ul>
+								</button>
+
+							</div>
 						</div>
 
 						<div className="flex flex-col gap-4 pt-2">

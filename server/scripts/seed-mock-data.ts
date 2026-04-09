@@ -511,7 +511,7 @@ const CLIENTS = [
 		id: 'client-001',
 		firstName: 'Emma', lastName: 'van der Berg',
 		email: 'emma.vanderberg@gmail.com', phone: '+27821234001', city: 'Cape Town', country: 'ZA',
-		stage: 'matched_paid', depositStatus: 'paid', priority: 5,
+		stage: 'matched_paid', depositStatus: 'paid', depositTier: 'r5000', priority: 5,
 		puppyId: 'puppy-001', litterId: 'litter-f1gd-001',
 		adminNotes: 'Wonderful family, very responsive. Collected Red Collar (Cream female) in June 2024.',
 		appOverrides: { livingType: 'house', hasChildren: true, childrenAges: [7, 11], readyTimeframe: 'asap', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -520,7 +520,7 @@ const CLIENTS = [
 		id: 'client-002',
 		firstName: 'James', lastName: 'Pretorius',
 		email: 'james.pretorius@outlook.com', phone: '+27831234002', city: 'Johannesburg', country: 'ZA',
-		stage: 'matched_paid', depositStatus: 'paid', priority: 8,
+		stage: 'matched_paid', depositStatus: 'paid', depositTier: 'r500', priority: 8,
 		puppyId: 'puppy-004', litterId: 'litter-f1gd-001',
 		adminNotes: 'Single professional, works from home full time. Excellent match. Yellow Collar female collected.',
 		appOverrides: { hasChildren: false, childrenAges: [], someoneHomeDuringDay: true, livingType: 'apartment', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -529,7 +529,7 @@ const CLIENTS = [
 		id: 'client-023',
 		firstName: 'Emily', lastName: 'Lourens',
 		email: 'emily.lourens@icloud.com', phone: '+27851234023', city: 'Pretoria East', country: 'ZA',
-		stage: 'matched_paid', depositStatus: 'paid', priority: 6,
+		stage: 'matched_paid', depositStatus: 'paid', depositTier: 'r5000', priority: 6,
 		puppyId: 'puppy-002', litterId: 'litter-f1gd-001',
 		adminNotes: 'Blue Collar golden female from Spring 2024 litter. Sent lovely photos at 6 months.',
 		appOverrides: { readyTimeframe: 'asap', livingType: 'house', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -538,7 +538,7 @@ const CLIENTS = [
 		id: 'client-024',
 		firstName: 'Sebastian', lastName: 'Engelbrecht',
 		email: 'seb.engelbrecht@gmail.com', phone: '+27861234024', city: 'Hermanus', country: 'ZA',
-		stage: 'matched_paid', depositStatus: 'paid', priority: 7,
+		stage: 'matched_paid', depositStatus: 'paid', depositTier: 'r500', priority: 7,
 		puppyId: 'puppy-003', litterId: 'litter-f1gd-001',
 		adminNotes: 'Green Collar cream male from Spring 2024. Active lifestyle, dog does agility now!',
 		appOverrides: { activityLevel: 'Very active — hiking, running daily', livingType: 'house', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -549,7 +549,7 @@ const CLIENTS = [
 		id: 'client-003',
 		firstName: 'Sophia', lastName: 'Nkosi',
 		email: 'sophia.nkosi@yahoo.com', phone: '+27711234003', city: 'Pretoria', country: 'ZA',
-		stage: 'matched', depositStatus: 'paid', priority: 12,
+		stage: 'matched', depositStatus: 'paid', depositTier: 'r5000', priority: 12,
 		puppyId: 'puppy-007', litterId: 'litter-f1gd-002',
 		adminNotes: 'Matched to Red Collar apricot female (litter-f1gd-002). Final payment outstanding.',
 		appOverrides: { preferredSex: 'female', preferredColour: 'Apricot', readyTimeframe: 'asap', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -558,7 +558,7 @@ const CLIENTS = [
 		id: 'client-004',
 		firstName: 'Liam', lastName: 'Botha',
 		email: 'liam.botha@gmail.com', phone: '+27841234004', city: 'Stellenbosch', country: 'ZA',
-		stage: 'matched', depositStatus: 'paid', priority: 15,
+		stage: 'matched', depositStatus: 'paid', depositTier: 'r5000', priority: 15,
 		puppyId: 'puppy-019', litterId: 'litter-f1bgd-001',
 		adminNotes: 'Matched to Red Collar cream female (litter-f1bgd-001). Wine farmer — large property.',
 		appOverrides: { livingType: 'farm', yardSize: 'Large farm property', hasGarden: true, preferredBreedSize: 'f1b_goldendoodle - standard' },
@@ -569,7 +569,7 @@ const CLIENTS = [
 		id: 'client-032',
 		firstName: 'Clara', lastName: 'Bosman',
 		email: 'clara.bosman@gmail.com', phone: '+27731234032', city: 'Durbanville', country: 'ZA',
-		stage: 'match_requested', depositStatus: 'paid', priority: 10,
+		stage: 'match_requested', depositStatus: 'paid', depositTier: 'r5000', priority: 10,
 		puppyId: null, litterId: 'litter-f1gd-002',
 		adminNotes: 'Expressed interest in Purple Collar cream female (puppy-011). Notified for litter-f1gd-002. Approval pending.',
 		appOverrides: { preferredSex: 'female', preferredColour: 'Cream', readyTimeframe: 'asap', preferredBreedSize: 'f1_goldendoodle - standard', considerOtherColour: false },
@@ -589,7 +589,7 @@ const CLIENTS = [
 		id: 'client-005',
 		firstName: 'Olivia', lastName: 'Coetzee',
 		email: 'olivia.coetzee@icloud.com', phone: '+27851234005', city: 'Durban', country: 'ZA',
-		stage: 'waitlisted', depositStatus: 'paid', priority: 1,
+		stage: 'waitlisted', depositStatus: 'paid', depositTier: 'r5000', priority: 1,
 		puppyId: null, litterId: null,
 		adminNotes: 'Strong application, waiting on F1b litter. Very patient and communicative. Has flagged interest in upcoming litters.',
 		appOverrides: { allergiesToDogs: true, preferredSex: 'female', preferredBreedSize: 'f1b_goldendoodle - standard', secondChoiceBreedSize: 'f1b_goldendoodle - miniature' },
@@ -598,7 +598,7 @@ const CLIENTS = [
 		id: 'client-006',
 		firstName: 'Noah', lastName: 'Fourie',
 		email: 'noah.fourie@gmail.com', phone: '+27861234006', city: 'Port Elizabeth', country: 'ZA',
-		stage: 'waitlisted', depositStatus: 'paid', priority: 2,
+		stage: 'waitlisted', depositStatus: 'paid', depositTier: 'r500', priority: 2,
 		puppyId: null, litterId: null,
 		adminNotes: null,
 		appOverrides: { livingType: 'townhouse', hasChildren: false, childrenAges: [], preferredBreedSize: 'f1_goldendoodle - standard', secondChoiceBreedSize: 'f1_goldendoodle - miniature' },
@@ -607,7 +607,7 @@ const CLIENTS = [
 		id: 'client-008',
 		firstName: 'Ethan', lastName: 'du Plessis',
 		email: 'ethan.duplessis@gmail.com', phone: '+27881234008', city: 'Cape Town', country: 'ZA',
-		stage: 'waitlisted', depositStatus: 'paid', priority: 3,
+		stage: 'waitlisted', depositStatus: 'paid', depositTier: 'r5000', priority: 3,
 		puppyId: null, litterId: null,
 		adminNotes: 'Deposit confirmed via EFT. Large family, wants standard F1.',
 		appOverrides: { hasChildren: true, childrenAges: [3, 6, 10], preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -616,7 +616,7 @@ const CLIENTS = [
 		id: 'client-021',
 		firstName: 'Abigail', lastName: 'de Villiers',
 		email: 'abigail.devilliers@gmail.com', phone: '+27711234021', city: 'Cape Town', country: 'ZA',
-		stage: 'waitlisted', depositStatus: 'pending', priority: 4,
+		stage: 'waitlisted', depositStatus: 'pending', depositTier: 'r5000', priority: 4,
 		puppyId: null, litterId: null,
 		adminNotes: 'Added to F1b waitlist. Very thorough application. Deposit pending EFT confirmation.',
 		appOverrides: { allergiesToDogs: true, livingType: 'house', preferredBreedSize: 'f1b_goldendoodle - standard', secondChoiceBreedSize: 'f1b_goldendoodle - dwarf' },
@@ -1088,19 +1088,19 @@ async function main() {
 		await db`
 			INSERT INTO clients (
 				id, user_id, first_name, last_name, email, phone, city, country,
-				stage, priority, deposit_status, puppy_id, litter_id,
+				stage, priority, deposit_status, deposit_tier, puppy_id, litter_id,
 				application_data, admin_notes, created_at, updated_at
 			) VALUES (
 				${client.id}, NULL, ${client.firstName}, ${client.lastName},
 				${client.email}, ${client.phone}, ${client.city}, ${client.country},
-				${client.stage}, ${client.priority}, ${client.depositStatus},
+				${client.stage}, ${client.priority}, ${client.depositStatus}, ${client.depositTier ?? null},
 				${client.puppyId}, ${client.litterId},
 				${JSON.stringify(appData)},
 				${client.adminNotes},
 				NOW(), NOW()
 			)
 		`;
-		console.log(`  ✓ ${client.firstName} ${client.lastName} — ${client.stage} / deposit: ${client.depositStatus}`);
+		console.log(`  ✓ ${client.firstName} ${client.lastName} — ${client.stage} / deposit: ${client.depositStatus} / tier: ${client.depositTier ?? 'none'}`);
 	}
 
 	// ── Step 9: Insert client activity events ─────────────────────────────────

@@ -129,6 +129,9 @@ export type ClientStage =
 // DB values: 'none' | 'pending' (Deposit — Selected) | 'paid' (Deposit — Paid)
 export type DepositStatus = 'none' | 'pending' | 'paid';
 
+// Which tier the client selected at apply time: 'r5000' (Secured) | 'r500' (Standard) | null (Free)
+export type DepositTier = 'r5000' | 'r500' | null;
+
 export interface Client {
 	id: string;
 	userId: string | null; // Supabase auth user id once account created
@@ -141,6 +144,7 @@ export interface Client {
 	stage: ClientStage;
 	priority: number; // lower = higher priority on waitlist
 	depositStatus: DepositStatus; // 'none' | 'pending' (expressed intent) | 'paid' (confirmed by admin)
+	depositTier: DepositTier;    // 'r5000' | 'r500' | null — set at application, null for free list
 	puppyId: string | null;
 	litterId: string | null;
 	applicationData: ClientApplication;
@@ -199,6 +203,7 @@ export interface ClientApplication {
 	considerOtherColour: boolean;
 	considerOtherBreedSize: boolean;
 	considerRehome: boolean;
+	budget: 'r5k_r10k' | 'r10k_r20k' | 'r30k_r40k' | 'r40k_plus' | null;
 }
 
 // ─── Update (puppy journal posts) ────────────────────────────────────────────

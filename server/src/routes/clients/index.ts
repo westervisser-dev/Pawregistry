@@ -72,6 +72,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				country: body.country ?? 'ZA',
 				applicationData: body.applicationData,
 				depositStatus: body.depositStatus ?? 'none',
+				depositTier: body.depositTier ?? null,
 				stage: 'enquired',
 			}).returning();
 			sendStageEmail(client.id, 'enquired').catch(console.error);
@@ -91,6 +92,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				city: t.Optional(t.String()),
 				country: t.Optional(t.String()),
 				depositStatus: t.Optional(t.Union([t.Literal('none'), t.Literal('pending'), t.Literal('paid')])),
+				depositTier: t.Optional(t.Nullable(t.Union([t.Literal('r5000'), t.Literal('r500')]))),
 				applicationData: applicationDataSchema,
 			}),
 		}
@@ -395,6 +397,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				adminNotes: t.Nullable(t.String()),
 				userId: t.Nullable(t.String()),
 				depositStatus: t.Union([t.Literal('none'), t.Literal('pending'), t.Literal('paid')]),
+				depositTier: t.Nullable(t.Union([t.Literal('r5000'), t.Literal('r500')])),
 			})),
 		}
 	)
