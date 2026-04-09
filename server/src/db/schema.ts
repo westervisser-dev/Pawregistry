@@ -57,6 +57,7 @@ export const clientStageEnum = pgEnum('client_stage', [
 	'matched_paid',
 ]);
 export const depositStatusEnum = pgEnum('deposit_status', ['none', 'pending', 'paid']);
+export const depositTierEnum = pgEnum('deposit_tier', ['r5000', 'r500']);
 export const documentTypeEnum = pgEnum('document_type', [
 	'contract',
 	'health_record',
@@ -219,6 +220,7 @@ export const clients = pgTable('clients', {
 	stage: clientStageEnum('stage').notNull().default('enquired'),
 	priority: integer('priority').notNull().default(100),
 	depositStatus: depositStatusEnum('deposit_status').notNull().default('none'),
+	depositTier: depositTierEnum('deposit_tier'),
 	puppyId: text('puppy_id').references(() => puppies.id),
 	litterId: text('litter_id').references(() => litters.id),
 	applicationData: jsonb('application_data').notNull().$type<Record<string, unknown>>(),

@@ -152,6 +152,11 @@ export function ActionBadge({ action }: { action: ClientAction }) {
 
 // ─── Deposit status inline select ────────────────────────────────────────────
 
+const DEPOSIT_TIER_LABELS: Record<string, { label: string; cls: string }> = {
+	r5000: { label: 'R5,000', cls: 'bg-brand-50 text-brand-700 border-brand-200' },
+	r500:  { label: 'R500',   cls: 'bg-blue-50 text-blue-700 border-blue-200'   },
+};
+
 export function DepositStatusSelect({ client, onUpdate }: { client: Client; onUpdate: (c: Client) => void }) {
 	const [saving, setSaving] = useState(false);
 
@@ -170,17 +175,26 @@ export function DepositStatusSelect({ client, onUpdate }: { client: Client; onUp
 			? 'bg-amber-50 text-amber-700 border-amber-200'
 			: 'bg-warm-50 text-warm-500 border-warm-200';
 
+	const tier = client.depositTier ? DEPOSIT_TIER_LABELS[client.depositTier] : null;
+
 	return (
-		<select
-			value={client.depositStatus}
-			onChange={(e) => handleChange(e.target.value)}
-			disabled={saving}
-			className={`text-xs font-medium px-2 py-1 rounded-full border appearance-none cursor-pointer disabled:opacity-50 max-w-[90px] md:max-w-none ${cls}`}
-		>
-			<option value="none">None</option>
-			<option value="pending">Pending</option>
-			<option value="paid">Paid</option>
-		</select>
+		<div className="flex items-center gap-1.5 flex-wrap justify-end">
+			{!!tier && (
+				<span className={`text-xs font-medium px-2 py-1 rounded-full border ${tier.cls}`} title="Deposit tier selected at application">
+					{tier.label}
+				</span>
+			)}
+			<select
+				value={client.depositStatus}
+				onChange={(e) => handleChange(e.target.value)}
+				disabled={saving}
+				className={`text-xs font-medium px-2 py-1 rounded-full border appearance-none cursor-pointer disabled:opacity-50 max-w-[90px] md:max-w-none ${cls}`}
+			>
+				<option value="none">None</option>
+				<option value="pending">Pending</option>
+				<option value="paid">Paid</option>
+			</select>
+		</div>
 	);
 }
 
