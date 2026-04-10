@@ -10,13 +10,12 @@ export function AboutPage() {
 			{/* Hero */}
 			<section className="relative bg-warm-900 text-white overflow-hidden">
 				<img
-					src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=1600&q=85&auto=format&fit=crop"
-					srcSet="https://images.unsplash.com/photo-1552053831-71594a27632d?w=768&q=80&auto=format&fit=crop 768w, https://images.unsplash.com/photo-1552053831-71594a27632d?w=1200&q=85&auto=format&fit=crop 1200w, https://images.unsplash.com/photo-1552053831-71594a27632d?w=1600&q=85&auto=format&fit=crop 1600w"
-					sizes="100vw"
+					src="/about-hero.jpeg"
 					alt=""
 					aria-hidden="true"
 					decoding="async"
-					className="absolute inset-0 w-full h-full object-cover [object-position:50%_30%] scale-105"
+					className="absolute inset-0 w-full h-full object-cover scale-105"
+					style={{ objectPosition: '20% 30%' }}
 				/>
 				<div className="absolute inset-0 bg-gradient-to-br from-warm-900/90 via-warm-800/80 to-brand-900/75" />
 				<div className="relative max-w-6xl mx-auto px-6 py-20 md:py-36 flex flex-col items-start gap-5">
@@ -50,15 +49,13 @@ export function AboutPage() {
 							</p>
 						</div>
 					</div>
-					<div className="rounded-2xl overflow-hidden h-72 md:h-80 bg-warm-100">
-						<img
-							src="/about-why.avif"
-							alt="A happy doodle dog looking at the camera"
-							loading="lazy"
-							decoding="async"
-							className="w-full h-full object-cover object-center"
-						/>
-					</div>
+					<img
+						src="/about-why.jpeg"
+						alt="A happy doodle dog looking at the camera"
+						loading="lazy"
+						decoding="async"
+						className="w-[75%] mx-auto h-80 md:h-96 object-cover object-top rounded-3xl block"
+					/>
 				</div>
 			</section>
 

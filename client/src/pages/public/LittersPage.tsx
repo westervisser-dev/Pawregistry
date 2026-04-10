@@ -167,7 +167,7 @@ export function LittersPage() {
 				</div>
 				<div className="hidden md:block w-72 flex-shrink-0 bg-warm-100">
 					<img
-						src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&q=85&auto=format&fit=crop"
+						src="/waitlist-section-2.jpeg"
 						alt="Two doodle dogs together"
 						loading="lazy"
 						decoding="async"

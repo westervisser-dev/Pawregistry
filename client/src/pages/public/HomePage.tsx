@@ -23,15 +23,14 @@ export function HomePage() {
 			{/* Hero */}
 			<section className="relative bg-warm-900 text-white overflow-hidden">
 				<img
-					src="https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1600&q=85&auto=format&fit=crop"
-					srcSet="https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=768&q=80&auto=format&fit=crop 768w, https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1200&q=85&auto=format&fit=crop 1200w, https://images.unsplash.com/photo-1575859431774-2e57ed632664?w=1600&q=85&auto=format&fit=crop 1600w"
-					sizes="100vw"
+					src="/hero-puppy.jpeg"
 					alt=""
 					aria-hidden="true"
 					decoding="async"
-					className="absolute inset-0 w-full h-full object-cover object-center scale-105"
+					className="absolute inset-0 w-full h-full object-cover scale-105"
+					style={{ objectPosition: '40% 35%' }}
 				/>
-				<div className="absolute inset-0 bg-gradient-to-br from-warm-900/90 via-warm-800/80 to-brand-900/75" />
+				<div className="absolute inset-0 bg-gradient-to-br from-warm-900/70 via-warm-800/55 to-brand-900/50" />
 				<div className="relative max-w-6xl mx-auto px-6 py-16 md:py-32 flex flex-col items-start gap-6">
 					<span className="text-brand-300 text-sm font-medium uppercase tracking-widest">
 						Thoughtful Breeding
@@ -119,24 +118,20 @@ export function HomePage() {
 			</section>
 
 			<section className="bg-warm-50 border-t border-warm-100">
-				<div className="max-w-6xl mx-auto px-6 py-10 md:py-16 flex flex-col md:flex-row gap-10 items-center">
-					<div className="w-full md:w-1/2 rounded-2xl overflow-hidden aspect-[4/3] flex-shrink-0">
-						<img
-							src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=85&auto=format&fit=crop"
-							srcSet="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&q=80&auto=format&fit=crop 600w, https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=85&auto=format&fit=crop 800w"
-							sizes="(max-width: 768px) 100vw, 50vw"
-							alt="A happy doodle dog"
-							loading="lazy"
-							decoding="async"
-							className="w-full h-full object-cover"
-						/>
-					</div>
-					<div>
+				<div className="max-w-6xl mx-auto px-6 py-10 md:py-16 flex flex-col md:flex-row gap-6 items-center">
+					<img
+						src="/litters-section.jpeg"
+						alt="A happy doodle dog"
+						loading="lazy"
+						decoding="async"
+						className="w-full md:w-[30%] h-96 rounded-2xl object-cover flex-shrink-0"
+					/>
+					<div className="flex-1 text-center px-10">
 						<span className="text-brand-400 text-xs font-semibold uppercase tracking-widest mb-3 block">Our litters</span>
 						<h2 className="font-serif text-3xl font-bold text-warm-900 mb-3 leading-tight">
 							Health-tested.<br />Temperament-first.
 						</h2>
-						<p className="text-warm-500 leading-relaxed mb-6 text-sm max-w-sm">
+						<p className="text-warm-500 leading-relaxed mb-6 text-sm max-w-sm mx-auto">
 							Every litter comes from health-screened parents with verified pedigrees. Browse our upcoming and current litters to find your perfect match.
 						</p>
 						<Link
@@ -146,6 +141,14 @@ export function HomePage() {
 							View litters
 						</Link>
 					</div>
+					<img
+						src="/litters-section-2.jpeg"
+						alt="A happy doodle dog"
+						loading="lazy"
+						decoding="async"
+						className="w-full md:w-[30%] h-96 rounded-2xl object-cover flex-shrink-0"
+						style={{ objectPosition: "50% 30%" }}
+					/>
 				</div>
 			</section>
 
