@@ -13,7 +13,7 @@ import {
 	Avatar,
 	ViewAllLink,
 } from '@/components/ui';
-import type { Dog, Litter, Client } from '@paw-registry/shared';
+import type { Litter, Client } from '@paw-registry/shared';
 
 function getGreeting(): string {
 	const h = new Date().getHours();
@@ -33,7 +33,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export function AdminDashboard() {
-	const [counts, setCounts] = useState({ dogs: 0, litters: 0, clients: 0, enquiries: 0 });
+	const [counts, setCounts] = useState({ litters: 0, clients: 0, enquiries: 0 });
 	const [recentEnquiries, setRecentEnquiries] = useState<Pick<Client, 'id' | 'firstName' | 'lastName' | 'email' | 'createdAt'>[]>([]);
 	const [allClients, setAllClients] = useState<Client[]>([]);
 	const [docsCompleteIds, setDocsCompleteIds] = useState<Set<string>>(new Set());
@@ -57,13 +57,11 @@ export function AdminDashboard() {
 
 	useEffect(() => {
 		Promise.all([
-			api.dogs.get({ query: {} }),
 			api.litters.admin.all.get(),
 			api.clients.admin.get({ query: {} }),
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(api.clients.admin as any).attention.get(),
-		]).then(([dogsRes, littersRes, clientsRes, attentionRes]) => {
-			const dogs = (dogsRes.data as Dog[] | null) ?? [];
+		]).then(([littersRes, clientsRes, attentionRes]) => {
 			const litters = (littersRes.data as Litter[] | null) ?? [];
 			const clients = (clientsRes.data as Client[] | null) ?? [];
 			const attentionData = (attentionRes as { data: { docsCompleteIds: string[] } | null }).data;
@@ -71,7 +69,6 @@ export function AdminDashboard() {
 			const enquired = clients.filter((c) => c.stage === 'enquired');
 
 			setCounts({
-				dogs: dogs.length,
 				litters: litters.length,
 				clients: clients.length,
 				enquiries: enquired.length,
@@ -110,14 +107,7 @@ export function AdminDashboard() {
 			/>
 
 			{/* ── Stats Grid ──────────────────────────────────────── */}
-			<div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-7">
-				<StatCard
-					icon="🐕"
-					value={counts.dogs}
-					label="Active Dogs"
-					accent="brand"
-					to="/admin/dogs"
-				/>
+			<div className="grid grid-cols-2 lg:grid-cols-3 gap-3.5 mb-7">
 				<StatCard
 					icon="🐶"
 					value={counts.litters}
@@ -174,6 +164,16 @@ export function AdminDashboard() {
 						dot: 'bg-green-500',
 						dropdown: 'border-green-200',
 						item: 'hover:bg-green-50 text-green-900',
+					},
+					{
+						key: 'confirm_match',
+						clients: allClients.filter((c) => c.stage === 'match_requested'),
+						label: (n: number) => `${n} ${n === 1 ? 'client has' : 'clients have'} requested a match`,
+						hash: 'stage',
+						pill: 'bg-pink-100 hover:bg-pink-200 border-pink-300 text-pink-800',
+						dot: 'bg-pink-500',
+						dropdown: 'border-pink-200',
+						item: 'hover:bg-pink-50 text-pink-900',
 					},
 					{
 						key: 'confirm_payment',
@@ -318,8 +318,7 @@ export function AdminDashboard() {
 					<Card className="p-5">
 						<h3 className="font-serif text-[15px] text-warm-900 mb-3.5">Quick Actions</h3>
 						<div className="flex flex-col gap-2">
-							<ActionButton icon="+" label="Add Dog" to="/admin/dogs/new" variant="primary" />
-							<ActionButton icon="+" label="Create Litter" to="/admin/litters/new" />
+							<ActionButton icon="+" label="Create Litter" to="/admin/litters/new" variant="primary" />
 							<ActionButton icon="📋" label="Waiting List" to="/admin/clients" />
 							<ActionButton icon="📢" label="Post Update" to="/admin/updates" />
 						</div>

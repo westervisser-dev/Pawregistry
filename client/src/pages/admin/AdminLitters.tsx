@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, LitterStatusBadge, EmptyState } from '@/components/ui';
-import type { Dog, Litter } from '@paw-registry/shared';
+import type { Litter } from '@paw-registry/shared';
 import { AdminTable } from './_shared';
 
 export function AdminLitters() {
@@ -39,17 +39,13 @@ export function AdminLitters() {
 			/>
 			{loading ? <LoadingPage /> : (
 				<Card>
-					<AdminTable headers={['Name', 'Status', { label: 'Sire × Dam', hideMobile: true }, 'Matches', { label: 'Public ?', hideMobile: true }, '']}>
+					<AdminTable headers={['Name', 'Status', 'Matches', { label: 'Public ?', hideMobile: true }, '']}>
 						{litters.map((litter) => (
 							<tr key={litter.id} className="border-b border-black/[0.05] hover:bg-warm-50">
 								<td className="py-3 px-4">
 									<p className="font-medium text-warm-900">{litter.name}</p>
-									<p className="text-xs text-warm-400 md:hidden">
-										{(litter as unknown as { sire: Dog; dam: Dog }).sire?.name ?? litter.sireId} × {(litter as unknown as { sire: Dog; dam: Dog }).dam?.name ?? litter.damId}
-									</p>
 								</td>
 								<td className="py-3 px-4"><LitterStatusBadge status={litter.status} /></td>
-								<td className="hidden md:table-cell py-3 px-4 text-warm-500 text-xs">{(litter as unknown as { sire: Dog; dam: Dog }).sire?.name ?? litter.sireId} × {(litter as unknown as { sire: Dog; dam: Dog }).dam?.name ?? litter.damId}</td>
 								<td className="py-3 px-4">
 									{matchCounts[litter.id] != null ? (
 										matchCounts[litter.id] > 0 ? (

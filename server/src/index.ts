@@ -1,7 +1,6 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
-import { dogsRoutes } from './routes/dogs';
 import { littersRoutes } from './routes/litters';
 import { clientsRoutes } from './routes/clients';
 import { updatesRoutes } from './routes/updates';
@@ -36,7 +35,6 @@ const app = new Elysia()
 	.use(authRoutes)
 	.use(adminsRoutes)
 	.use(emailRoutes)
-	.use(dogsRoutes)
 	.use(littersRoutes)
 	.use(clientsRoutes)
 	.use(updatesRoutes)

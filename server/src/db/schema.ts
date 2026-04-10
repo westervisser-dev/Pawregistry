@@ -13,24 +13,6 @@ import { relations } from 'drizzle-orm';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export const dogSexEnum = pgEnum('dog_sex', ['male', 'female']);
-export const dogStatusEnum = pgEnum('dog_status', ['active', 'retired', 'deceased']);
-export const healthCertTypeEnum = pgEnum('health_cert_type', [
-	'ofa_hips',
-	'ofa_elbows',
-	'ofa_eyes',
-	'ofa_heart',
-	'dna_panel',
-	'brucellosis',
-	'other',
-]);
-export const healthCertResultEnum = pgEnum('health_cert_result', [
-	'pass',
-	'fail',
-	'pending',
-	'excellent',
-	'good',
-	'fair',
-]);
 export const litterStatusEnum = pgEnum('litter_status', [
 	'planned',
 	'confirmed',
@@ -66,65 +48,12 @@ export const documentTypeEnum = pgEnum('document_type', [
 	'other',
 ]);
 
-// ─── Dogs ────────────────────────────────────────────────────────────────────
-
-export const dogs = pgTable('dogs', {
-	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-	name: text('name').notNull(),
-	callName: text('call_name'),
-	registeredName: text('registered_name'),
-	breed: text('breed').notNull(),
-	sex: dogSexEnum('sex').notNull(),
-	dob: text('dob').notNull(), // ISO date
-	colour: text('colour').notNull(),
-	status: dogStatusEnum('status').notNull().default('active'),
-	sireId: text('sire_id'), // self-ref, no FK to allow flexible pedigree entry
-	damId: text('dam_id'),
-	microchipNumber: text('microchip_number'),
-	registrationNumber: text('registration_number'),
-	profileImageUrl: text('profile_image_url'),
-	imageUrls: jsonb('image_urls').$type<string[]>().notNull().default([]),
-	notes: text('notes'),
-	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const dogsRelations = relations(dogs, ({ one, many }) => ({
-	sire: one(dogs, { fields: [dogs.sireId], references: [dogs.id], relationName: 'sire' }),
-	dam: one(dogs, { fields: [dogs.damId], references: [dogs.id], relationName: 'dam' }),
-	healthCerts: many(healthCerts),
-	siredLitters: many(litters, { relationName: 'sire' }),
-	damedLitters: many(litters, { relationName: 'dam' }),
-}));
-
-// ─── Health Certs ────────────────────────────────────────────────────────────
-
-export const healthCerts = pgTable('health_certs', {
-	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-	dogId: text('dog_id').notNull().references(() => dogs.id, { onDelete: 'cascade' }),
-	type: healthCertTypeEnum('type').notNull(),
-	result: healthCertResultEnum('result').notNull(),
-	certNumber: text('cert_number'),
-	issuedBy: text('issued_by'),
-	issuedAt: text('issued_at').notNull(),
-	expiresAt: text('expires_at'),
-	documentUrl: text('document_url'),
-	notes: text('notes'),
-	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const healthCertsRelations = relations(healthCerts, ({ one }) => ({
-	dog: one(dogs, { fields: [healthCerts.dogId], references: [dogs.id] }),
-}));
-
 // ─── Litters ─────────────────────────────────────────────────────────────────
 
 export const litters = pgTable('litters', {
 	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
 	name: text('name').notNull(),
 	breed: text('breed'),
-	sireId: text('sire_id').notNull().references(() => dogs.id),
-	damId: text('dam_id').notNull().references(() => dogs.id),
 	status: litterStatusEnum('status').notNull().default('planned'),
 	whelpDate: text('whelp_date'),
 	expectedDate: text('expected_date'),
@@ -138,9 +67,7 @@ export const litters = pgTable('litters', {
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const littersRelations = relations(litters, ({ one, many }) => ({
-	sire: one(dogs, { fields: [litters.sireId], references: [dogs.id], relationName: 'sire' }),
-	dam: one(dogs, { fields: [litters.damId], references: [dogs.id], relationName: 'dam' }),
+export const littersRelations = relations(litters, ({ many }) => ({
 	puppies: many(puppies),
 	updates: many(updates),
 	images: many(litterImages),
@@ -154,7 +81,6 @@ export const littersRelations = relations(litters, ({ one, many }) => ({
 export const puppies = pgTable('puppies', {
 	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
 	litterId: text('litter_id').notNull().references(() => litters.id, { onDelete: 'cascade' }),
-	dogId: text('dog_id').references(() => dogs.id), // set once graduated
 	collarColour: text('collar_colour').notNull(),
 	sex: dogSexEnum('sex').notNull(),
 	colour: text('colour').notNull(),
@@ -169,7 +95,6 @@ export const puppies = pgTable('puppies', {
 
 export const puppiesRelations = relations(puppies, ({ one, many }) => ({
 	litter: one(litters, { fields: [puppies.litterId], references: [litters.id] }),
-	dog: one(dogs, { fields: [puppies.dogId], references: [dogs.id] }),
 	client: one(clients, { fields: [puppies.id], references: [clients.puppyId] }),
 	interests: many(puppyInterests),
 }));

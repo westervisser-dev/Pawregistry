@@ -9,14 +9,7 @@ type NavItem =
 
 const navItems: NavItem[] = [
 	{ type: 'link', to: '/apply', label: 'Apply' },
-	{
-		type: 'dropdown',
-		label: 'Our Dogs',
-		items: [
-			{ to: '/dogs', label: 'Our Breeds' },
-			{ to: '/litters', label: 'Litters' },
-		],
-	},
+	{ type: 'link', to: '/litters', label: 'Litters' },
 	{
 		type: 'dropdown',
 		label: 'About Us',
@@ -327,7 +320,6 @@ export function PublicLayout() {
 					<div>
 						<h4 className="text-white font-medium mb-3 text-sm uppercase tracking-wider">Links</h4>
 						<div className="flex flex-col gap-2 text-sm">
-							<Link to="/dogs" className="hover:text-white transition-colors">Our Breeds</Link>
 							<Link to="/litters" className="hover:text-white transition-colors">Available Litters</Link>
 							<Link to="/apply" className="hover:text-white transition-colors">Apply for a Puppy</Link>
 							<Link to="/faq" className="hover:text-white transition-colors">FAQ</Link>

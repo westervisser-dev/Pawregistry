@@ -126,11 +126,6 @@ export function LittersPage() {
 									</div>
 
 									<div className="flex flex-col gap-1 flex-1">
-										{(litter.sire?.name || litter.dam?.name) && (
-											<p className="text-sm text-warm-500">
-												{litter.sire?.name} × {litter.dam?.name}
-											</p>
-										)}
 										{litter.expectedDate && !litter.whelpDate && (
 											<p className="text-xs text-warm-400">
 												Expected {new Date(litter.expectedDate).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}
@@ -172,7 +167,7 @@ export function LittersPage() {
 				</div>
 				<div className="hidden md:block w-72 flex-shrink-0 bg-warm-100">
 					<img
-						src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&q=85&auto=format&fit=crop"
+						src="/waitlist-section-2.jpeg"
 						alt="Two doodle dogs together"
 						loading="lazy"
 						decoding="async"

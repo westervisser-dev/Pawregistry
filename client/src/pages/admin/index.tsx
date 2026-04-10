@@ -1,6 +1,4 @@
 export { AdminDashboard } from './AdminDashboard';
-export { AdminDogs } from './AdminDogs';
-export { AdminDogDetail } from './AdminDogDetail';
 export { AdminLitters } from './AdminLitters';
 export { AdminLitterDetail } from './AdminLitterDetail';
 export { AdminClients } from './AdminClients';

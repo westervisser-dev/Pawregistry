@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { api } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage } from '@paw-registry/shared';
 import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
@@ -119,6 +120,32 @@ export function PortalLitterDetail() {
 		}).catch(() => {});
 	}, [id, user]);
 
+	// Real-time: update puppy statuses when another client expresses interest
+	useEffect(() => {
+		if (!id) return;
+
+		const channel = supabase
+			.channel(`litter-puppies-${id}`)
+			.on(
+				'postgres_changes',
+				{ event: 'UPDATE', schema: 'public', table: 'puppies', filter: `litter_id=eq.${id}` },
+				(payload) => {
+					setLitter((prev) => {
+						if (!prev) return prev;
+						return {
+							...prev,
+							puppies: prev.puppies.map((p) =>
+								p.id === payload.new.id ? { ...p, status: payload.new.status as string } : p
+							),
+						};
+					});
+				}
+			)
+			.subscribe();
+
+		return () => { supabase.removeChannel(channel); };
+	}, [id]);
+
 	usePageTitle('Litter');
 
 	const expressInterest = async (puppyId: string) => {
@@ -234,30 +261,6 @@ export function PortalLitterDetail() {
 					</div>
 				</div>
 			)}
-
-			{/* Parents */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-				{[
-					{ label: 'Sire (Father)', dog: litter.sire },
-					{ label: 'Dam (Mother)', dog: litter.dam },
-				].map(({ label, dog }) => (
-					<div
-						key={label}
-						className="flex items-center gap-4 p-4 bg-white rounded-xl border border-warm-200"
-					>
-						<div className="w-12 h-12 rounded-full bg-warm-100 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
-							{dog?.profileImageUrl ? (
-								<img src={dog.profileImageUrl} alt={dog.name} className="w-full h-full object-cover" />
-							) : '🐕'}
-						</div>
-						<div>
-							<p className="text-xs text-warm-400 uppercase tracking-wide">{label}</p>
-							<p className="font-medium text-warm-900">{dog?.name}</p>
-							<p className="text-xs text-warm-500">{dog?.colour}{dog?.breed ? ` · ${formatBreed(dog.breed)}` : ''}</p>
-						</div>
-					</div>
-				))}
-			</div>
 
 			{/* Puppies */}
 			{(litter.puppies?.length ?? 0) > 0 && (
