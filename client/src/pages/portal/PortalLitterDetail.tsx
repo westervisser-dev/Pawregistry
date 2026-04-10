@@ -66,6 +66,75 @@ function formatBreed(raw: string | null | undefined): string | null {
 	return size ? `${breed} · ${size}` : breed;
 }
 
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+
+function Lightbox({ urls, index, onClose, onPrev, onNext }: {
+	urls: string[];
+	index: number;
+	onClose: () => void;
+	onPrev: () => void;
+	onNext: () => void;
+}) {
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') onClose();
+			if (e.key === 'ArrowLeft') onPrev();
+			if (e.key === 'ArrowRight') onNext();
+		};
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	}, [onClose, onPrev, onNext]);
+
+	return (
+		<div
+			className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+			role="dialog"
+			aria-modal="true"
+			aria-label="Image enlarged view"
+			onClick={onClose}
+		>
+			<button
+				type="button"
+				onClick={onClose}
+				className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center text-xl transition-colors"
+				aria-label="Close"
+			>&#x2715;</button>
+
+			{urls.length > 1 && (
+				<>
+					<button
+						type="button"
+						onClick={(e) => { e.stopPropagation(); onPrev(); }}
+						className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center text-2xl transition-colors"
+						aria-label="Previous image"
+					>&#8249;</button>
+					<button
+						type="button"
+						onClick={(e) => { e.stopPropagation(); onNext(); }}
+						className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center text-2xl transition-colors"
+						aria-label="Next image"
+					>&#8250;</button>
+				</>
+			)}
+
+			<img
+				src={urls[index]}
+				alt=""
+				className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+				onClick={(e) => e.stopPropagation()}
+			/>
+
+			{urls.length > 1 && (
+				<div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+					{urls.map((_, i) => (
+						<div key={i} className={`w-2 h-2 rounded-full ${i === index ? 'bg-white' : 'bg-white/40'}`} />
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function PortalLitterDetail() {
@@ -82,6 +151,7 @@ export function PortalLitterDetail() {
 	const [litterInterestLoading, setLitterInterestLoading] = useState(false);
 	const [clientStage, setClientStage] = useState<ClientStage | null>(null);
 	const [puppyImgIndexes, setPuppyImgIndexes] = useState<Record<string, number>>({});
+	const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
 
 	useEffect(() => {
 		if (!id) return;
@@ -294,25 +364,28 @@ export function PortalLitterDetail() {
 							<div key={puppy.id} className="bg-white rounded-xl border border-warm-200 overflow-hidden flex flex-col">
 								{/* Puppy image carousel */}
 								{imgs.length > 0 && (
-									<div className="relative w-full aspect-square overflow-hidden group bg-warm-100 flex-shrink-0">
+									<div className="relative w-full aspect-square overflow-hidden bg-warm-100 flex-shrink-0">
 										<img
 											src={imgs[imgIdx].url}
 											alt={puppy.colour ?? ''}
 											loading="lazy"
 											decoding="async"
-											className="w-full h-full object-cover"
+											className="w-full h-full object-cover cursor-zoom-in"
+											onClick={() => setLightbox({ urls: imgs.map((i) => i.url), index: imgIdx })}
 										/>
 										{imgs.length > 1 && (
 											<>
 												<button
 													type="button"
 													onClick={(e) => { e.stopPropagation(); setPuppyImgIndexes((prev) => ({ ...prev, [puppy.id]: imgIdx > 0 ? imgIdx - 1 : imgs.length - 1 })); }}
-													className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm"
+													className="absolute left-1.5 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center text-base shadow-md transition-colors"
+													aria-label="Previous photo"
 												>&#8249;</button>
 												<button
 													type="button"
 													onClick={(e) => { e.stopPropagation(); setPuppyImgIndexes((prev) => ({ ...prev, [puppy.id]: imgIdx < imgs.length - 1 ? imgIdx + 1 : 0 })); }}
-													className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm"
+													className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center text-base shadow-md transition-colors"
+													aria-label="Next photo"
 												>&#8250;</button>
 												<div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
 													{imgs.map((_, i) => (
@@ -407,10 +480,16 @@ export function PortalLitterDetail() {
 				<div className="mb-8">
 					<h2 className="font-serif text-xl font-bold text-warm-900 mb-4">Photos</h2>
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-						{litter.images.map((img) => (
-							<div key={img.id} className="aspect-square overflow-hidden rounded-xl bg-warm-100">
+						{litter.images.map((img, i) => (
+							<button
+								key={img.id}
+								type="button"
+								className="aspect-square overflow-hidden rounded-xl bg-warm-100 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+								onClick={() => setLightbox({ urls: litter.images!.map((x) => x.url), index: i })}
+								aria-label="Enlarge photo"
+							>
 								<img src={img.url} alt="Litter photo" loading="lazy" decoding="async" className="w-full h-full object-cover" />
-							</div>
+							</button>
 						))}
 					</div>
 				</div>
@@ -421,6 +500,17 @@ export function PortalLitterDetail() {
 				<div className="bg-brand-50 border border-brand-100 rounded-xl p-5">
 					<p className="text-warm-700 text-sm leading-relaxed">{litter.notes}</p>
 				</div>
+			)}
+
+			{/* Lightbox */}
+			{lightbox && (
+				<Lightbox
+					urls={lightbox.urls}
+					index={lightbox.index}
+					onClose={() => setLightbox(null)}
+					onPrev={() => setLightbox((lb) => lb ? { ...lb, index: lb.index > 0 ? lb.index - 1 : lb.urls.length - 1 } : null)}
+					onNext={() => setLightbox((lb) => lb ? { ...lb, index: lb.index < lb.urls.length - 1 ? lb.index + 1 : 0 } : null)}
+				/>
 			)}
 		</div>
 	);
