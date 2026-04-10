@@ -87,6 +87,8 @@ export function AdminLitterDetail() {
 	const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string; imageFile?: File }>>([]);
 	const [newPuppyDraft, setNewPuppyDraft] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
+	const [editingExpectedDate, setEditingExpectedDate] = useState(false);
+	const [expectedDateInput, setExpectedDateInput] = useState('');
 
 	useEffect(() => {
 		if (!id) return;
@@ -209,6 +211,16 @@ export function AdminLitterDetail() {
 		const next = !litter.isPublic;
 		await api.litters({ id }).patch({ isPublic: next });
 		setLitter((l) => l ? { ...l, isPublic: next } : l);
+	};
+
+	const saveExpectedDate = async () => {
+		if (!id || !litter) return;
+		setSaving(true);
+		const value = expectedDateInput || null;
+		await api.litters({ id }).patch({ expectedDate: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+		setLitter((l) => l ? { ...l, expectedDate: value as unknown as Date } : l);
+		setEditingExpectedDate(false);
+		setSaving(false);
 	};
 
 	const addPuppy = async () => {
@@ -753,9 +765,44 @@ export function AdminLitterDetail() {
 							<span className="text-warm-500">Whelp date</span>
 							<span>{fmtDate(litter.whelpDate)}</span>
 						</div>
-						<div className="flex justify-between">
+						<div className="flex justify-between items-center">
 							<span className="text-warm-500">Expected</span>
-							<span>{fmtDate(litter.expectedDate)}</span>
+							{editingExpectedDate ? (
+								<div className="flex items-center gap-1.5">
+									<input
+										type="date"
+										value={expectedDateInput}
+										onChange={(e) => setExpectedDateInput(e.target.value)}
+										className="px-2 py-0.5 border border-warm-300 rounded text-sm focus:outline-none focus:border-brand-400"
+										autoFocus
+									/>
+									<button
+										type="button"
+										onClick={saveExpectedDate}
+										disabled={saving}
+										className="px-2 py-0.5 bg-brand-500 text-white rounded text-xs hover:bg-brand-600 disabled:opacity-50"
+									>Save</button>
+									<button
+										type="button"
+										onClick={() => setEditingExpectedDate(false)}
+										className="px-2 py-0.5 bg-warm-100 text-warm-600 rounded text-xs hover:bg-warm-200"
+									>Cancel</button>
+								</div>
+							) : (
+								<button
+									type="button"
+									onClick={() => {
+										const d = litter.expectedDate ? new Date(litter.expectedDate).toISOString().slice(0, 10) : '';
+										setExpectedDateInput(d);
+										setEditingExpectedDate(true);
+									}}
+									className="text-right hover:text-brand-600 transition-colors group"
+									title="Click to edit"
+								>
+									{fmtDate(litter.expectedDate)}
+									<span className="ml-1 opacity-0 group-hover:opacity-60 text-xs">✎</span>
+								</button>
+							)}
 						</div>
 						<div className="flex justify-between">
 							<span className="text-warm-500">Puppies</span>
