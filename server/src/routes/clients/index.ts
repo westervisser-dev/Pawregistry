@@ -106,7 +106,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				email: client.email,
 				amountRands,
 				reference,
-				callbackUrl: `${process.env.CLIENT_URL}/portal/payments?ref=${reference}`,
+				callbackUrl: `${process.env.CLIENT_URL}/apply/success?ref=${reference}`,
 				metadata: { clientId: client.id, tier, source: 'apply' },
 			});
 

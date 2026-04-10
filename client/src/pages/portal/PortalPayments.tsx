@@ -99,10 +99,11 @@ export function PortalPayments() {
 
 	const load = async () => {
 		setLoading(true);
-		const [paymentsRes, clientRes] = await Promise.all([
-			api.payments.mine.get(),
-			api.clients.me.get(),
-		]);
+		// Fetch payments first — the server auto-verifies pending records with Paystack
+		// and updates the client's depositStatus as a side effect. Fetching the client
+		// afterwards ensures we read the post-verification state.
+		const paymentsRes = await api.payments.mine.get();
+		const clientRes = await api.clients.me.get();
 		if (paymentsRes.data) setPayments(paymentsRes.data as Payment[]);
 		if (clientRes.data) setClient(clientRes.data as typeof client);
 		setLoading(false);
@@ -121,7 +122,10 @@ export function PortalPayments() {
 
 	const pending = payments.filter((p) => p.status === 'pending');
 	const history = payments.filter((p) => p.status !== 'pending');
-	const depositNotPaid = !successRef && client?.depositStatus !== 'paid';
+	// Suppress the manual pay-now section if there is already a pending deposit record
+	// (shown in ACTION REQUIRED above) or if we just returned from Paystack (race condition).
+	const hasPendingDeposit = pending.some((p) => p.type === 'deposit');
+	const depositNotPaid = !successRef && !hasPendingDeposit && client?.depositStatus !== 'paid';
 
 	return (
 		<div className="max-w-2xl mx-auto px-4 sm:px-6 py-8" id="main-content">

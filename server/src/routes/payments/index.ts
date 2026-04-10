@@ -271,16 +271,45 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	)
 
 	// ── Client: get own payments ──────────────────────────────────────────────
+	// Auto-verifies any pending payments against Paystack so the client always
+	// sees the correct state even if the webhook was delayed or missed.
 	.get('/mine', async ({ user, error }) => {
 		const client = await db.query.clients.findFirst({
 			where: eq(clients.userId, user!.id),
 		});
 		if (!client) return error(404, { error: 'NotFound', message: 'Client not found' });
 
-		return db.query.payments.findMany({
+		const clientPayments = await db.query.payments.findMany({
 			where: eq(payments.clientId, client.id),
 			orderBy: [desc(payments.createdAt)],
 		});
+
+		const pending = clientPayments.filter((p) => p.status === 'pending' && p.reference);
+		if (pending.length > 0) {
+			let anyUpdated = false;
+			await Promise.all(
+				pending.map(async (p) => {
+					try {
+						const verified = await verifyTransaction(p.reference);
+						if (verified.status === 'success') {
+							await handlePaymentSuccess(p.id);
+							anyUpdated = true;
+						}
+					} catch {
+						// Not paid yet or Paystack API unavailable — leave as pending
+					}
+				}),
+			);
+			// Re-fetch so the client gets the updated statuses
+			if (anyUpdated) {
+				return db.query.payments.findMany({
+					where: eq(payments.clientId, client.id),
+					orderBy: [desc(payments.createdAt)],
+				});
+			}
+		}
+
+		return clientPayments;
 	})
 
 	// ── Admin: get all payments for a client ──────────────────────────────────
