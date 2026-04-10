@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, PuppyStatusBadge, EmptyState } from '@/components/ui';
-import type { Litter, LitterImage, LitterStatus, MatchingClient } from '@paw-registry/shared';
+import type { Litter, LitterImage, LitterStatus, MatchingClient, PuppyImage } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES, buildBreedSize, parseBreedSize, getBreedSizeLabel } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
 
@@ -70,6 +70,11 @@ export function AdminLitterDetail() {
 	const [notifying, setNotifying] = useState(false);
 	const [masterListClients, setMasterListClients] = useState<Array<{ id: string; firstName: string; lastName: string; priority: number; depositStatus: string; waitlistPosition: number }>>([]);
 	const [masterListLoading, setMasterListLoading] = useState(false);
+	const [puppyImagesMap, setPuppyImagesMap] = useState<Record<string, PuppyImage[]>>({});
+	const [puppyImageIndex, setPuppyImageIndex] = useState<Record<string, number>>({});
+	const [uploadingPuppyId, setUploadingPuppyId] = useState<string | null>(null);
+	const [newPuppyDraftImageFile, setNewPuppyDraftImageFile] = useState<File | null>(null);
+	const [newPuppyImageFile, setNewPuppyImageFile] = useState<File | null>(null);
 
 	// New-litter form state
 	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
@@ -80,7 +85,7 @@ export function AdminLitterDetail() {
 	const [galleryUploading, setGalleryUploading] = useState(false);
 	const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
 	const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
-	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string }>>([]);
+	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string; imageFile?: File }>>([]);
 	const [newPuppyDraft, setNewPuppyDraft] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
 
 	useEffect(() => {
@@ -96,6 +101,12 @@ export function AdminLitterDetail() {
 				const d = data as typeof litter;
 				setLitter(d);
 				setGalleryImages(d?.images ?? []);
+				const imagesMap: Record<string, PuppyImage[]> = {};
+				(d?.puppies ?? []).forEach((p: unknown) => {
+					const pp = p as { id: string; images?: PuppyImage[] };
+					if (pp.images) imagesMap[pp.id] = pp.images;
+				});
+				setPuppyImagesMap(imagesMap);
 			}
 			setLoading(false);
 		});
@@ -146,7 +157,7 @@ export function AdminLitterDetail() {
 			const { data, error } = await api.litters.post({
 				name: newForm.name,
 				...(breedValue ? { breed: breedValue } : {}),
-				status: newForm.status as 'planned' | 'confirmed' | 'born' | 'weaning' | 'available' | 'completed',
+				status: newForm.status as 'planned' | 'born' | 'available' | 'completed',
 				...(newForm.expectedDate ? { expectedDate: newForm.expectedDate } : {}),
 				...(newForm.notes ? { notes: newForm.notes } : {}),
 				isPublic: newForm.isPublic,
@@ -163,7 +174,16 @@ export function AdminLitterDetail() {
 					setUploadProgress(null);
 				}
 				for (const puppy of pendingPuppies) {
-					await api.litters({ id: newId }).puppies.post(puppy);
+					const { data: puppyData } = await api.litters({ id: newId }).puppies.post({
+						collarColour: puppy.collarColour,
+						sex: puppy.sex,
+						colour: puppy.colour,
+					});
+					if (puppyData && puppy.imageFile) {
+						const created = puppyData as { id: string };
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						await (api.litters.puppies({ puppyId: created.id }) as any).images.post({ file: puppy.imageFile });
+					}
 				}
 				navigate('/admin/litters');
 			}
@@ -191,12 +211,25 @@ export function AdminLitterDetail() {
 		setLitter((l) => l ? { ...l, isPublic: next } : l);
 	};
 
+
 	const addPuppy = async () => {
 		if (!id || !newPuppy.collarColour || !newPuppy.colour) return;
 		const { data } = await api.litters({ id }).puppies.post(newPuppy);
 		if (data && litter) {
+			const created = data as { id: string };
 			setLitter({ ...litter, puppies: [...litter.puppies, data as unknown] });
 			setNewPuppy({ collarColour: '', sex: 'male', colour: '' });
+			if (newPuppyImageFile) {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const { data: imgData } = await (api.litters.puppies({ puppyId: created.id }) as any).images.post({ file: newPuppyImageFile });
+				if (imgData) {
+					setPuppyImagesMap((prev) => ({
+						...prev,
+						[created.id]: [...(prev[created.id] ?? []), imgData as PuppyImage],
+					}));
+				}
+				setNewPuppyImageFile(null);
+			}
 		}
 	};
 
@@ -248,6 +281,56 @@ export function AdminLitterDetail() {
 			}
 		}
 		setApprovingInterestId(null);
+	};
+
+	const prevPuppyImage = (puppyId: string) => {
+		setPuppyImageIndex((prev) => {
+			const images = puppyImagesMap[puppyId] ?? [];
+			const current = prev[puppyId] ?? 0;
+			return { ...prev, [puppyId]: current > 0 ? current - 1 : images.length - 1 };
+		});
+	};
+
+	const nextPuppyImage = (puppyId: string) => {
+		setPuppyImageIndex((prev) => {
+			const images = puppyImagesMap[puppyId] ?? [];
+			const current = prev[puppyId] ?? 0;
+			return { ...prev, [puppyId]: current < images.length - 1 ? current + 1 : 0 };
+		});
+	};
+
+	const handlePuppyImageUpload = async (puppyId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(e.target.files ?? []);
+		e.target.value = '';
+		if (!files.length) return;
+		const existing = puppyImagesMap[puppyId] ?? [];
+		const remaining = 10 - existing.length;
+		if (remaining <= 0) return;
+		setUploadingPuppyId(puppyId);
+		for (const file of files.slice(0, remaining)) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const { data, error } = await (api.litters.puppies({ puppyId }) as any).images.post({ file });
+			if (!error && data) {
+				setPuppyImagesMap((prev) => ({
+					...prev,
+					[puppyId]: [...(prev[puppyId] ?? []), data as PuppyImage],
+				}));
+			}
+		}
+		setUploadingPuppyId(null);
+	};
+
+	const handlePuppyImageDelete = async (puppyId: string, imageId: string) => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const { error } = await (api.litters.puppies({ puppyId }) as any).images({ imageId }).delete();
+		if (!error) {
+			const nextImages = (puppyImagesMap[puppyId] ?? []).filter((img) => img.id !== imageId);
+			setPuppyImagesMap((prev) => ({ ...prev, [puppyId]: nextImages }));
+			setPuppyImageIndex((prev) => ({
+				...prev,
+				[puppyId]: Math.min(prev[puppyId] ?? 0, Math.max(0, nextImages.length - 1)),
+			}));
+		}
 	};
 
 	const timeAgo = (dateStr: string) => {
@@ -381,7 +464,7 @@ export function AdminLitterDetail() {
 								onChange={(e) => setF('status', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							>
-								{['planned', 'confirmed', 'born', 'weaning', 'available', 'completed'].map((s) => (
+								{['planned', 'born', 'available', 'completed'].map((s) => (
 									<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
 								))}
 							</select>
@@ -455,7 +538,7 @@ export function AdminLitterDetail() {
 					{/* Puppies */}
 					<div>
 						<label className="block text-xs font-medium text-warm-500 mb-2">Puppies</label>
-						{['planned', 'confirmed'].includes(newForm.status) ? (
+						{newForm.status === 'planned' ? (
 							<p className="text-xs text-warm-400">Puppies can be added once the litter is born.</p>
 						) : (
 							<>
@@ -463,6 +546,11 @@ export function AdminLitterDetail() {
 									<div className="space-y-1 mb-3">
 										{pendingPuppies.map((p, i) => (
 											<div key={i} className="flex items-center gap-3 py-1.5 px-3 bg-warm-50 rounded-lg text-sm">
+												{p.imageFile ? (
+													<img src={URL.createObjectURL(p.imageFile)} alt="" className="w-8 h-8 rounded-md object-cover border border-warm-200 flex-shrink-0" />
+												) : (
+													<span className="w-8 h-8 rounded-md border border-dashed border-warm-200 flex-shrink-0" />
+												)}
 												<span className="w-3 h-3 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
 												<span className="text-warm-700">{p.colour} {p.sex}</span>
 												<button
@@ -474,7 +562,18 @@ export function AdminLitterDetail() {
 										))}
 									</div>
 								)}
-								<div className="flex gap-2">
+								<div className="flex gap-2 items-center">
+									{newPuppyDraftImageFile ? (
+										<div className="relative w-9 h-9 flex-shrink-0">
+											<img src={URL.createObjectURL(newPuppyDraftImageFile)} alt="" className="w-full h-full object-cover rounded-lg border border-warm-200" />
+											<button type="button" onClick={() => setNewPuppyDraftImageFile(null)} className="absolute -top-1 -right-1 w-4 h-4 bg-black/50 hover:bg-red-500 text-white rounded-full text-[9px] flex items-center justify-center">&#10005;</button>
+										</div>
+									) : (
+										<label className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg border-2 border-dashed border-warm-200 cursor-pointer hover:border-brand-300 hover:bg-warm-50 transition-colors" title="Add photo">
+											<span className="text-warm-400 text-base leading-none">+</span>
+											<input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic" onChange={(e) => { const f = e.target.files?.[0]; if (f) setNewPuppyDraftImageFile(f); e.target.value = ''; }} className="hidden" />
+										</label>
+									)}
 									<select
 										value={newPuppyDraft.collarColour}
 										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, collarColour: e.target.value }))}
@@ -486,7 +585,7 @@ export function AdminLitterDetail() {
 										))}
 									</select>
 									<input
-										placeholder="Coat colour"
+										placeholder="Puppy description"
 										value={newPuppyDraft.colour}
 										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, colour: e.target.value }))}
 										className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
@@ -503,8 +602,9 @@ export function AdminLitterDetail() {
 										type="button"
 										onClick={() => {
 											if (!newPuppyDraft.collarColour || !newPuppyDraft.colour) return;
-											setPendingPuppies((p) => [...p, newPuppyDraft]);
+											setPendingPuppies((p) => [...p, { ...newPuppyDraft, imageFile: newPuppyDraftImageFile ?? undefined }]);
 											setNewPuppyDraft({ collarColour: '', sex: 'male', colour: '' });
+											setNewPuppyDraftImageFile(null);
 										}}
 										className="px-4 py-2 bg-warm-100 text-warm-700 text-sm rounded-lg hover:bg-warm-200 transition-colors"
 									>Add</button>
@@ -535,7 +635,7 @@ export function AdminLitterDetail() {
 	const fmtDate = (d: Date | string | null | undefined) =>
 		d ? new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
-	const statuses = ['planned', 'confirmed', 'born', 'weaning', 'available', 'completed'];
+	const statuses = ['planned', 'born', 'available', 'completed'];
 
 	return (
 		<div className="p-4 md:p-8 max-w-4xl">
@@ -654,9 +754,19 @@ export function AdminLitterDetail() {
 							<span className="text-warm-500">Whelp date</span>
 							<span>{fmtDate(litter.whelpDate)}</span>
 						</div>
-						<div className="flex justify-between">
+						<div className="flex justify-between items-center">
 							<span className="text-warm-500">Expected</span>
-							<span>{fmtDate(litter.expectedDate)}</span>
+							<input
+								type="date"
+								defaultValue={litter.expectedDate ? new Date(litter.expectedDate).toISOString().slice(0, 10) : ''}
+								onChange={async (e) => {
+									if (!id) return;
+									const value = e.target.value || null;
+									await api.litters({ id }).patch({ expectedDate: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+									setLitter((l) => l ? { ...l, expectedDate: value as unknown as Date } : l);
+								}}
+								className="px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors cursor-pointer"
+							/>
 						</div>
 						<div className="flex justify-between">
 							<span className="text-warm-500">Puppies</span>
@@ -681,9 +791,76 @@ export function AdminLitterDetail() {
 							const allInterests = puppyInterests.filter((i) => i.puppyId === p.id);
 							const isExpanded = expandedPuppy === p.id;
 
+							const puppyImgs = puppyImagesMap[p.id] ?? [];
+							const imgIdx = puppyImageIndex[p.id] ?? 0;
+							const currentImg = puppyImgs[imgIdx];
+
 							return (
 								<div key={p.id}>
 									<div className="flex items-center gap-3 py-3">
+										{/* Puppy image thumbnail with carousel */}
+										<div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+											<div className="relative w-14 h-14 group">
+												{currentImg ? (
+													<>
+														<img
+															src={currentImg.url}
+															alt=""
+															className="w-full h-full object-cover rounded-lg border border-warm-200"
+														/>
+														{puppyImgs.length > 1 && (
+															<>
+																<button
+																	type="button"
+																	onClick={(e) => { e.stopPropagation(); prevPuppyImage(p.id); }}
+																	className="absolute left-0.5 top-1/2 -translate-y-1/2 w-4 h-4 bg-black/55 hover:bg-black/75 text-white rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+																>&#8249;</button>
+																<button
+																	type="button"
+																	onClick={(e) => { e.stopPropagation(); nextPuppyImage(p.id); }}
+																	className="absolute right-0.5 top-1/2 -translate-y-1/2 w-4 h-4 bg-black/55 hover:bg-black/75 text-white rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+																>&#8250;</button>
+																<span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[9px] bg-black/50 text-white px-1 rounded leading-tight whitespace-nowrap">{imgIdx + 1}/{puppyImgs.length}</span>
+															</>
+														)}
+														<button
+															type="button"
+															onClick={(e) => { e.stopPropagation(); handlePuppyImageDelete(p.id, currentImg.id); }}
+															className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/50 hover:bg-red-600 text-white rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+															aria-label="Delete image"
+														>&#10005;</button>
+													</>
+												) : (
+													<label className={`w-full h-full flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-warm-300 cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors ${uploadingPuppyId === p.id ? 'opacity-50 pointer-events-none' : ''}`}>
+														<span className="text-warm-400 text-lg leading-none mb-0.5">{uploadingPuppyId === p.id ? '…' : '+'}</span>
+														<input
+															type="file"
+															accept="image/jpeg,image/jpg,image/png,image/webp,image/heic"
+															multiple
+															onChange={(e) => handlePuppyImageUpload(p.id, e)}
+															className="hidden"
+															disabled={uploadingPuppyId === p.id}
+														/>
+													</label>
+												)}
+											</div>
+											{currentImg && puppyImgs.length < 10 && (
+												<label className="cursor-pointer text-[10px] text-warm-400 hover:text-brand-500 transition-colors leading-none">
+													+ photo
+													<input
+														type="file"
+														accept="image/jpeg,image/jpg,image/png,image/webp,image/heic"
+														multiple
+														onChange={(e) => handlePuppyImageUpload(p.id, e)}
+														className="hidden"
+														disabled={uploadingPuppyId === p.id}
+													/>
+												</label>
+											)}
+											{uploadingPuppyId === p.id && (
+												<span className="text-[10px] text-warm-400 leading-none">uploading…</span>
+											)}
+										</div>
 										<span className="w-4 h-4 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
 										<span className="text-sm font-medium text-warm-800 flex-1">
 											{p.colour} · {p.sex}
@@ -782,12 +959,23 @@ export function AdminLitterDetail() {
 				)}
 
 				<div className="mt-4 pt-4 border-t border-black/[0.05]">
-					{['planned', 'confirmed'].includes(litter.status) ? (
+					{litter.status === 'planned' ? (
 						<p className="text-xs text-warm-400">Puppies can be added once the litter is born.</p>
 					) : (
 						<>
 							<p className="text-xs font-medium text-warm-500 uppercase tracking-wide mb-3">Add puppy</p>
-							<div className="flex gap-2">
+							<div className="flex gap-2 items-center">
+								{newPuppyImageFile ? (
+									<div className="relative w-9 h-9 flex-shrink-0">
+										<img src={URL.createObjectURL(newPuppyImageFile)} alt="" className="w-full h-full object-cover rounded-lg border border-warm-200" />
+										<button type="button" onClick={() => setNewPuppyImageFile(null)} className="absolute -top-1 -right-1 w-4 h-4 bg-black/50 hover:bg-red-500 text-white rounded-full text-[9px] flex items-center justify-center">&#10005;</button>
+									</div>
+								) : (
+									<label className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg border-2 border-dashed border-warm-200 cursor-pointer hover:border-brand-300 hover:bg-warm-50 transition-colors" title="Add photo">
+										<span className="text-warm-400 text-base leading-none">+</span>
+										<input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic" onChange={(e) => { const f = e.target.files?.[0]; if (f) setNewPuppyImageFile(f); e.target.value = ''; }} className="hidden" />
+									</label>
+								)}
 								<select
 									value={newPuppy.collarColour}
 									onChange={(e) => setNewPuppy((p) => ({ ...p, collarColour: e.target.value }))}
@@ -799,7 +987,7 @@ export function AdminLitterDetail() {
 									))}
 								</select>
 								<input
-									placeholder="Coat colour"
+									placeholder="Puppy description"
 									value={newPuppy.colour}
 									onChange={(e) => setNewPuppy((p) => ({ ...p, colour: e.target.value }))}
 									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
@@ -848,7 +1036,7 @@ export function AdminLitterDetail() {
 										{selectedIds.size === 0 ? 'Select clients below' : `${selectedIds.size} selected`}
 									</span>
 								)}
-								{(['born', 'weaning', 'available'] as LitterStatus[]).includes(litter.status) ? (
+								{(['born', 'available'] as LitterStatus[]).includes(litter.status) ? (
 									notifyOpen ? (
 										<button
 											onClick={() => { setNotifyOpen(false); setSelectedIds(new Set()); }}

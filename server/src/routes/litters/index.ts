@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
 import { eq, desc, asc, inArray, and, ne, notInArray, or } from 'drizzle-orm';
 import { db } from '../../db';
-import { litters, puppies, litterImages, clients, updates, puppyInterests, clientActivity, litterNotifications, litterInterests } from '../../db/schema';
+import { litters, puppies, litterImages, puppyImages, clients, updates, puppyInterests, clientActivity, litterNotifications, litterInterests } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { sendLitterNotificationEmail } from '../../lib/email';
@@ -21,7 +21,12 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		const litter = await db.query.litters.findFirst({
 			where: eq(litters.id, params.id),
 			with: {
-				puppies: { with: { client: { columns: { id: true, firstName: true, lastName: true } } } },
+				puppies: {
+					with: {
+						client: { columns: { id: true, firstName: true, lastName: true } },
+						images: { orderBy: [asc(puppyImages.createdAt)] },
+					},
+				},
 				images: { orderBy: [asc(litterImages.createdAt)] },
 			},
 		});
@@ -684,8 +689,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				name: t.String(),
 				breed: t.Optional(t.Nullable(t.String())),
 				status: t.Optional(t.Union([
-					t.Literal('planned'), t.Literal('confirmed'), t.Literal('born'),
-					t.Literal('weaning'), t.Literal('available'), t.Literal('completed'),
+					t.Literal('planned'), t.Literal('born'),
+					t.Literal('available'), t.Literal('completed'),
 				])),
 				expectedDate: t.Optional(t.Nullable(t.String())),
 				whelpDate: t.Optional(t.Nullable(t.String())),
@@ -706,8 +711,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Litter not found' });
 
-			// Sync puppy statuses when litter advances to born, weaning, or available
-			if (body.status && ['born', 'weaning', 'available'].includes(body.status)) {
+			// Sync puppy statuses when litter advances to born or available
+			if (body.status && ['born', 'available'].includes(body.status)) {
 				await db
 					.update(puppies)
 					.set({ status: 'available', updatedAt: new Date() })
@@ -723,8 +728,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			name: t.String(),
 			breed: t.Nullable(t.String()),
 			status: t.Union([
-				t.Literal('planned'), t.Literal('confirmed'), t.Literal('born'),
-				t.Literal('weaning'), t.Literal('available'), t.Literal('completed'),
+				t.Literal('planned'), t.Literal('born'),
+				t.Literal('available'), t.Literal('completed'),
 			]),
 			whelpDate: t.Nullable(t.String()),
 			expectedDate: t.Nullable(t.String()), puppyCount: t.Nullable(t.Number()),
@@ -773,6 +778,52 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		}
 	)
 
+	// ── Admin: upload image for a puppy (max 10) ──
+	.post(
+		'/puppies/:puppyId/images',
+		async ({ params, body, error }) => {
+			const puppy = await db.query.puppies.findFirst({
+				where: eq(puppies.id, params.puppyId),
+				columns: { id: true, litterId: true },
+			});
+			if (!puppy) return error(404, { error: 'Not found', message: 'Puppy not found' });
+
+			const existing = await db.query.puppyImages.findMany({
+				where: eq(puppyImages.puppyId, params.puppyId),
+			});
+			if (existing.length >= 10) return error(400, { error: 'Limit reached', message: 'Maximum 10 photos per puppy.' });
+
+			const file = body.file as File;
+			const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+			const storagePath = `${puppy.litterId}/puppies/${params.puppyId}/${Date.now()}-${safeName}`;
+			const url = await uploadFile(STORAGE_BUCKETS.litters, storagePath, file, file.type);
+
+			const [image] = await db
+				.insert(puppyImages)
+				.values({ puppyId: params.puppyId, url, storagePath, sortOrder: existing.length })
+				.returning();
+
+			return image;
+		},
+		{ body: t.Object({ file: t.File() }) }
+	)
+
+	// ── Admin: delete a puppy image ──
+	.delete(
+		'/puppies/:puppyId/images/:imageId',
+		async ({ params, error }) => {
+			const image = await db.query.puppyImages.findFirst({
+				where: eq(puppyImages.id, params.imageId),
+			});
+			if (!image) return error(404, { error: 'Not found', message: 'Image not found' });
+
+			await db.delete(puppyImages).where(eq(puppyImages.id, params.imageId));
+			await supabase.storage.from(STORAGE_BUCKETS.litters).remove([image.storagePath]);
+
+			return { success: true };
+		}
+	)
+
 	// ── Puppy management within a litter ──
 	.post(
 		'/:id/puppies',
@@ -782,7 +833,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				columns: { status: true },
 			});
 			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
-			if (!['born', 'weaning', 'available', 'completed'].includes(litter.status)) {
+			if (!['born', 'available', 'completed'].includes(litter.status)) {
 				return error(400, { error: 'Invalid status', message: 'Puppies can only be added once the litter is born.' });
 			}
 			const [puppy] = await db.insert(puppies).values({ ...body, litterId: params.id }).returning();

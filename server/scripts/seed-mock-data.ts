@@ -276,7 +276,7 @@ const LITTERS = [
 		breed: 'f1b_goldendoodle - standard',
 		sireId: 'dog-p-001',
 		damId: 'dog-gd-001',
-		status: 'weaning',
+		status: 'born',
 		whelpDate: '2026-01-20',
 		expectedDate: '2026-01-18',
 		puppyCount: 6,
@@ -286,14 +286,14 @@ const LITTERS = [
 		isPublic: true,
 		galleryBreed: 'poodle/standard',
 	},
-	// 5 — Confirmed (Apr 2026), public
+	// 5 — Planned (Apr 2026), public
 	{
 		id: 'litter-f1bgd-002',
 		name: 'April 2026 F1b Goldendoodle Litter',
 		breed: 'f1b_goldendoodle - miniature',
 		sireId: 'dog-p-002',
 		damId: 'dog-gd-001',
-		status: 'confirmed',
+		status: 'planned',
 		whelpDate: null,
 		expectedDate: '2026-04-15',
 		puppyCount: null,
