@@ -4,7 +4,7 @@ import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
 import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, DocumentType, Payment } from '@paw-registry/shared';
-import { DeleteModal, DepositStatusSelect } from './_shared';
+import { DeleteModal, DepositStatusBadge } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
 	stage_enquired: 'Application Received',
@@ -228,8 +228,6 @@ export function AdminClientDetail() {
 	const [finalPrice, setFinalPrice] = useState('');
 	const [requestingFinal, setRequestingFinal] = useState(false);
 	const [finalError, setFinalError] = useState('');
-	const [markingPaid, setMarkingPaid] = useState<string | null>(null);
-
 	const loadDocuments = () => {
 		if (!id) return;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -410,7 +408,7 @@ export function AdminClientDetail() {
 				</div>
 				<div id="deposit" className="flex flex-col items-end gap-2 scroll-mt-6">
 					<StageBadge stage={client.stage} />
-					<DepositStatusSelect client={client} onUpdate={(updated) => setClient(updated)} />
+					<DepositStatusBadge client={client} />
 				</div>
 			</div>
 
@@ -781,21 +779,6 @@ export function AdminClientDetail() {
 											)}
 										</p>
 									</div>
-									{p.status === 'pending' && (
-										<button
-											onClick={async () => {
-												setMarkingPaid(p.id);
-												// eslint-disable-next-line @typescript-eslint/no-explicit-any
-												await (api.payments as any)({ id: p.id })['mark-paid'].patch();
-												setMarkingPaid(null);
-												load();
-											}}
-											disabled={markingPaid === p.id}
-											className="px-3 py-1.5 text-xs font-medium border border-warm-200 rounded-lg hover:bg-warm-50 disabled:opacity-50 transition-colors"
-										>
-											{markingPaid === p.id ? 'Saving…' : 'Mark paid'}
-										</button>
-									)}
 								</div>
 							);
 						})}
