@@ -4,7 +4,7 @@ export type DogSex = 'male' | 'female';
 
 // ─── Litter ──────────────────────────────────────────────────────────────────
 
-export type LitterStatus = 'planned' | 'confirmed' | 'born' | 'weaning' | 'available' | 'completed';
+export type LitterStatus = 'planned' | 'born' | 'available' | 'completed';
 
 export interface Litter {
 	id: string;

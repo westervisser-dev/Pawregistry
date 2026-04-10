@@ -15,9 +15,7 @@ import { relations } from 'drizzle-orm';
 export const dogSexEnum = pgEnum('dog_sex', ['male', 'female']);
 export const litterStatusEnum = pgEnum('litter_status', [
 	'planned',
-	'confirmed',
 	'born',
-	'weaning',
 	'available',
 	'completed',
 ]);

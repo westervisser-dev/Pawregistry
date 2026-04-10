@@ -689,8 +689,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				name: t.String(),
 				breed: t.Optional(t.Nullable(t.String())),
 				status: t.Optional(t.Union([
-					t.Literal('planned'), t.Literal('confirmed'), t.Literal('born'),
-					t.Literal('weaning'), t.Literal('available'), t.Literal('completed'),
+					t.Literal('planned'), t.Literal('born'),
+					t.Literal('available'), t.Literal('completed'),
 				])),
 				expectedDate: t.Optional(t.Nullable(t.String())),
 				whelpDate: t.Optional(t.Nullable(t.String())),
@@ -711,8 +711,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Litter not found' });
 
-			// Sync puppy statuses when litter advances to born, weaning, or available
-			if (body.status && ['born', 'weaning', 'available'].includes(body.status)) {
+			// Sync puppy statuses when litter advances to born or available
+			if (body.status && ['born', 'available'].includes(body.status)) {
 				await db
 					.update(puppies)
 					.set({ status: 'available', updatedAt: new Date() })
@@ -728,8 +728,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			name: t.String(),
 			breed: t.Nullable(t.String()),
 			status: t.Union([
-				t.Literal('planned'), t.Literal('confirmed'), t.Literal('born'),
-				t.Literal('weaning'), t.Literal('available'), t.Literal('completed'),
+				t.Literal('planned'), t.Literal('born'),
+				t.Literal('available'), t.Literal('completed'),
 			]),
 			whelpDate: t.Nullable(t.String()),
 			expectedDate: t.Nullable(t.String()), puppyCount: t.Nullable(t.Number()),
@@ -833,7 +833,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				columns: { status: true },
 			});
 			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
-			if (!['born', 'weaning', 'available', 'completed'].includes(litter.status)) {
+			if (!['born', 'available', 'completed'].includes(litter.status)) {
 				return error(400, { error: 'Invalid status', message: 'Puppies can only be added once the litter is born.' });
 			}
 			const [puppy] = await db.insert(puppies).values({ ...body, litterId: params.id }).returning();

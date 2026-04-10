@@ -157,7 +157,7 @@ export function AdminLitterDetail() {
 			const { data, error } = await api.litters.post({
 				name: newForm.name,
 				...(breedValue ? { breed: breedValue } : {}),
-				status: newForm.status as 'planned' | 'confirmed' | 'born' | 'weaning' | 'available' | 'completed',
+				status: newForm.status as 'planned' | 'born' | 'available' | 'completed',
 				...(newForm.expectedDate ? { expectedDate: newForm.expectedDate } : {}),
 				...(newForm.notes ? { notes: newForm.notes } : {}),
 				isPublic: newForm.isPublic,
@@ -464,7 +464,7 @@ export function AdminLitterDetail() {
 								onChange={(e) => setF('status', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							>
-								{['planned', 'confirmed', 'born', 'weaning', 'available', 'completed'].map((s) => (
+								{['planned', 'born', 'available', 'completed'].map((s) => (
 									<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
 								))}
 							</select>
@@ -538,7 +538,7 @@ export function AdminLitterDetail() {
 					{/* Puppies */}
 					<div>
 						<label className="block text-xs font-medium text-warm-500 mb-2">Puppies</label>
-						{['planned', 'confirmed'].includes(newForm.status) ? (
+						{newForm.status === 'planned' ? (
 							<p className="text-xs text-warm-400">Puppies can be added once the litter is born.</p>
 						) : (
 							<>
@@ -585,7 +585,7 @@ export function AdminLitterDetail() {
 										))}
 									</select>
 									<input
-										placeholder="Coat colour"
+										placeholder="Puppy description"
 										value={newPuppyDraft.colour}
 										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, colour: e.target.value }))}
 										className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
@@ -635,7 +635,7 @@ export function AdminLitterDetail() {
 	const fmtDate = (d: Date | string | null | undefined) =>
 		d ? new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
-	const statuses = ['planned', 'confirmed', 'born', 'weaning', 'available', 'completed'];
+	const statuses = ['planned', 'born', 'available', 'completed'];
 
 	return (
 		<div className="p-4 md:p-8 max-w-4xl">
@@ -959,7 +959,7 @@ export function AdminLitterDetail() {
 				)}
 
 				<div className="mt-4 pt-4 border-t border-black/[0.05]">
-					{['planned', 'confirmed'].includes(litter.status) ? (
+					{litter.status === 'planned' ? (
 						<p className="text-xs text-warm-400">Puppies can be added once the litter is born.</p>
 					) : (
 						<>
@@ -987,7 +987,7 @@ export function AdminLitterDetail() {
 									))}
 								</select>
 								<input
-									placeholder="Coat colour"
+									placeholder="Puppy description"
 									value={newPuppy.colour}
 									onChange={(e) => setNewPuppy((p) => ({ ...p, colour: e.target.value }))}
 									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
@@ -1036,7 +1036,7 @@ export function AdminLitterDetail() {
 										{selectedIds.size === 0 ? 'Select clients below' : `${selectedIds.size} selected`}
 									</span>
 								)}
-								{(['born', 'weaning', 'available'] as LitterStatus[]).includes(litter.status) ? (
+								{(['born', 'available'] as LitterStatus[]).includes(litter.status) ? (
 									notifyOpen ? (
 										<button
 											onClick={() => { setNotifyOpen(false); setSelectedIds(new Set()); }}
