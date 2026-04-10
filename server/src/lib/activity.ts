@@ -8,7 +8,12 @@ type ActivityType =
 	| 'preferences_updated'
 	| 'notes_updated'
 	| 'document_uploaded'
-	| 'document_signed';
+	| 'document_signed'
+	| 'deposit_paid'
+	| 'booking_payment_received'
+	| 'booking_expired'
+	| 'final_payment_received'
+	| 'payment_marked_paid';
 
 type Actor = 'client' | 'admin' | 'system';
 

@@ -1,11 +1,15 @@
 import Elysia, { t } from 'elysia';
 import { eq, desc, asc, inArray, and, ne, notInArray, or } from 'drizzle-orm';
 import { db } from '../../db';
-import { litters, puppies, litterImages, puppyImages, clients, updates, puppyInterests, clientActivity, litterNotifications, litterInterests } from '../../db/schema';
+import { litters, puppies, litterImages, puppyImages, clients, updates, puppyInterests, clientActivity, litterNotifications, litterInterests, payments } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
-import { sendLitterNotificationEmail } from '../../lib/email';
+import { sendLitterNotificationEmail, sendClientEmailWithVars, sendAdminNotification } from '../../lib/email';
+import { initializeTransaction, generateReference } from '../../lib/paystack';
 import { parseBreedSize } from '@paw-registry/shared';
+
+const CLIENT_URL = process.env.CLIENT_URL ?? 'http://localhost:5173';
+const BOOKING_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export const littersRoutes = new Elysia({ prefix: '/litters' })
 	// ── Public: active public litters ──
@@ -45,7 +49,6 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 			const client = await db.query.clients.findFirst({
 				where: eq(clients.userId, user.id),
-				columns: { id: true, firstName: true, lastName: true, stage: true },
 			});
 			if (!client) return error(403, { error: 'Forbidden', message: 'No client account found' });
 
@@ -56,12 +59,11 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 			const puppy = await db.query.puppies.findFirst({
 				where: eq(puppies.id, params.puppyId),
-				columns: { id: true, status: true, litterId: true },
 			});
 			if (!puppy) return error(404, { error: 'Not found', message: 'Puppy not found' });
 			if (puppy.status !== 'available') return error(400, { error: 'Unavailable', message: 'This puppy is no longer available' });
 
-			// Check notification eligibility: if a batch exists, client must be in it
+			// Check notification eligibility
 			const batchRecords = await db.query.litterNotifications.findMany({
 				where: eq(litterNotifications.litterId, puppy.litterId),
 				columns: { clientId: true },
@@ -84,32 +86,122 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				}
 			}
 
-			// Check for existing interest on this puppy
+			// Duplicate interest check
 			const existing = await db.query.puppyInterests.findFirst({
 				where: and(eq(puppyInterests.puppyId, params.puppyId), eq(puppyInterests.clientId, client.id)),
 			});
 			if (existing) return error(409, { error: 'Conflict', message: 'You have already expressed interest in this puppy' });
+
+			const puppyName = `${puppy.collarColour} collar (${puppy.sex})`;
+
+			// ── CASE 1: R5000 already paid → auto-book, no payment needed ──────
+			if (client.depositStatus === 'paid' && client.depositTier === 'r5000') {
+				const [interest] = await db
+					.insert(puppyInterests)
+					.values({ puppyId: params.puppyId, clientId: client.id })
+					.returning();
+
+				await db.update(puppies)
+					.set({ status: 'booked', bookingExpiresAt: null, updatedAt: new Date() })
+					.where(eq(puppies.id, params.puppyId));
+
+				await db.update(clients)
+					.set({ stage: 'match_requested', litterId: puppy.litterId, updatedAt: new Date() })
+					.where(eq(clients.id, client.id));
+
+				await db.insert(clientActivity).values({
+					clientId: client.id,
+					type: 'booking_payment_received',
+					description: `Expressed interest in ${puppyName}. Puppy auto-booked (R5,000 deposit already paid).`,
+					metadata: { puppyId: params.puppyId, litterId: puppy.litterId },
+					actor: 'system',
+				});
+
+				await sendClientEmailWithVars(client.id, 'puppy_booked', {
+					puppy_name: puppyName,
+					amount: 'R0 (deposit already paid)',
+					payment_type: 'booking',
+				});
+
+				await sendAdminNotification(
+					`Puppy booked — ${client.firstName} ${client.lastName}`,
+					`${client.firstName} ${client.lastName} expressed interest in ${puppyName}. Puppy auto-booked as R5,000 deposit was already on file.\n\nView client: ${CLIENT_URL}/admin/clients/${client.id}`,
+				);
+
+				return { interest, requiresPayment: false, authorizationUrl: null };
+			}
+
+			// ── CASE 2 & 3: payment required — create 24h booking window ────────
+			const alreadyPaidRands = client.depositStatus === 'paid' && client.depositTier === 'r500' ? 500 : 0;
+			const bookingAmountRands = 5000 - alreadyPaidRands;
+			const bookingExpiresAt = new Date(Date.now() + BOOKING_WINDOW_MS);
 
 			const [interest] = await db
 				.insert(puppyInterests)
 				.values({ puppyId: params.puppyId, clientId: client.id })
 				.returning();
 
-			// Auto: puppy → reserved, client → match_requested, client litterId set
-			await db.update(puppies).set({ status: 'reserved', updatedAt: new Date() }).where(eq(puppies.id, params.puppyId));
-			await db.update(clients)
-				.set({ stage: 'match_requested', litterId: puppy.litterId, updatedAt: new Date() })
-				.where(eq(clients.id, client.id));
+			// Puppy → reserved with expiry
+			await db.update(puppies)
+				.set({ status: 'reserved', bookingExpiresAt, updatedAt: new Date() })
+				.where(eq(puppies.id, params.puppyId));
+
+			// Initialise Paystack transaction
+			const reference = generateReference('book');
+			const { authorizationUrl } = await initializeTransaction({
+				email: client.email,
+				amountRands: bookingAmountRands,
+				reference,
+				callbackUrl: `${CLIENT_URL}/portal/payments?ref=${reference}`,
+				metadata: {
+					clientId: client.id,
+					puppyId: params.puppyId,
+					puppyName,
+					alreadyPaidRands,
+					type: 'booking',
+				},
+			});
+
+			await db.insert(payments).values({
+				clientId: client.id,
+				type: 'booking',
+				amountRands: bookingAmountRands,
+				reference,
+				authorizationUrl,
+				status: 'pending',
+				expiresAt: bookingExpiresAt,
+				metadata: {
+					puppyId: params.puppyId,
+					puppyName,
+					tier: 'r5000',
+					alreadyPaidRands,
+				},
+			});
 
 			await db.insert(clientActivity).values({
 				clientId: client.id,
 				type: 'stage_changed',
-				description: `Expressed interest in a puppy. Stage moved to match_requested.`,
-				metadata: { puppyId: params.puppyId, litterId: puppy.litterId },
+				description: `Expressed interest in ${puppyName}. R${bookingAmountRands.toLocaleString()} booking payment required within 24h.`,
+				metadata: { puppyId: params.puppyId, litterId: puppy.litterId, bookingAmountRands },
 				actor: 'client',
 			});
 
-			return interest;
+			// Send booking payment email
+			await sendClientEmailWithVars(client.id, 'puppy_booking_requested', {
+				puppy_name: puppyName,
+				amount: `R${bookingAmountRands.toLocaleString()}`,
+				payment_url: authorizationUrl,
+				payments_link: `${CLIENT_URL}/portal/payments`,
+				expires_in: '24 hours',
+				credit_applied: alreadyPaidRands > 0 ? `R${alreadyPaidRands} deposit credit applied.` : '',
+			});
+
+			await sendAdminNotification(
+				`Puppy interest — ${client.firstName} ${client.lastName}`,
+				`${client.firstName} ${client.lastName} has expressed interest in ${puppyName}.\n\nBooking payment of R${bookingAmountRands.toLocaleString()} required within 24h.\n\nView client: ${CLIENT_URL}/admin/clients/${client.id}`,
+			);
+
+			return { interest, requiresPayment: true, authorizationUrl, amountRands: bookingAmountRands };
 		}
 	)
 

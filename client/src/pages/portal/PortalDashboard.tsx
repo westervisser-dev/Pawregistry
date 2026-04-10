@@ -71,11 +71,13 @@ function ClientActionCenter({
 	client,
 	templates,
 	pendingNotifications,
+	pendingBookingPayment,
 	onOpenDepositModal,
 }: {
 	client: Client;
 	templates: TemplateItem[] | null;
 	pendingNotifications: PendingNotification[];
+	pendingBookingPayment: { amountRands: number; expiresAt: string | null; authorizationUrl: string | null } | null;
 	onOpenDepositModal: () => void;
 }) {
 	const [dismissed, setDismissed] = useState<Set<string>>(() => {
@@ -97,6 +99,22 @@ function ClientActionCenter({
 	}
 
 	const actions: Action[] = [];
+
+	// Pending booking / final payment — highest priority, shown first
+	if (pendingBookingPayment) {
+		const hoursLeft = pendingBookingPayment.expiresAt
+			? Math.max(0, Math.floor((new Date(pendingBookingPayment.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
+			: null;
+		const urgencyLabel = hoursLeft !== null
+			? ` — ${hoursLeft}h left`
+			: '';
+		actions.push({
+			type: 'link',
+			label: `💳 Payment required: R${pendingBookingPayment.amountRands.toLocaleString()}${urgencyLabel}`,
+			to: '/portal/payments',
+			color: 'amber',
+		});
+	}
 
 	if (client.stage === 'enquired') {
 		actions.push({
@@ -548,6 +566,7 @@ export function PortalDashboard() {
 	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
 	const [templates, setTemplates] = useState<TemplateItem[] | null>(null);
 	const [pendingNotifications, setPendingNotifications] = useState<PendingNotification[]>([]);
+	const [pendingBookingPayment, setPendingBookingPayment] = useState<{ amountRands: number; expiresAt: string | null; authorizationUrl: string | null } | null>(null);
 
 	usePageTitle('Dashboard');
 
@@ -573,6 +592,19 @@ export function PortalDashboard() {
 						if (notifs) setPendingNotifications(notifs);
 					}).catch(() => {});
 				}
+				// Check for any pending booking or final payments
+				api.payments.mine.get().then(({ data: pmts }) => {
+					if (!pmts) return;
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					const pending = (pmts as any[]).find((p: any) => p.status === 'pending' && (p.type === 'booking' || p.type === 'final'));
+					if (pending) {
+						setPendingBookingPayment({
+							amountRands: pending.amountRands,
+							expiresAt: pending.expiresAt ?? null,
+							authorizationUrl: pending.authorizationUrl ?? null,
+						});
+					}
+				}).catch(() => {});
 			}
 			setLoading(false);
 		});
@@ -609,6 +641,7 @@ export function PortalDashboard() {
 				client={client}
 				templates={templates}
 				pendingNotifications={pendingNotifications}
+				pendingBookingPayment={pendingBookingPayment}
 				onOpenDepositModal={() => setShowDepositConfirm(true)}
 			/>
 

@@ -21,7 +21,8 @@ export const litterStatusEnum = pgEnum('litter_status', [
 ]);
 export const puppyStatusEnum = pgEnum('puppy_status', [
 	'available',
-	'reserved',
+	'reserved',      // interest expressed, awaiting payment, 24h window active
+	'booked',        // payment confirmed, pending admin match approval
 	'matched',
 	'matched_paid',
 	'retained',
@@ -38,6 +39,9 @@ export const clientStageEnum = pgEnum('client_stage', [
 ]);
 export const depositStatusEnum = pgEnum('deposit_status', ['none', 'pending', 'paid']);
 export const depositTierEnum = pgEnum('deposit_tier', ['r5000', 'r500']);
+export const paymentTypeEnum = pgEnum('payment_type', ['deposit', 'booking', 'final']);
+export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'complete', 'failed', 'cancelled']);
+
 export const documentTypeEnum = pgEnum('document_type', [
 	'contract',
 	'health_record',
@@ -87,6 +91,7 @@ export const puppies = pgTable('puppies', {
 	currentWeight: real('current_weight'),
 	notes: text('notes'),
 	profileImageUrl: text('profile_image_url'),
+	bookingExpiresAt: timestamp('booking_expires_at', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -177,6 +182,7 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
 	notifications: many(litterNotifications),
 	litterInterests: many(litterInterests),
 	updateOptOuts: many(litterUpdateOptOuts),
+	payments: many(payments),
 }));
 
 // ─── Updates ─────────────────────────────────────────────────────────────────
@@ -345,4 +351,25 @@ export const litterInterests = pgTable('litter_interests', {
 export const litterInterestsRelations = relations(litterInterests, ({ one }) => ({
 	client: one(clients, { fields: [litterInterests.clientId], references: [clients.id] }),
 	litter: one(litters, { fields: [litterInterests.litterId], references: [litters.id] }),
+}));
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+
+export const payments = pgTable('payments', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+	type: paymentTypeEnum('type').notNull(),           // deposit | booking | final
+	amountRands: real('amount_rands').notNull(),
+	reference: text('reference').notNull().unique(),   // internal ref sent to Paystack
+	paystackId: text('paystack_id'),                  // Paystack transaction ID, set on webhook
+	authorizationUrl: text('authorization_url'),       // stored so Pay Now link can be resent
+	status: paymentStatusEnum('status').notNull().default('pending'),
+	expiresAt: timestamp('expires_at', { withTimezone: true }), // 24h window for booking type
+	paidAt: timestamp('paid_at', { withTimezone: true }),
+	metadata: jsonb('metadata').notNull().default({}).$type<Record<string, unknown>>(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+	client: one(clients, { fields: [payments.clientId], references: [clients.id] }),
 }));
