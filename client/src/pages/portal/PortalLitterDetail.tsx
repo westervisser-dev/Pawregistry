@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { api } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
-import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage } from '@paw-registry/shared';
+import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage, PuppyWithImages } from '@paw-registry/shared';
 import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
 import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -81,6 +81,7 @@ export function PortalLitterDetail() {
 	const [myLitterInterest, setMyLitterInterest] = useState(false);
 	const [litterInterestLoading, setLitterInterestLoading] = useState(false);
 	const [clientStage, setClientStage] = useState<ClientStage | null>(null);
+	const [puppyImgIndexes, setPuppyImgIndexes] = useState<Record<string, number>>({});
 
 	useEffect(() => {
 		if (!id) return;
@@ -285,8 +286,43 @@ export function PortalLitterDetail() {
 					)}
 
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-						{litter.puppies.map((puppy) => (
+						{litter.puppies.map((puppy) => {
+							const imgs = (puppy as PuppyWithImages).images ?? [];
+							const imgIdx = puppyImgIndexes[puppy.id] ?? 0;
+
+							return (
 							<div key={puppy.id} className="bg-white rounded-xl border border-warm-200 overflow-hidden flex flex-col">
+								{/* Puppy image carousel */}
+								{imgs.length > 0 && (
+									<div className="relative w-full aspect-square overflow-hidden group bg-warm-100 flex-shrink-0">
+										<img
+											src={imgs[imgIdx].url}
+											alt={puppy.colour ?? ''}
+											loading="lazy"
+											decoding="async"
+											className="w-full h-full object-cover"
+										/>
+										{imgs.length > 1 && (
+											<>
+												<button
+													type="button"
+													onClick={(e) => { e.stopPropagation(); setPuppyImgIndexes((prev) => ({ ...prev, [puppy.id]: imgIdx > 0 ? imgIdx - 1 : imgs.length - 1 })); }}
+													className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm"
+												>&#8249;</button>
+												<button
+													type="button"
+													onClick={(e) => { e.stopPropagation(); setPuppyImgIndexes((prev) => ({ ...prev, [puppy.id]: imgIdx < imgs.length - 1 ? imgIdx + 1 : 0 })); }}
+													className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-sm"
+												>&#8250;</button>
+												<div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+													{imgs.map((_, i) => (
+														<div key={i} className={`w-1.5 h-1.5 rounded-full ${i === imgIdx ? 'bg-white' : 'bg-white/50'}`} />
+													))}
+												</div>
+											</>
+										)}
+									</div>
+								)}
 								{/* Collar colour accent bar */}
 								<div
 									className="h-1.5 w-full flex-shrink-0"
@@ -361,7 +397,7 @@ export function PortalLitterDetail() {
 									)}
 								</div>
 							</div>
-						))}
+							); })}
 					</div>
 				</div>
 			)}

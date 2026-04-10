@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
 import { eq, desc, asc, inArray, and, ne, notInArray, or } from 'drizzle-orm';
 import { db } from '../../db';
-import { litters, puppies, litterImages, clients, updates, puppyInterests, clientActivity, litterNotifications, litterInterests } from '../../db/schema';
+import { litters, puppies, litterImages, puppyImages, clients, updates, puppyInterests, clientActivity, litterNotifications, litterInterests } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { sendLitterNotificationEmail } from '../../lib/email';
@@ -21,7 +21,12 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		const litter = await db.query.litters.findFirst({
 			where: eq(litters.id, params.id),
 			with: {
-				puppies: { with: { client: { columns: { id: true, firstName: true, lastName: true } } } },
+				puppies: {
+					with: {
+						client: { columns: { id: true, firstName: true, lastName: true } },
+						images: { orderBy: [asc(puppyImages.createdAt)] },
+					},
+				},
 				images: { orderBy: [asc(litterImages.createdAt)] },
 			},
 		});
@@ -767,6 +772,52 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			if (!image) return error(404, { error: 'Not found', message: 'Image not found' });
 
 			await db.delete(litterImages).where(eq(litterImages.id, params.imageId));
+			await supabase.storage.from(STORAGE_BUCKETS.litters).remove([image.storagePath]);
+
+			return { success: true };
+		}
+	)
+
+	// ── Admin: upload image for a puppy (max 10) ──
+	.post(
+		'/puppies/:puppyId/images',
+		async ({ params, body, error }) => {
+			const puppy = await db.query.puppies.findFirst({
+				where: eq(puppies.id, params.puppyId),
+				columns: { id: true, litterId: true },
+			});
+			if (!puppy) return error(404, { error: 'Not found', message: 'Puppy not found' });
+
+			const existing = await db.query.puppyImages.findMany({
+				where: eq(puppyImages.puppyId, params.puppyId),
+			});
+			if (existing.length >= 10) return error(400, { error: 'Limit reached', message: 'Maximum 10 photos per puppy.' });
+
+			const file = body.file as File;
+			const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+			const storagePath = `${puppy.litterId}/puppies/${params.puppyId}/${Date.now()}-${safeName}`;
+			const url = await uploadFile(STORAGE_BUCKETS.litters, storagePath, file, file.type);
+
+			const [image] = await db
+				.insert(puppyImages)
+				.values({ puppyId: params.puppyId, url, storagePath, sortOrder: existing.length })
+				.returning();
+
+			return image;
+		},
+		{ body: t.Object({ file: t.File() }) }
+	)
+
+	// ── Admin: delete a puppy image ──
+	.delete(
+		'/puppies/:puppyId/images/:imageId',
+		async ({ params, error }) => {
+			const image = await db.query.puppyImages.findFirst({
+				where: eq(puppyImages.id, params.imageId),
+			});
+			if (!image) return error(404, { error: 'Not found', message: 'Image not found' });
+
+			await db.delete(puppyImages).where(eq(puppyImages.id, params.imageId));
 			await supabase.storage.from(STORAGE_BUCKETS.litters).remove([image.storagePath]);
 
 			return { success: true };

@@ -32,8 +32,21 @@ export interface LitterImage {
 	createdAt: string;
 }
 
+export interface PuppyImage {
+	id: string;
+	puppyId: string;
+	url: string;
+	storagePath: string;
+	sortOrder: number;
+	createdAt: string;
+}
+
+export interface PuppyWithImages extends Puppy {
+	images: PuppyImage[];
+}
+
 export interface LitterWithDogs extends Litter {
-	puppies: Puppy[];
+	puppies: PuppyWithImages[];
 	images: LitterImage[];
 }
 
