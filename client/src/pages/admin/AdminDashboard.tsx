@@ -156,16 +156,6 @@ export function AdminDashboard() {
 						item: 'hover:bg-blue-50 text-blue-900',
 					},
 					{
-						key: 'confirm_deposit',
-						clients: allClients.filter((c) => c.depositStatus === 'pending'),
-						label: (n: number) => `${n} ${n === 1 ? 'deposit' : 'deposits'} to confirm`,
-						hash: 'deposit',
-						pill: 'bg-green-100 hover:bg-green-200 border-green-300 text-green-800',
-						dot: 'bg-green-500',
-						dropdown: 'border-green-200',
-						item: 'hover:bg-green-50 text-green-900',
-					},
-					{
 						key: 'confirm_match',
 						clients: allClients.filter((c) => c.stage === 'match_requested'),
 						label: (n: number) => `${n} ${n === 1 ? 'client has' : 'clients have'} requested a match`,
