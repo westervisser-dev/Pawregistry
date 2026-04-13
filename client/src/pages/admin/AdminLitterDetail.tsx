@@ -1078,11 +1078,6 @@ export function AdminLitterDetail() {
 								)}
 							</div>
 						</div>
-						{notifyOpen && litter.puppies.length > 0 && selectedIds.size > litter.puppies.length && (
-							<div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
-								Notifying more than {litter.puppies.length} client{litter.puppies.length !== 1 ? 's' : ''} may create false demand — there are only {litter.puppies.length} {litter.puppies.length !== 1 ? 'puppies' : 'puppy'} in this litter.
-							</div>
-						)}
 					</>
 				)}
 
