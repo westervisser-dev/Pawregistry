@@ -15,7 +15,6 @@ import { relations } from 'drizzle-orm';
 export const dogSexEnum = pgEnum('dog_sex', ['male', 'female']);
 export const litterStatusEnum = pgEnum('litter_status', [
 	'planned',
-	'born',
 	'available',
 	'booked',
 	'completed',
@@ -50,8 +49,8 @@ export const litters = pgTable('litters', {
 	name: text('name').notNull(),
 	breed: text('breed'),
 	status: litterStatusEnum('status').notNull().default('planned'),
-	whelpDate: text('whelp_date'),
-	expectedDate: text('expected_date'),
+	selectionDate: text('selection_date').notNull(),
+	goHomeDate: text('go_home_date'),
 	puppyCount: integer('puppy_count'),
 	availableCount: integer('available_count'),
 	depositAmount: real('deposit_amount'),

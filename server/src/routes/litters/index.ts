@@ -866,11 +866,11 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				name: t.String(),
 				breed: t.Optional(t.Nullable(t.String())),
 				status: t.Optional(t.Union([
-					t.Literal('planned'), t.Literal('born'),
+					t.Literal('planned'),
 					t.Literal('available'), t.Literal('completed'),
 				])),
-				expectedDate: t.Optional(t.Nullable(t.String())),
-				whelpDate: t.Optional(t.Nullable(t.String())),
+				selectionDate: t.String(),
+				goHomeDate: t.Optional(t.Nullable(t.String())),
 				depositAmount: t.Optional(t.Nullable(t.Number())),
 				notes: t.Optional(t.Nullable(t.String())),
 				isPublic: t.Optional(t.Boolean()),
@@ -888,8 +888,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.returning();
 			if (!updated) return error(404, { error: 'Not found', message: 'Litter not found' });
 
-			// Sync puppy statuses when litter advances to born or available
-			if (body.status && ['born', 'available'].includes(body.status)) {
+			// Sync puppy statuses when litter advances to available
+			if (body.status && body.status === 'available') {
 				await db
 					.update(puppies)
 					.set({ status: 'available', updatedAt: new Date() })
@@ -905,11 +905,12 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			name: t.String(),
 			breed: t.Nullable(t.String()),
 			status: t.Union([
-				t.Literal('planned'), t.Literal('born'),
+				t.Literal('planned'),
 				t.Literal('available'), t.Literal('completed'),
 			]),
-			whelpDate: t.Nullable(t.String()),
-			expectedDate: t.Nullable(t.String()), puppyCount: t.Nullable(t.Number()),
+			selectionDate: t.String(),
+			goHomeDate: t.Nullable(t.String()),
+			puppyCount: t.Nullable(t.Number()),
 			availableCount: t.Nullable(t.Number()), depositAmount: t.Nullable(t.Number()),
 			notes: t.Nullable(t.String()), isPublic: t.Boolean(),
 		})) }

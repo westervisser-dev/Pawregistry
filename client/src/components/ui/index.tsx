@@ -342,7 +342,6 @@ const puppyStatusVariant: Record<string, BadgeVariant> = {
 
 const litterStatusVariant: Record<string, BadgeVariant> = {
 	planned: 'default',
-	born: 'green',
 	available: 'purple',
 	booked: 'amber',
 	completed: 'default',

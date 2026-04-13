@@ -9,9 +9,9 @@ Sentry.init({
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
-import { eq, and, lt } from 'drizzle-orm';
+import { eq, and, lt, lte, notInArray } from 'drizzle-orm';
 import { db } from './db';
-import { puppies, payments, clients } from './db/schema';
+import { puppies, payments, clients, litters } from './db/schema';
 import { littersRoutes } from './routes/litters';
 import { clientsRoutes } from './routes/clients';
 import { updatesRoutes } from './routes/updates';
@@ -92,6 +92,43 @@ async function runBookingExpiryCheck(): Promise<void> {
 }
 
 setInterval(runBookingExpiryCheck, 5 * 60 * 1000);
+
+// ─── Selection date auto-transition job — runs every 5 minutes ───────────────
+// Finds planned litters whose selectionDate has arrived, flips them to available,
+// and sets all eligible puppies to available.
+
+async function runSelectionDateCheck(): Promise<void> {
+	try {
+		const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+		const ready = await db.query.litters.findMany({
+			where: and(
+				eq(litters.status, 'planned'),
+				lte(litters.selectionDate, today),
+			),
+			columns: { id: true, name: true },
+		});
+
+		for (const litter of ready) {
+			await db.update(litters)
+				.set({ status: 'available', updatedAt: new Date() })
+				.where(eq(litters.id, litter.id));
+
+			await db.update(puppies)
+				.set({ status: 'available', updatedAt: new Date() })
+				.where(and(
+					eq(puppies.litterId, litter.id),
+					notInArray(puppies.status, ['reserved', 'matched', 'matched_paid', 'retained', 'not_for_sale']),
+				));
+
+			console.log(`Litter "${litter.name}" auto-transitioned to available (selection date reached)`);
+		}
+	} catch (e) {
+		console.error('Selection date check failed:', e);
+	}
+}
+
+setInterval(runSelectionDateCheck, 5 * 60 * 1000);
+runSelectionDateCheck(); // run immediately on startup
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 

@@ -89,13 +89,9 @@ function getSizeLabel(raw: string | null | undefined): string | null {
 }
 
 function formatDate(litter: LitterWithDogs): string {
-	if (litter.whelpDate) {
-		return `Born ${new Date(litter.whelpDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}`;
-	}
-	if (litter.expectedDate) {
-		return `Expected ${new Date(litter.expectedDate).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}`;
-	}
-	return '';
+	const fmt = (d: string) => new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+	if (litter.goHomeDate) return `Go home ${fmt(litter.goHomeDate)}`;
+	return `Selection ${fmt(litter.selectionDate)}`;
 }
 
 /* ── Litter card ── */

@@ -363,7 +363,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			where: eq(litterInterests.clientId, params.id),
 			with: {
 				litter: {
-					columns: { id: true, name: true, breed: true, status: true, expectedDate: true },
+					columns: { id: true, name: true, breed: true, status: true, selectionDate: true },
 				},
 			},
 			orderBy: [asc(litterInterests.createdAt)],

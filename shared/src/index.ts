@@ -4,15 +4,15 @@ export type DogSex = 'male' | 'female';
 
 // ─── Litter ──────────────────────────────────────────────────────────────────
 
-export type LitterStatus = 'planned' | 'born' | 'available' | 'booked' | 'completed';
+export type LitterStatus = 'planned' | 'available' | 'booked' | 'completed';
 
 export interface Litter {
 	id: string;
 	name: string; // e.g. "Spring 2025 Litter"
 	breed: string | null;
 	status: LitterStatus;
-	whelpDate: string | null;
-	expectedDate: string | null;
+	selectionDate: string; // when clients can pick a puppy
+	goHomeDate: string | null; // when puppies go to their new home
 	puppyCount: number | null;
 	availableCount: number | null;
 	depositAmount: number | null;

@@ -205,7 +205,7 @@ export function AdminClientDetail() {
 	const [stagingTo, setStagingTo] = useState<string | null>(null);
 	const [clientLitterInterests, setClientLitterInterests] = useState<Array<{
 		id: string; clientId: string; litterId: string; createdAt: string;
-		litter: { id: string; name: string; breed: string | null; status: string; expectedDate: string | null };
+		litter: { id: string; name: string; breed: string | null; status: string; selectionDate: string };
 	}>>([]);
 	const [payments, setPayments] = useState<Payment[]>([]);
 	const [showFinalPaymentModal, setShowFinalPaymentModal] = useState(false);
@@ -427,9 +427,7 @@ export function AdminClientDetail() {
 									<div className="flex items-center gap-2 mt-0.5">
 										{li.litter.breed && <span className="text-xs text-warm-400">{li.litter.breed}</span>}
 										<span className="text-xs text-warm-400 capitalize">{li.litter.status}</span>
-										{li.litter.expectedDate && (
-											<span className="text-xs text-warm-400">· {new Date(li.litter.expectedDate).toLocaleDateString()}</span>
-										)}
+										<span className="text-xs text-warm-400">· Selection {new Date(li.litter.selectionDate).toLocaleDateString()}</span>
 									</div>
 								</div>
 								<span className="text-xs text-warm-400 flex-shrink-0">
