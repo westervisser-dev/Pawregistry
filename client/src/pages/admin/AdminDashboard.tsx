@@ -165,16 +165,6 @@ export function AdminDashboard() {
 						dropdown: 'border-pink-200',
 						item: 'hover:bg-pink-50 text-pink-900',
 					},
-					{
-						key: 'confirm_payment',
-						clients: allClients.filter((c) => c.stage === 'matched'),
-						label: (n: number) => `${n} ${n === 1 ? 'client' : 'clients'} awaiting payment confirmation`,
-						hash: 'stage',
-						pill: 'bg-violet-100 hover:bg-violet-200 border-violet-300 text-violet-800',
-						dot: 'bg-violet-500',
-						dropdown: 'border-violet-200',
-						item: 'hover:bg-violet-50 text-violet-900',
-					},
 				].filter((g) => g.clients.length > 0);
 
 				if (groups.length === 0) return null;
