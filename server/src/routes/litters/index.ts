@@ -1011,8 +1011,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				columns: { status: true },
 			});
 			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
-			if (!['born', 'available', 'booked', 'completed'].includes(litter.status)) {
-				return error(400, { error: 'Invalid status', message: 'Puppies can only be added once the litter is born.' });
+			if (!['planned', 'available', 'booked', 'completed'].includes(litter.status)) {
+				return error(400, { error: 'Invalid status', message: 'Puppies can only be added to an active litter.' });
 			}
 			const [puppy] = await db.insert(puppies).values({ ...body, litterId: params.id }).returning();
 			return puppy;

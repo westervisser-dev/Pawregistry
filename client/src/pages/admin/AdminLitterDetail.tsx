@@ -75,6 +75,7 @@ export function AdminLitterDetail() {
 	const [uploadingPuppyId, setUploadingPuppyId] = useState<string | null>(null);
 	const [uploadingPuppyImages, setUploadingPuppyImages] = useState(false);
 	const [addingPuppy, setAddingPuppy] = useState(false);
+	const [addPuppyError, setAddPuppyError] = useState('');
 	const [newPuppyDraftImageFile, setNewPuppyDraftImageFile] = useState<File | null>(null);
 	const [newPuppyImageFile, setNewPuppyImageFile] = useState<File | null>(null);
 
@@ -247,8 +248,16 @@ export function AdminLitterDetail() {
 	const addPuppy = async () => {
 		if (!id || !newPuppy.collarColour || !newPuppy.colour) return;
 		setAddingPuppy(true);
-		const { data } = await api.litters({ id }).puppies.post(newPuppy);
-		if (data && litter) {
+		setAddPuppyError('');
+		const { data, error: puppyErr } = await api.litters({ id }).puppies.post(newPuppy);
+		if (puppyErr || !data) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const msg = (puppyErr as any)?.value?.message;
+			setAddPuppyError(msg ?? 'Failed to add puppy. Please try again.');
+			setAddingPuppy(false);
+			return;
+		}
+		if (litter) {
 			const created = data as { id: string };
 			let uploadedImage: PuppyImage | null = null;
 			if (newPuppyImageFile) {
@@ -1100,6 +1109,9 @@ export function AdminLitterDetail() {
 									{addingPuppy ? (newPuppyImageFile ? 'Uploading…' : 'Adding…') : 'Add'}
 								</button>
 							</div>
+							{!!addPuppyError && (
+								<p role="alert" className="text-xs text-red-600 mt-1">{addPuppyError}</p>
+							)}
 						</>
 					)}
 				</div>
