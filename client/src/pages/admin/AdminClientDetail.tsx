@@ -211,6 +211,7 @@ export function AdminClientDetail() {
 	const [activities, setActivities] = useState<ClientActivity[]>([]);
 	const [documents, setDocuments] = useState<Document[]>([]);
 	const [templates, setTemplates] = useState<DocumentTemplateWithChecklist[]>([]);
+	const [stagingTo, setStagingTo] = useState<string | null>(null);
 	const [signing, setSigning] = useState<string | null>(null);
 	const [removingDoc, setRemovingDoc] = useState<string | null>(null);
 	const [clientLitterInterests, setClientLitterInterests] = useState<Array<{
@@ -286,7 +287,10 @@ export function AdminClientDetail() {
 
 	const updateStage = async (stage: string) => {
 		if (!id) return;
+		setStagingTo(stage);
+		setClient(prev => prev ? { ...prev, stage: stage as Client['stage'] } : prev);
 		await api.clients.admin({ id }).patch({ stage: stage as Client['stage'] });
+		setStagingTo(null);
 		load();
 	};
 
@@ -423,12 +427,19 @@ export function AdminClientDetail() {
 						<button
 							key={s}
 							onClick={() => updateStage(s)}
-							className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+							disabled={!!stagingTo}
+							className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 ${
 								client.stage === s
 									? 'bg-warm-900 text-white'
 									: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
 							}`}
 						>
+							{stagingTo === s && (
+								<svg className="animate-spin h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+									<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+									<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+								</svg>
+							)}
 							{label}
 						</button>
 					))}
