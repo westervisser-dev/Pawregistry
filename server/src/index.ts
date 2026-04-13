@@ -1,3 +1,11 @@
+import * as Sentry from '@sentry/node';
+
+Sentry.init({
+	dsn: process.env.SENTRY_DSN,
+	environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development',
+	enabled: process.env.NODE_ENV === 'production',
+});
+
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
@@ -104,6 +112,17 @@ const app = new Elysia()
 			},
 		})
 	)
+
+	// Global error capture — forwards unhandled Elysia errors to Sentry
+	.onError(({ error, request }) => {
+		// Don't report 4xx client errors — only unexpected server faults
+		const status = error instanceof Error && 'status' in error ? (error as { status: number }).status : 500;
+		if (status >= 500) {
+			Sentry.captureException(error, {
+				extra: { url: request.url, method: request.method },
+			});
+		}
+	})
 
 	// Health check — used by Railway
 	.get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))

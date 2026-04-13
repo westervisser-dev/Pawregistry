@@ -1,7 +1,24 @@
+import * as Sentry from '@sentry/react';
 import React, { lazy, Suspense, Component, type ReactNode } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
+
+Sentry.init({
+	dsn: import.meta.env.VITE_SENTRY_DSN as string | undefined,
+	environment: import.meta.env.MODE,
+	enabled: import.meta.env.PROD,
+	integrations: [
+		Sentry.browserTracingIntegration(),
+		Sentry.replayIntegration(),
+	],
+	// Capture 10% of transactions for performance monitoring
+	tracesSampleRate: 0.1,
+	// Capture 100% of sessions where an error occurs
+	replaysOnErrorSampleRate: 1.0,
+	// Do not capture replays for non-error sessions
+	replaysSessionSampleRate: 0,
+});
 
 // ─── Error boundary ───────────────────────────────────────────────────────────
 
@@ -13,6 +30,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 	}
 
 	componentDidCatch(error: Error) {
+		Sentry.captureException(error);
+
 		// After a new deployment, old chunk hashes no longer exist → 404 on dynamic import.
 		// Auto-reload fetches the new index.html and resolves it transparently.
 		const isChunkError =

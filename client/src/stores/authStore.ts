@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { api } from '@/lib/api';
@@ -29,6 +30,7 @@ export const useAuthStore = create<AuthState>((set) => {
 			const clientStage = (data && typeof data === 'object' && 'clientStage' in data && typeof data.clientStage === 'string')
 				? data.clientStage
 				: null;
+			Sentry.setUser({ id: session.user.id, email: session.user.email });
 			set({
 				user: session.user,
 				session,
@@ -39,6 +41,7 @@ export const useAuthStore = create<AuthState>((set) => {
 			});
 		} else {
 			localStorage.removeItem('access_token');
+			Sentry.setUser(null);
 			set({
 				user: null, session: null, isAdmin: false, hasClientRecord: false, clientStage: null,
 				...(isInit ? { loading: false } : {}),
