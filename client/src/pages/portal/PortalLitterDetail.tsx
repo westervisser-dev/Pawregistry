@@ -243,6 +243,8 @@ export function PortalLitterDetail() {
 	};
 
 	const isWaitlistedOrLater = !!clientStage && ['waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
+	const notifiedOrNoQueue = !eligibility || eligibility.isNotified;
+	const canInteract = isWaitlistedOrLater && notifiedOrNoQueue;
 
 	if (loading) return <LoadingPage />;
 	if (!litter) return <div className="text-warm-500 p-4">Litter not found.</div>;
@@ -275,10 +277,10 @@ export function PortalLitterDetail() {
 				{user && clientStage && clientStage !== 'rejected' && (
 					<div className="flex flex-col items-start sm:items-end gap-1 w-full sm:w-auto">
 						<button
-							onClick={isWaitlistedOrLater ? toggleLitterInterest : undefined}
-							disabled={litterInterestLoading || !isWaitlistedOrLater}
+							onClick={canInteract ? toggleLitterInterest : undefined}
+							disabled={litterInterestLoading || !canInteract}
 							className={`flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-								!isWaitlistedOrLater
+								!canInteract
 									? 'bg-warm-100 text-warm-400 border border-warm-200 cursor-not-allowed'
 									: myLitterInterest
 										? 'bg-brand-50 text-brand-600 border border-brand-300 hover:bg-brand-100 disabled:opacity-50'
@@ -291,6 +293,11 @@ export function PortalLitterDetail() {
 						{!isWaitlistedOrLater && (
 							<p className="text-xs text-warm-400 text-left sm:text-right">
 								You must be on the waitlist to mark interest
+							</p>
+						)}
+						{isWaitlistedOrLater && !notifiedOrNoQueue && (
+							<p className="text-xs text-warm-400 text-left sm:text-right">
+								You haven't been invited to this litter yet
 							</p>
 						)}
 					</div>

@@ -292,6 +292,21 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		});
 		if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
 
+		// Waitlisted+ clients can only mark interest if they've been notified about this litter
+		const waitlistedStages = ['waitlisted', 'match_requested', 'matched', 'matched_paid'];
+		if (waitlistedStages.includes(client.stage)) {
+			const batchRecords = await db.query.litterNotifications.findMany({
+				where: eq(litterNotifications.litterId, params.id),
+				columns: { clientId: true },
+			});
+			if (batchRecords.length > 0) {
+				const isNotified = batchRecords.some((n) => n.clientId === client.id);
+				if (!isNotified) {
+					return error(403, { error: 'NotEligible', message: 'You have not been notified about this litter yet' });
+				}
+			}
+		}
+
 		const existing = await db.query.litterInterests.findFirst({
 			where: and(eq(litterInterests.clientId, client.id), eq(litterInterests.litterId, params.id)),
 		});
