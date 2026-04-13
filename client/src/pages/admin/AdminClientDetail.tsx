@@ -390,7 +390,6 @@ export function AdminClientDetail() {
 						['waitlisted', 'Waitlisted'],
 						['match_requested', 'Match Requested'],
 						['matched', 'Matched'],
-						['matched_paid', 'Matched & Paid'],
 					] as [ClientStage, string][]).map(([s, label]) => (
 						<button
 							key={s}

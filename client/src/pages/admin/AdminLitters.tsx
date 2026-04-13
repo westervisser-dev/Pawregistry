@@ -13,7 +13,7 @@ export function AdminLitters() {
 	useEffect(() => {
 		api.litters.admin.all.get().then(({ data }) => {
 			if (data) {
-				const statusOrder: Record<string, number> = { planned: 0, born: 1, available: 2, completed: 3 };
+				const statusOrder: Record<string, number> = { planned: 0, born: 1, available: 2, booked: 3, completed: 4 };
 				setLitters((data as Litter[]).sort((a, b) => {
 					const sd = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
 					return sd !== 0 ? sd : a.name.localeCompare(b.name);

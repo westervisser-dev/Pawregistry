@@ -37,11 +37,14 @@ const dotColorMap: Record<ActivityColor, string> = {
 	brown: 'bg-[#8B5E3C]',
 };
 
+type PendingReservation = { id: string; name: string; pendingCount: number };
+
 export function AdminDashboard() {
 	const [counts, setCounts] = useState({ litters: 0, clients: 0, enquiries: 0 });
 	const [allClients, setAllClients] = useState<Client[]>([]);
 	const [allLitters, setAllLitters] = useState<Litter[]>([]);
 	const [docsCompleteIds, setDocsCompleteIds] = useState<Set<string>>(new Set());
+	const [pendingReservations, setPendingReservations] = useState<PendingReservation[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 	const attentionRef = useRef<HTMLDivElement>(null);
@@ -66,10 +69,13 @@ export function AdminDashboard() {
 			api.clients.admin.get({ query: {} }),
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(api.clients.admin as any).attention.get(),
-		]).then(([littersRes, clientsRes, attentionRes]) => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(api.litters.admin as any)['pending-reservations'].get(),
+		]).then(([littersRes, clientsRes, attentionRes, pendingRes]) => {
 			const litters = (littersRes.data as Litter[] | null) ?? [];
 			const clients = (clientsRes.data as Client[] | null) ?? [];
 			const attentionData = (attentionRes as { data: { docsCompleteIds: string[] } | null }).data;
+			const pendingData = (pendingRes as { data: PendingReservation[] | null }).data ?? [];
 
 			const enquired = clients.filter((c) => c.stage === 'enquired');
 
@@ -80,6 +86,7 @@ export function AdminDashboard() {
 			});
 
 			setDocsCompleteIds(new Set(attentionData?.docsCompleteIds ?? []));
+			setPendingReservations(pendingData);
 			setAllClients(clients);
 			setAllLitters(litters);
 			setLoading(false);
@@ -161,12 +168,12 @@ export function AdminDashboard() {
 
 			{/* ── Needs Attention ─────────────────────────────────── */}
 			{(() => {
+				type AttentionItem = { id: string; name: string; link: string };
 				const groups = [
 					{
 						key: 'review_application',
-						clients: allClients.filter((c) => c.stage === 'enquired'),
+						items: allClients.filter((c) => c.stage === 'enquired').map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, link: `/admin/clients/${c.id}#stage` })),
 						label: (n: number) => `${n} new ${n === 1 ? 'application' : 'applications'} to review`,
-						hash: 'stage',
 						pill: 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-800',
 						dot: 'bg-amber-500',
 						dropdown: 'border-amber-200',
@@ -174,9 +181,8 @@ export function AdminDashboard() {
 					},
 					{
 						key: 'review_documents',
-						clients: allClients.filter((c) => docsCompleteIds.has(c.id)),
+						items: allClients.filter((c) => docsCompleteIds.has(c.id)).map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, link: `/admin/clients/${c.id}#documents` })),
 						label: (n: number) => `${n} ${n === 1 ? 'client' : 'clients'} document review required`,
-						hash: 'documents',
 						pill: 'bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800',
 						dot: 'bg-blue-500',
 						dropdown: 'border-blue-200',
@@ -184,15 +190,23 @@ export function AdminDashboard() {
 					},
 					{
 						key: 'confirm_match',
-						clients: allClients.filter((c) => c.stage === 'match_requested'),
+						items: allClients.filter((c) => c.stage === 'match_requested').map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, link: `/admin/clients/${c.id}#stage` })),
 						label: (n: number) => `${n} ${n === 1 ? 'client has' : 'clients have'} requested a match`,
-						hash: 'stage',
 						pill: 'bg-pink-100 hover:bg-pink-200 border-pink-300 text-pink-800',
 						dot: 'bg-pink-500',
 						dropdown: 'border-pink-200',
 						item: 'hover:bg-pink-50 text-pink-900',
 					},
-				].filter((g) => g.clients.length > 0);
+					{
+						key: 'pending_reservations',
+						items: pendingReservations.map((l) => ({ id: l.id, name: `${l.name} (${l.pendingCount} pending)`, link: `/admin/litters/${l.id}` })),
+						label: (n: number) => `${n} ${n === 1 ? 'litter has' : 'litters have'} pending puppy reservations`,
+						pill: 'bg-purple-100 hover:bg-purple-200 border-purple-300 text-purple-800',
+						dot: 'bg-purple-500',
+						dropdown: 'border-purple-200',
+						item: 'hover:bg-purple-50 text-purple-900',
+					},
+				].filter((g) => g.items.length > 0) as Array<{ key: string; items: AttentionItem[]; label: (n: number) => string; pill: string; dot: string; dropdown: string; item: string }>;
 
 				if (groups.length === 0) return null;
 
@@ -204,14 +218,14 @@ export function AdminDashboard() {
 						<div className="flex flex-wrap gap-2">
 							{groups.map((g) => {
 								const isOpen = openDropdown === g.key;
-								const isSingle = g.clients.length === 1;
+								const isSingle = g.items.length === 1;
 								const pillClass = `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${g.pill}`;
 
 								if (isSingle) {
 									return (
 										<Link
 											key={g.key}
-											to={`/admin/clients/${g.clients[0].id}#${g.hash}`}
+											to={g.items[0].link}
 											className={pillClass}
 										>
 											<span className={`w-1.5 h-1.5 rounded-full ${g.dot}`} aria-hidden="true" />
@@ -228,20 +242,20 @@ export function AdminDashboard() {
 											aria-expanded={isOpen}
 										>
 											<span className={`w-1.5 h-1.5 rounded-full ${g.dot}`} aria-hidden="true" />
-											{g.label(g.clients.length)}
+											{g.label(g.items.length)}
 											<span className="ml-0.5 opacity-60" aria-hidden="true">{isOpen ? '▲' : '▼'}</span>
 										</button>
 										{isOpen && (
 											<div className={`absolute top-full right-0 mt-1.5 z-50 min-w-48 max-h-60 overflow-y-auto bg-white rounded-xl border shadow-lg ${g.dropdown}`}>
-												{g.clients.map((c) => (
+												{g.items.map((it) => (
 													<Link
-														key={c.id}
-														to={`/admin/clients/${c.id}#${g.hash}`}
+														key={it.id}
+														to={it.link}
 														onClick={() => setOpenDropdown(null)}
 														className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium first:rounded-t-xl last:rounded-b-xl transition-colors ${g.item}`}
 													>
 														<span className={`w-1.5 h-1.5 rounded-full shrink-0 ${g.dot}`} aria-hidden="true" />
-														{c.firstName} {c.lastName}
+														{it.name}
 													</Link>
 												))}
 											</div>

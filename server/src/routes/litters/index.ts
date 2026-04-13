@@ -11,6 +11,27 @@ import { parseBreedSize } from '@paw-registry/shared';
 const CLIENT_URL = process.env.CLIENT_URL ?? 'http://localhost:5173';
 const BOOKING_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+/** Auto-transition a litter to/from 'booked' based on puppy availability.
+ *  - 'available' → 'booked' when every puppy is non-available
+ *  - 'booked' → 'available' when any puppy is reset to available
+ */
+async function syncLitterBookedStatus(litterId: string): Promise<void> {
+	const litter = await db.query.litters.findFirst({
+		where: eq(litters.id, litterId),
+		columns: { status: true },
+		with: { puppies: { columns: { status: true } } },
+	});
+	if (!litter || litter.puppies.length === 0) return;
+
+	const allTaken = litter.puppies.every((p) => p.status !== 'available');
+
+	if (allTaken && litter.status === 'available') {
+		await db.update(litters).set({ status: 'booked', updatedAt: new Date() }).where(eq(litters.id, litterId));
+	} else if (!allTaken && litter.status === 'booked') {
+		await db.update(litters).set({ status: 'available', updatedAt: new Date() }).where(eq(litters.id, litterId));
+	}
+}
+
 export const littersRoutes = new Elysia({ prefix: '/litters' })
 	// ── Public: active public litters ──
 	.get('/', async () => {
@@ -86,6 +107,18 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				}
 			}
 
+			// One-at-a-time check: client cannot have an active interest in any other puppy
+			const activeInterest = await db.query.puppyInterests.findFirst({
+				where: and(
+					eq(puppyInterests.clientId, client.id),
+					or(eq(puppyInterests.status, 'pending'), eq(puppyInterests.status, 'approved')),
+				),
+				columns: { id: true, puppyId: true },
+			});
+			if (activeInterest && activeInterest.puppyId !== params.puppyId) {
+				return error(409, { error: 'AlreadyInterested', message: 'You already have an active interest in a puppy. You can only select one at a time.' });
+			}
+
 			// Duplicate interest check
 			const existing = await db.query.puppyInterests.findFirst({
 				where: and(eq(puppyInterests.puppyId, params.puppyId), eq(puppyInterests.clientId, client.id)),
@@ -127,6 +160,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					`Puppy booked — ${client.firstName} ${client.lastName}`,
 					`${client.firstName} ${client.lastName} expressed interest in ${puppyName}. Puppy auto-booked as R5,000 deposit was already on file.\n\nView client: ${CLIENT_URL}/admin/clients/${client.id}`,
 				);
+
+				await syncLitterBookedStatus(puppy.litterId);
 
 				return { interest, requiresPayment: false, authorizationUrl: null };
 			}
@@ -209,7 +244,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	.get(
 		'/:id/my-interests',
 		async ({ params, user }) => {
-			const empty = { interests: [], isNotified: false, position: null as number | null, notifiedUpTo: null as number | null };
+			const empty = { interests: [], isNotified: false, position: null as number | null, notifiedUpTo: null as number | null, hasActivePuppyInterest: false };
 			if (!user) return empty;
 
 			const client = await db.query.clients.findFirst({
@@ -249,11 +284,20 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				position = allWaitlisted.findIndex((c) => c.id === client.id) + 1 || null;
 			}
 
+			const activeInterestGlobal = await db.query.puppyInterests.findFirst({
+				where: and(
+					eq(puppyInterests.clientId, client.id),
+					or(eq(puppyInterests.status, 'pending'), eq(puppyInterests.status, 'approved')),
+				),
+				columns: { id: true },
+			});
+
 			return {
 				interests,
 				isNotified,
 				position,
 				notifiedUpTo: batchRecords.length > 0 ? batchRecords.length : null,
+				hasActivePuppyInterest: !!activeInterestGlobal,
 			};
 		}
 	)
@@ -291,6 +335,21 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			columns: { id: true, isPublic: true },
 		});
 		if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
+
+		// Waitlisted+ clients can only mark interest if they've been notified about this litter
+		const waitlistedStages = ['waitlisted', 'match_requested', 'matched', 'matched_paid'];
+		if (waitlistedStages.includes(client.stage)) {
+			const batchRecords = await db.query.litterNotifications.findMany({
+				where: eq(litterNotifications.litterId, params.id),
+				columns: { clientId: true },
+			});
+			if (batchRecords.length > 0) {
+				const isNotified = batchRecords.some((n) => n.clientId === client.id);
+				if (!isNotified) {
+					return error(403, { error: 'NotEligible', message: 'You have not been notified about this litter yet' });
+				}
+			}
+		}
 
 		const existing = await db.query.litterInterests.findFirst({
 			where: and(eq(litterInterests.clientId, client.id), eq(litterInterests.litterId, params.id)),
@@ -604,6 +663,30 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		return results;
 	})
 
+	// ── Admin: get litters that have pending puppy reservations ──
+	.get('/admin/pending-reservations', async () => {
+		const pending = await db.query.puppyInterests.findMany({
+			where: eq(puppyInterests.status, 'pending'),
+			with: { puppy: { columns: { litterId: true } } },
+			columns: { id: true },
+		});
+
+		// Group by litterId
+		const litterIds = [...new Set(pending.map((i) => i.puppy.litterId))];
+		if (litterIds.length === 0) return [];
+
+		const matchedLitters = await db.query.litters.findMany({
+			where: inArray(litters.id, litterIds),
+			columns: { id: true, name: true },
+		});
+
+		return matchedLitters.map((l) => ({
+			id: l.id,
+			name: l.name,
+			pendingCount: pending.filter((i) => i.puppy.litterId === l.id).length,
+		}));
+	})
+
 	// ── Admin: get all interests for all puppies in a litter ──
 	.get('/admin/interests/:litterId', async ({ params, error }) => {
 		const litter = await db.query.litters.findFirst({
@@ -760,6 +843,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					actor: 'admin',
 				});
 			}
+
+			await syncLitterBookedStatus(interest.puppy.litterId);
 
 			return updated;
 		},
@@ -925,7 +1010,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				columns: { status: true },
 			});
 			if (!litter) return error(404, { error: 'Not found', message: 'Litter not found' });
-			if (!['born', 'available', 'completed'].includes(litter.status)) {
+			if (!['born', 'available', 'booked', 'completed'].includes(litter.status)) {
 				return error(400, { error: 'Invalid status', message: 'Puppies can only be added once the litter is born.' });
 			}
 			const [puppy] = await db.insert(puppies).values({ ...body, litterId: params.id }).returning();
@@ -980,6 +1065,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					});
 				}
 			}
+
+			await syncLitterBookedStatus(updated.litterId);
 
 			return updated;
 		},

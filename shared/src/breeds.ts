@@ -15,32 +15,53 @@ export interface SizeOption {
 }
 
 export const BREEDS: BreedOption[] = [
-	{ value: 'f1_goldendoodle', label: 'F1 Goldendoodle', detail: 'Golden Retriever × Poodle' },
-	{ value: 'f1b_goldendoodle', label: 'F1b Goldendoodle', detail: 'F1 Goldendoodle × Poodle' },
-	{ value: 'f1_border_doodle', label: 'F1 Border Doodle', detail: 'Border Collie × Poodle' },
-	{ value: 'f1_mini_biewer_doodle', label: 'F1 Mini Biewer Doodle', detail: 'Biewer Terrier × Mini Poodle' },
-	{ value: 'red_tuxedo_french_poodle', label: 'Red Tuxedo French Poodle', detail: 'Pure bred poodle' },
+	{ value: 'aussie_doodle', label: 'Aussie Doodle', detail: 'Australian Shepherd × Poodle' },
+	{ value: 'cavalier_king_charles_spaniel', label: 'Cavalier King Charles Spaniel', detail: 'Pure breed' },
+	{ value: 'cavapoo', label: 'Cavapoo', detail: 'Cavalier King Charles Spaniel × Poodle' },
+	{ value: 'cockapoo', label: 'Cockapoo', detail: 'Cocker Spaniel × Poodle' },
+	{ value: 'english_cocker_spaniel', label: 'English Cocker Spaniel', detail: 'Pure breed' },
+	{ value: 'golden_doodle', label: 'Golden Doodle', detail: 'Golden Retriever × Poodle' },
+	{ value: 'pomapoo', label: 'Pomapoo', detail: 'Pomeranian × Poodle' },
+	{ value: 'poodle', label: 'Poodle', detail: 'Pure breed' },
+	{ value: 'shih_tzu', label: 'Shih Tzu', detail: 'Pure breed' },
+	{ value: 'toy_poodle', label: 'Toy Poodle', detail: 'Pure breed · miniature variety' },
 ];
 
 export const BREED_SIZES: Record<string, SizeOption[]> = {
-	f1_goldendoodle: [
-		{ value: 'standard', label: 'Standard', detail: 'Golden Retriever × Standard Poodle · ±32–45 kg / 55–65 cm' },
-		{ value: 'miniature', label: 'Miniature', detail: 'Golden Retriever × Miniature Poodle · ±25–28 kg / 45–50 cm' },
-		{ value: 'dwarf', label: 'Dwarf', detail: 'Golden Retriever × Dwarf Poodle · ±16–24 kg / 40–45 cm' },
+	aussie_doodle: [
+		{ value: 'standard', label: 'Standard', detail: 'Australian Shepherd × Standard Poodle · ±18–30 kg / 43–58 cm' },
+		{ value: 'mini', label: 'Mini', detail: 'Australian Shepherd × Mini Poodle · ±7–14 kg / 33–46 cm' },
 	],
-	f1b_goldendoodle: [
-		{ value: 'standard', label: 'Standard', detail: 'Golden Retriever × Standard Poodle · ±32–45 kg / 55–65 cm' },
-		{ value: 'miniature', label: 'Miniature', detail: 'Golden Retriever × Miniature Poodle · ±25–28 kg / 45–50 cm' },
-		{ value: 'dwarf', label: 'Dwarf', detail: 'Golden Retriever × Dwarf Poodle · ±16–24 kg / 40–45 cm' },
+	cavalier_king_charles_spaniel: [
+		{ value: 'standard', label: 'Standard', detail: 'Pure breed · ±5–8 kg / 30–33 cm' },
 	],
-	f1_border_doodle: [
-		{ value: 'border_doodle', label: 'Border Doodle', detail: 'Border Collie × Miniature Poodle · ±13–18 kg / 30–38 cm' },
+	cavapoo: [
+		{ value: 'standard', label: 'Standard', detail: 'Cavalier × Standard Poodle · ±8–12 kg / 30–40 cm' },
+		{ value: 'mini', label: 'Mini', detail: 'Cavalier × Mini Poodle · ±4–8 kg / 25–35 cm' },
 	],
-	f1_mini_biewer_doodle: [
-		{ value: 'biewer_doodle', label: 'Biewer Doodle', detail: 'Biewer Terrier × Miniature Poodle · ±7–12 kg / 20–25 cm' },
+	cockapoo: [
+		{ value: 'standard', label: 'Standard', detail: 'Cocker Spaniel × Standard Poodle · ±9–11 kg / 38–46 cm' },
+		{ value: 'mini', label: 'Mini', detail: 'Cocker Spaniel × Mini Poodle · ±5–9 kg / 25–38 cm' },
 	],
-	red_tuxedo_french_poodle: [
-		{ value: 'standard_poodle', label: 'Standard Poodle', detail: 'Pure bred poodle · ±25–30 kg / 40–50 cm' },
-		{ value: 'moyen_poodle', label: 'Moyen Poodle', detail: 'Pure bred poodle of medium size · ±12–18 kg / 30–38 cm' },
+	english_cocker_spaniel: [
+		{ value: 'standard', label: 'Standard', detail: 'Pure breed · ±12–15 kg / 38–43 cm' },
+	],
+	golden_doodle: [
+		{ value: 'standard', label: 'Standard', detail: 'Golden Retriever × Standard Poodle · ±23–34 kg / 53–63 cm' },
+		{ value: 'mini', label: 'Mini', detail: 'Golden Retriever × Mini Poodle · ±7–20 kg / 35–50 cm' },
+	],
+	pomapoo: [
+		{ value: 'standard', label: 'Standard', detail: 'Pomeranian × Standard Poodle · ±7–14 kg / 25–40 cm' },
+		{ value: 'mini', label: 'Mini', detail: 'Pomeranian × Mini Poodle · ±2–5 kg / 20–28 cm' },
+	],
+	poodle: [
+		{ value: 'standard', label: 'Standard', detail: 'Pure breed · ±20–32 kg / 45–60 cm' },
+		{ value: 'mini', label: 'Mini', detail: 'Pure breed · ±5–9 kg / 28–35 cm' },
+	],
+	shih_tzu: [
+		{ value: 'standard', label: 'Standard', detail: 'Pure breed · ±4–7 kg / 20–28 cm' },
+	],
+	toy_poodle: [
+		{ value: 'mini', label: 'Mini', detail: 'Pure breed · ±2–4 kg / under 28 cm' },
 	],
 };

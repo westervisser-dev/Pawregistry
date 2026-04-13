@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
 import { eq, desc, and, sum } from 'drizzle-orm';
 import { db } from '../../db';
-import { payments, clients, puppies } from '../../db/schema';
+import { payments, clients, puppies, litters } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { logActivity } from '../../lib/activity';
 import { sendClientEmailWithVars, sendAdminNotification } from '../../lib/email';
@@ -78,6 +78,24 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 			await db.update(puppies)
 				.set({ status: 'booked', bookingExpiresAt: null, updatedAt: new Date() })
 				.where(eq(puppies.id, puppyId));
+
+			// Auto-transition litter to 'booked' if all puppies are now non-available
+			const puppy = await db.query.puppies.findFirst({ where: eq(puppies.id, puppyId), columns: { litterId: true } });
+			if (puppy) {
+				const litter = await db.query.litters.findFirst({
+					where: eq(litters.id, puppy.litterId),
+					columns: { status: true },
+					with: { puppies: { columns: { status: true } } },
+				});
+				if (litter && litter.puppies.length > 0 && litter.status === 'available') {
+					const allTaken = litter.puppies.every((p) => p.status !== 'available');
+					if (allTaken) {
+						await db.update(litters)
+							.set({ status: 'booked', updatedAt: new Date() })
+							.where(eq(litters.id, puppy.litterId));
+					}
+				}
+			}
 		}
 
 		logActivity(

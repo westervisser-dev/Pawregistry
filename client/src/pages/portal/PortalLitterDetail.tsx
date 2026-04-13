@@ -145,7 +145,7 @@ export function PortalLitterDetail() {
 	const [myInterestPuppyIds, setMyInterestPuppyIds] = useState<Set<string>>(new Set());
 	const [submittingInterest, setSubmittingInterest] = useState<string | null>(null);
 	const [interestMessage, setInterestMessage] = useState<Record<string, string>>({});
-	const [eligibility, setEligibility] = useState<{ isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null>(null);
+	const [eligibility, setEligibility] = useState<{ isNotified: boolean; position: number | null; notifiedUpTo: number | null; hasActivePuppyInterest: boolean } | null>(null);
 	const [myMatch, setMyMatch] = useState<LitterMatchResult | null>(null);
 	const [myLitterInterest, setMyLitterInterest] = useState(false);
 	const [litterInterestLoading, setLitterInterestLoading] = useState(false);
@@ -168,7 +168,7 @@ export function PortalLitterDetail() {
 		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: { interests: Array<{ puppyId: string; status: string }>; isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null }) => {
 			if (data) {
 				setMyInterestPuppyIds(new Set(data.interests.map((i) => i.puppyId)));
-				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo });
+				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo, hasActivePuppyInterest: data.hasActivePuppyInterest ?? false });
 			}
 		}).catch(() => {});
 
@@ -243,6 +243,8 @@ export function PortalLitterDetail() {
 	};
 
 	const isWaitlistedOrLater = !!clientStage && ['waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
+	const notifiedOrNoQueue = !eligibility || eligibility.isNotified;
+	const canInteract = isWaitlistedOrLater && notifiedOrNoQueue;
 
 	if (loading) return <LoadingPage />;
 	if (!litter) return <div className="text-warm-500 p-4">Litter not found.</div>;
@@ -275,10 +277,10 @@ export function PortalLitterDetail() {
 				{user && clientStage && clientStage !== 'rejected' && (
 					<div className="flex flex-col items-start sm:items-end gap-1 w-full sm:w-auto">
 						<button
-							onClick={isWaitlistedOrLater ? toggleLitterInterest : undefined}
-							disabled={litterInterestLoading || !isWaitlistedOrLater}
+							onClick={canInteract ? toggleLitterInterest : undefined}
+							disabled={litterInterestLoading || !canInteract}
 							className={`flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-								!isWaitlistedOrLater
+								!canInteract
 									? 'bg-warm-100 text-warm-400 border border-warm-200 cursor-not-allowed'
 									: myLitterInterest
 										? 'bg-brand-50 text-brand-600 border border-brand-300 hover:bg-brand-100 disabled:opacity-50'
@@ -291,6 +293,11 @@ export function PortalLitterDetail() {
 						{!isWaitlistedOrLater && (
 							<p className="text-xs text-warm-400 text-left sm:text-right">
 								You must be on the waitlist to mark interest
+							</p>
+						)}
+						{isWaitlistedOrLater && !notifiedOrNoQueue && (
+							<p className="text-xs text-warm-400 text-left sm:text-right">
+								You haven't been invited to this litter yet
 							</p>
 						)}
 					</div>
@@ -439,7 +446,7 @@ export function PortalLitterDetail() {
 														disabled
 														className="w-full px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
 													>
-														Express Interest
+														Reserve
 													</button>
 													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
 														Waitlist required
@@ -451,10 +458,22 @@ export function PortalLitterDetail() {
 														disabled
 														className="w-full px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
 													>
-														Express Interest
+														Reserve
 													</button>
 													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
 														Not yet invited
+													</p>
+												</div>
+											) : eligibility?.hasActivePuppyInterest ? (
+												<div>
+													<button
+														disabled
+														className="w-full px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
+													>
+														Reserve
+													</button>
+													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
+														Already selected a puppy
 													</p>
 												</div>
 											) : (
@@ -463,7 +482,7 @@ export function PortalLitterDetail() {
 													disabled={submittingInterest === puppy.id}
 													className="w-full px-2 py-1.5 bg-brand-500 text-white text-xs rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
 												>
-													{submittingInterest === puppy.id ? 'Sending…' : 'Express Interest'}
+													{submittingInterest === puppy.id ? 'Reserving…' : 'Reserve'}
 												</button>
 											)}
 										</div>
