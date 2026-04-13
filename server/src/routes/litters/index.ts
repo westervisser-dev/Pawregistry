@@ -663,6 +663,30 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		return results;
 	})
 
+	// ── Admin: get litters that have pending puppy reservations ──
+	.get('/admin/pending-reservations', async () => {
+		const pending = await db.query.puppyInterests.findMany({
+			where: eq(puppyInterests.status, 'pending'),
+			with: { puppy: { columns: { litterId: true } } },
+			columns: { id: true },
+		});
+
+		// Group by litterId
+		const litterIds = [...new Set(pending.map((i) => i.puppy.litterId))];
+		if (litterIds.length === 0) return [];
+
+		const matchedLitters = await db.query.litters.findMany({
+			where: inArray(litters.id, litterIds),
+			columns: { id: true, name: true },
+		});
+
+		return matchedLitters.map((l) => ({
+			id: l.id,
+			name: l.name,
+			pendingCount: pending.filter((i) => i.puppy.litterId === l.id).length,
+		}));
+	})
+
 	// ── Admin: get all interests for all puppies in a litter ──
 	.get('/admin/interests/:litterId', async ({ params, error }) => {
 		const litter = await db.query.litters.findFirst({
