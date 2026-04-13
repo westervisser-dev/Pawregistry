@@ -7,7 +7,6 @@ import {
 	CardHeader,
 	PageHeader,
 	StatCard,
-	ActionButton,
 	ViewAllLink,
 } from '@/components/ui';
 import type { Litter, Client } from '@paw-registry/shared';
@@ -255,10 +254,8 @@ export function AdminDashboard() {
 				);
 			})()}
 
-			{/* ── Lower Grid: Table + Actions Panel ───────────────── */}
-			<div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
-				{/* Recent Activity Table */}
-				<Card>
+			{/* ── Recent Activity Table ───────────────────────────── */}
+			<Card>
 					<CardHeader
 						title="Recent Activity"
 						action={<ViewAllLink to="/admin/clients" />}
@@ -311,20 +308,7 @@ export function AdminDashboard() {
 							</tbody>
 						</table>
 					</div>
-				</Card>
-
-				{/* Actions Panel */}
-				<div className="flex flex-col gap-3.5">
-					<Card className="p-5">
-						<h3 className="font-serif text-[15px] text-warm-900 mb-3.5">Quick Actions</h3>
-						<div className="flex flex-col gap-2">
-							<ActionButton icon="+" label="Create Litter" to="/admin/litters/new" variant="primary" />
-							<ActionButton icon="📋" label="Waiting List" to="/admin/clients" />
-							<ActionButton icon="📢" label="Post Update" to="/admin/updates" />
-						</div>
-					</Card>
-				</div>
-			</div>
+			</Card>
 		</div>
 	);
 }
