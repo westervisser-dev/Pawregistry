@@ -22,53 +22,65 @@ Sentry.init({
 
 // ─── Error boundary ───────────────────────────────────────────────────────────
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-	state = { error: null };
+function isChunkLoadError(error: Error): boolean {
+	return (
+		error.name === 'ChunkLoadError' ||
+		/Failed to fetch dynamically imported module/.test(error.message) ||
+		/Importing a module script failed/.test(error.message) ||
+		/Loading chunk \d+ failed/.test(error.message)
+	);
+}
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null; isChunkError: boolean }> {
+	state = { error: null, isChunkError: false };
 
 	static getDerivedStateFromError(error: Error) {
-		return { error };
+		return { error, isChunkError: isChunkLoadError(error) };
 	}
 
 	componentDidCatch(error: Error) {
-		Sentry.captureException(error);
-
-		// After a new deployment, old chunk hashes no longer exist → 404 on dynamic import.
-		// Auto-reload fetches the new index.html and resolves it transparently.
-		const isChunkError =
-			error.name === 'ChunkLoadError' ||
-			/Failed to fetch dynamically imported module/.test(error.message) ||
-			/Importing a module script failed/.test(error.message) ||
-			/Loading chunk \d+ failed/.test(error.message);
-
-		if (isChunkError) {
-			// Guard against infinite reload loops (only reload once per 10s)
+		if (isChunkLoadError(error)) {
+			// After a new deployment, old chunk hashes no longer exist → 404 on dynamic import.
+			// Auto-reload fetches the new index.html and resolves it transparently.
+			// Guard against infinite reload loops (only reload once per 10s).
 			const lastReload = sessionStorage.getItem('chunk_reload_at');
 			if (!lastReload || Date.now() - Number(lastReload) > 10_000) {
 				sessionStorage.setItem('chunk_reload_at', String(Date.now()));
 				window.location.reload();
 			}
+			return;
 		}
+		Sentry.captureException(error);
 	}
 
 	render() {
-		if (this.state.error) {
+		const { error, isChunkError } = this.state;
+		if (!error) return this.props.children;
+
+		// Chunk error — show a blank loading screen while the reload fires
+		if (isChunkError) {
 			return (
-				<div className="min-h-screen bg-warm-50 flex items-center justify-center px-6">
-					<div className="w-full max-w-sm text-center">
-						<p className="text-4xl mb-4">🐾</p>
-						<h1 className="font-serif text-xl font-bold text-warm-900 mb-2">Something went wrong</h1>
-						<p className="text-warm-500 text-sm mb-6">An unexpected error occurred. Please refresh the page.</p>
-						<button
-							onClick={() => window.location.reload()}
-							className="px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"
-						>
-							Refresh page
-						</button>
-					</div>
+				<div className="min-h-screen bg-warm-50 flex items-center justify-center">
+					<div className="w-5 h-5 rounded-full border-2 border-brand-300 border-t-brand-600 animate-spin" />
 				</div>
 			);
 		}
-		return this.props.children;
+
+		return (
+			<div className="min-h-screen bg-warm-50 flex items-center justify-center px-6">
+				<div className="w-full max-w-sm text-center">
+					<p className="text-4xl mb-4">🐾</p>
+					<h1 className="font-serif text-xl font-bold text-warm-900 mb-2">Something went wrong</h1>
+					<p className="text-warm-500 text-sm mb-6">An unexpected error occurred. Please refresh the page.</p>
+					<button
+						onClick={() => window.location.reload()}
+						className="px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"
+					>
+						Refresh page
+					</button>
+				</div>
+			</div>
+		);
 	}
 }
 
