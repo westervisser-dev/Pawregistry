@@ -1,0 +1,1 @@
+ALTER TABLE "clients" ADD COLUMN "matched_at" timestamp with time zone;

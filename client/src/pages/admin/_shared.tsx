@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { Card, StageBadge, useFocusTrap } from '@/components/ui';
 import type { Client } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES } from '@paw-registry/shared';
@@ -129,14 +130,29 @@ export function formatBreedSize(raw: string | null | undefined): { breed: string
 
 // ─── Action badge ─────────────────────────────────────────────────────────────
 
-export type ClientAction = 'review_application' | 'review_documents' | 'confirm_deposit' | 'confirm_payment';
+export type ClientAction = 'review_application' | 'review_documents' | 'confirm_deposit';
 
 const ACTION_CONFIG: Record<ClientAction, { label: string; bg: string; text: string; border: string }> = {
 	review_application: { label: 'Review application', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
 	review_documents:   { label: 'Review documents',   bg: 'bg-blue-50',  text: 'text-blue-700',  border: 'border-blue-200'  },
 	confirm_deposit:    { label: 'Confirm deposit',     bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
-	confirm_payment:    { label: 'Confirm payment',     bg: 'bg-violet-50',text: 'text-violet-700',border: 'border-violet-200'},
 };
+
+function MatchedElapsed({ since }: { since: string }) {
+	const [elapsed, setElapsed] = useState(() => Date.now() - new Date(since).getTime());
+	const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	useEffect(() => {
+		setElapsed(Date.now() - new Date(since).getTime());
+		timerRef.current = setInterval(() => setElapsed(Date.now() - new Date(since).getTime()), 60_000);
+		return () => { if (timerRef.current) clearInterval(timerRef.current); };
+	}, [since]);
+
+	const totalMins = Math.floor(elapsed / 60_000);
+	const hh = Math.floor(totalMins / 60);
+	const mm = totalMins % 60;
+	const display = hh > 0 ? `${hh}h ${mm}m` : `${mm}m`;
+	return <span className="font-mono text-[10px]">{display}</span>;
+}
 
 export function ActionBadge({ action }: { action: ClientAction }) {
 	const cfg = ACTION_CONFIG[action];
@@ -225,6 +241,12 @@ export function SortableClientRow({ client, index, action }: {
 				<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
 				<p className="text-xs text-warm-400">{client.email}</p>
 				{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
+				{client.stage === 'matched' && !!client.matchedAt && (
+					<div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-700 border border-green-200">
+						<span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+						Payment email sent · <MatchedElapsed since={client.matchedAt} /> ago
+					</div>
+				)}
 				{parsed && (
 					<p className="text-xs text-brand-600 mt-0.5 md:hidden">🐾 {parsed.breed}{parsed.size ? ` · ${parsed.size}` : ''}</p>
 				)}
