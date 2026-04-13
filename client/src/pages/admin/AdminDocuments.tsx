@@ -7,7 +7,7 @@ export function AdminDocuments() {
 	const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [uploading, setUploading] = useState(false);
-	const [form, setForm] = useState({ name: '', description: '', category: '' });
+	const [form, setForm] = useState({ name: '', description: '' });
 	const [formError, setFormError] = useState('');
 	const fileRef = useRef<HTMLInputElement>(null);
 
@@ -32,10 +32,9 @@ export function AdminDocuments() {
 				file,
 				name: form.name.trim(),
 				...(form.description.trim() ? { description: form.description.trim() } : {}),
-				...(form.category.trim() ? { category: form.category.trim() } : {}),
 			});
 			if (error) { setFormError('Upload failed. Please try again.'); return; }
-			setForm({ name: '', description: '', category: '' });
+			setForm({ name: '', description: '' });
 			if (fileRef.current) fileRef.current.value = '';
 			load();
 		} catch {
@@ -66,29 +65,17 @@ export function AdminDocuments() {
 			<Card className="p-6 mb-8">
 				<h2 className="font-medium text-warm-900 mb-4">Upload Template</h2>
 				<div className="flex flex-col gap-4">
-					<div className="grid grid-cols-2 gap-4">
-						<div>
-							<label className="block text-xs font-medium text-warm-500 mb-1">
-								Name<span className="text-red-400 ml-0.5">*</span>
-							</label>
-							<input
-								type="text"
-								value={form.name}
-								onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-								placeholder="e.g. Puppy Purchase Agreement"
-								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-							/>
-						</div>
-						<div>
-							<label className="block text-xs font-medium text-warm-500 mb-1">Category</label>
-							<input
-								type="text"
-								value={form.category}
-								onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-								placeholder="e.g. Contracts, Health, Care Guide"
-								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-							/>
-						</div>
+					<div>
+						<label className="block text-xs font-medium text-warm-500 mb-1">
+							Name<span className="text-red-400 ml-0.5">*</span>
+						</label>
+						<input
+							type="text"
+							value={form.name}
+							onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+							placeholder="e.g. Puppy Purchase Agreement"
+							className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+						/>
 					</div>
 					<div>
 						<label className="block text-xs font-medium text-warm-500 mb-1">Description</label>
@@ -135,9 +122,6 @@ export function AdminDocuments() {
 										<div className="flex-1 min-w-0">
 											<div className="flex items-center gap-2 flex-wrap">
 												<p className="font-medium text-warm-900 text-sm">{template.name}</p>
-												{template.category && (
-													<Badge variant="default">{template.category}</Badge>
-												)}
 												{!template.isActive && (
 													<Badge variant="amber">Hidden</Badge>
 												)}
