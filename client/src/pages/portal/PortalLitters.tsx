@@ -99,7 +99,7 @@ function formatDate(litter: LitterWithDogs): string {
 function LitterCard({ litter, match, interested }: { litter: LitterWithDogs; match?: LitterMatchResult; interested?: boolean }) {
 	const breedLabel = getBreedLabel(litter.breed);
 	const sizeLabel = getSizeLabel(litter.breed);
-	const availableCount = litter.availableCount ?? 0;
+	const availableCount = litter.puppies.filter((p) => p.status === 'available').length;
 	const hasAvailable = availableCount > 0;
 	const isPlanned = litter.status === 'planned';
 	const isFullyReserved = !isPlanned && !hasAvailable;
