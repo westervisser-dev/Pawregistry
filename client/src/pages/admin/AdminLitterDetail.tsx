@@ -510,21 +510,36 @@ export function AdminLitterDetail() {
 								onChange={(e) => setF('status', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							>
-								{['planned', 'available', 'completed'].map((s) => (
+								{['planned', 'available'].map((s) => (
 									<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
 								))}
 							</select>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-warm-500 mb-1">
-								Selection Date<span className="text-red-400 ml-0.5">*</span>
-							</label>
+							<div className="flex items-center justify-between mb-1">
+								<label className="text-xs font-medium text-warm-500">
+									Date which clients can reserve puppies<span className="text-red-400 ml-0.5">*</span>
+								</label>
+								<button
+									type="button"
+									onClick={() => {
+										const today = new Date().toISOString().slice(0, 10);
+										setNewForm((f) => ({ ...f, selectionDate: today, status: 'available' }));
+									}}
+									className="text-[11px] font-medium text-brand-500 hover:text-brand-600 transition-colors"
+								>
+									Use today
+								</button>
+							</div>
 							<input
 								type="date"
 								value={newForm.selectionDate}
 								onChange={(e) => setF('selectionDate', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							/>
+							{newForm.selectionDate === new Date().toISOString().slice(0, 10) && (
+								<p className="text-[11px] text-brand-500 mt-1">Status set to Available — clients can reserve puppies immediately.</p>
+							)}
 						</div>
 						<div>
 							<label className="block text-xs font-medium text-warm-500 mb-1">Go-Home Date</label>
