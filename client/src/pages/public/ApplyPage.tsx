@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
-type Step = 'personal' | 'home' | 'experience' | 'preferences' | 'deposit' | 'done';
+type Step = 'personal' | 'home' | 'experience' | 'preferences' | 'deposit' | 'confirm' | 'done';
 
 interface FormData {
 	// Personal
@@ -106,7 +106,7 @@ const initial: FormData = {
 	budget: '',
 };
 
-const steps: Step[] = ['personal', 'home', 'experience', 'preferences', 'deposit', 'done'];
+const steps: Step[] = ['personal', 'home', 'experience', 'preferences', 'deposit', 'confirm', 'done'];
 
 // Breed & size constants imported from shared
 import { BREEDS, BREED_SIZES } from '@paw-registry/shared';
@@ -1015,6 +1015,38 @@ export function ApplyPage() {
 					</div>
 				)}
 
+				{/* ── Confirm ── */}
+				{step === 'confirm' && (
+					<div className="flex flex-col gap-5">
+						<div>
+							<h2 className="font-serif text-xl font-bold text-warm-900 mb-1">Review & Confirm</h2>
+							<p className="text-sm text-warm-500">Please review your selection before submitting.</p>
+						</div>
+
+						<div className="p-4 bg-brand-50 border border-brand-200 rounded-xl">
+							<p className="text-xs font-semibold text-brand-600 uppercase tracking-wide mb-1">Selected waiting list</p>
+							{form.depositTier === 'r5000' ? (
+								<>
+									<p className="font-semibold text-warm-900 text-sm">Secured Waiting List — R5,000 deposit</p>
+									<p className="text-xs text-warm-500 mt-0.5">Highest priority — first to be offered puppies from each litter.</p>
+								</>
+							) : (
+								<>
+									<p className="font-semibold text-warm-900 text-sm">Standard Waiting List — R500 list fee</p>
+									<p className="text-xs text-warm-500 mt-0.5">Second priority — offered puppies remaining after the secured list.</p>
+								</>
+							)}
+						</div>
+
+						<div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 leading-relaxed space-y-2">
+							<p>
+								<span className="font-semibold">Next step:</span> After submitting, you will be redirected to our secure payment page to complete your {form.depositTier === 'r5000' ? 'R5,000 deposit' : 'R500 list fee'}.
+							</p>
+							<p>Once payment is confirmed, you will be directed to your client portal where you can track your application, upload documents, and stay up to date.</p>
+						</div>
+					</div>
+				)}
+
 				{error && (
 					<p role="alert" className="text-red-600 text-sm px-1">{error}</p>
 				)}
@@ -1027,7 +1059,7 @@ export function ApplyPage() {
 						</button>
 					) : <div />}
 
-					{step !== 'deposit' ? (
+					{step !== 'confirm' ? (
 						<button
 							onClick={next}
 							className="px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"
@@ -1040,7 +1072,7 @@ export function ApplyPage() {
 							disabled={submitting}
 							className="px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50"
 						>
-							{submitting ? 'Submitting…' : 'Submit Application'}
+							{submitting ? 'Submitting…' : 'Submit & Pay Deposit'}
 						</button>
 					)}
 				</div>
