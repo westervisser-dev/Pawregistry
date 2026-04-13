@@ -156,11 +156,16 @@ export function AdminLitterDetail() {
 			return;
 		}
 		if (!newForm.selectionDate) {
-			setFormError('Selection date is required.');
+			setFormError('Reserve date is required.');
+			return;
+		}
+		const today = new Date().toISOString().slice(0, 10);
+		if (newForm.status === 'planned' && newForm.selectionDate <= today) {
+			setFormError('Reserve date must be a future date when status is Planned.');
 			return;
 		}
 		if (newForm.goHomeDate && newForm.goHomeDate < newForm.selectionDate) {
-			setFormError('Go-home date must be on or after the selection date.');
+			setFormError('Go-home date must be on or after the reserve date.');
 			return;
 		}
 		setSaving(true);
@@ -520,25 +525,28 @@ export function AdminLitterDetail() {
 								<label className="text-xs font-medium text-warm-500">
 									Date which clients can reserve puppies<span className="text-red-400 ml-0.5">*</span>
 								</label>
-								<button
-									type="button"
-									onClick={() => {
-										const today = new Date().toISOString().slice(0, 10);
-										setNewForm((f) => ({ ...f, selectionDate: today, status: 'available' }));
-									}}
-									className="text-[11px] font-medium text-brand-500 hover:text-brand-600 transition-colors"
-								>
-									Use today
-								</button>
+								{newForm.status === 'available' && (
+									<button
+										type="button"
+										onClick={() => {
+											const today = new Date().toISOString().slice(0, 10);
+											setNewForm((f) => ({ ...f, selectionDate: today }));
+										}}
+										className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-brand-50 border border-brand-200 text-brand-600 hover:bg-brand-100 transition-colors"
+									>
+										Use today
+									</button>
+								)}
 							</div>
 							<input
 								type="date"
 								value={newForm.selectionDate}
+								min={newForm.status === 'planned' ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })() : undefined}
 								onChange={(e) => setF('selectionDate', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							/>
-							{newForm.selectionDate === new Date().toISOString().slice(0, 10) && (
-								<p className="text-[11px] text-brand-500 mt-1">Status set to Available — clients can reserve puppies immediately.</p>
+							{newForm.status === 'planned' && newForm.selectionDate && newForm.selectionDate <= new Date().toISOString().slice(0, 10) && (
+								<p className="text-[11px] text-red-500 mt-1">Must be a future date when status is Planned.</p>
 							)}
 						</div>
 						<div>
@@ -824,20 +832,28 @@ export function AdminLitterDetail() {
 				<Card className="p-6">
 					<h3 className="font-semibold text-warm-800 mb-4">Details</h3>
 					<div className="space-y-2 text-sm">
-						<div className="flex justify-between items-center">
-							<span className="text-warm-500">Selection date<span className="text-red-400 ml-0.5">*</span></span>
-							<input
-								type="date"
-								defaultValue={litter.selectionDate ? new Date(litter.selectionDate as unknown as string).toISOString().slice(0, 10) : ''}
-								onChange={async (e) => {
-									if (!id) return;
-									const value = e.target.value;
-									if (!value) return;
-									await api.litters({ id }).patch({ selectionDate: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
-									setLitter((l) => l ? { ...l, selectionDate: value as unknown as Date } : l);
-								}}
-								className="px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors cursor-pointer"
-							/>
+						<div className="flex justify-between items-start">
+							<span className="text-warm-500 pt-1">Reserve date<span className="text-red-400 ml-0.5">*</span></span>
+							<div className="flex flex-col items-end gap-1">
+								<input
+									type="date"
+									defaultValue={litter.selectionDate ? new Date(litter.selectionDate as unknown as string).toISOString().slice(0, 10) : ''}
+									min={litter.status === 'planned' ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })() : undefined}
+									onChange={async (e) => {
+										if (!id) return;
+										const value = e.target.value;
+										if (!value) return;
+										const todayStr = new Date().toISOString().slice(0, 10);
+										if (litter.status === 'planned' && value <= todayStr) return;
+										await api.litters({ id }).patch({ selectionDate: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+										setLitter((l) => l ? { ...l, selectionDate: value as unknown as Date } : l);
+									}}
+									className="px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors cursor-pointer"
+								/>
+								{litter.status === 'planned' && (
+									<span className="text-[11px] text-warm-400">Must be a future date while Planned</span>
+								)}
+							</div>
 						</div>
 						<div className="flex justify-between items-center">
 							<span className="text-warm-500">Go-home date</span>
