@@ -308,15 +308,20 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 	})
 
 	.get('/admin/:id', async ({ params, error }) => {
-		const client = await db.query.clients.findFirst({
-			where: eq(clients.id, params.id),
-			with: {
-				puppy: true,
-				litter: true,
-			},
-		});
-		if (!client) return error(404, { error: 'Not found', message: 'Client not found' });
-		return client;
+		try {
+			const client = await db.query.clients.findFirst({
+				where: eq(clients.id, params.id),
+				with: {
+					puppy: true,
+					litter: true,
+				},
+			});
+			if (!client) return error(404, { error: 'Not found', message: 'Client not found' });
+			return client;
+		} catch (err) {
+			console.error(`[GET /admin/${params.id}] 500:`, err);
+			return error(500, { error: 'Internal server error', message: 'Failed to load client' });
+		}
 	})
 
 	.get('/admin/:id/activity', async ({ params }) => {
