@@ -264,11 +264,9 @@ export function PortalLitterDetail() {
 					</div>
 					<div className="flex items-center gap-3 text-sm text-warm-500">
 						<LitterStatusBadge status={litter.status} />
-						{litter.whelpDate && (
-							<span>Born {new Date(litter.whelpDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-						)}
-						{litter.expectedDate && !litter.whelpDate && (
-							<span>Expected {new Date(litter.expectedDate).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}</span>
+						<span>Selection {new Date(litter.selectionDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+						{litter.goHomeDate && (
+							<span>· Go home {new Date(litter.goHomeDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
 						)}
 					</div>
 				</div>

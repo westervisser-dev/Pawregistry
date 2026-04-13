@@ -79,9 +79,10 @@ export function AdminLitterDetail() {
 	const [newPuppyImageFile, setNewPuppyImageFile] = useState<File | null>(null);
 
 	// New-litter form state
-	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; expectedDate: string; notes: string; isPublic: boolean }>({
-		name: '', breedKey: '', sizeKey: '', status: 'planned', expectedDate: '', notes: '', isPublic: false,
+	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; selectionDate: string; goHomeDate: string; notes: string; isPublic: boolean }>({
+		name: '', breedKey: '', sizeKey: '', status: 'planned', selectionDate: '', goHomeDate: '', notes: '', isPublic: false,
 	});
+	const [availableWarning, setAvailableWarning] = useState(false);
 	const [galleryImages, setGalleryImages] = useState<LitterImage[]>([]);
 	const [galleryError, setGalleryError] = useState('');
 	const [galleryUploading, setGalleryUploading] = useState(false);
@@ -153,14 +154,23 @@ export function AdminLitterDetail() {
 			setFormError('Name and Breed are required.');
 			return;
 		}
+		if (!newForm.selectionDate) {
+			setFormError('Selection date is required.');
+			return;
+		}
+		if (newForm.goHomeDate && newForm.goHomeDate < newForm.selectionDate) {
+			setFormError('Go-home date must be on or after the selection date.');
+			return;
+		}
 		setSaving(true);
 		try {
 			const breedValue = newForm.breedKey ? buildBreedSize(newForm.breedKey, newForm.sizeKey || null) : null;
 			const { data, error } = await api.litters.post({
 				name: newForm.name,
 				...(breedValue ? { breed: breedValue } : {}),
-				status: newForm.status as 'planned' | 'born' | 'available' | 'completed',
-				...(newForm.expectedDate ? { expectedDate: newForm.expectedDate } : {}),
+				status: newForm.status as 'planned' | 'available' | 'completed',
+				selectionDate: newForm.selectionDate,
+				...(newForm.goHomeDate ? { goHomeDate: newForm.goHomeDate } : {}),
 				...(newForm.notes ? { notes: newForm.notes } : {}),
 				isPublic: newForm.isPublic,
 			});
@@ -199,10 +209,27 @@ export function AdminLitterDetail() {
 		}
 	};
 
-	const updateStatus = async (status: string) => {
-		if (!id) return;
+	const updateStatus = async (status: string, forceSelectionDateToday = false) => {
+		if (!id || !litter) return;
+
+		// Warn if setting to available before the selection date
+		if (status === 'available' && !forceSelectionDateToday) {
+			const today = new Date().toISOString().slice(0, 10);
+			const selDate = litter.selectionDate
+				? new Date(litter.selectionDate as unknown as string).toISOString().slice(0, 10)
+				: null;
+			if (selDate && selDate > today) {
+				setAvailableWarning(true);
+				return;
+			}
+		}
+
 		setSaving(true);
-		await api.litters({ id }).patch({ status } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+		const patchBody: Record<string, unknown> = { status };
+		if (forceSelectionDateToday) {
+			patchBody.selectionDate = new Date().toISOString().slice(0, 10);
+		}
+		await api.litters({ id }).patch(patchBody as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
 		// Re-fetch full litter to pick up any synced puppy statuses
 		const { data: fresh } = await api.litters({ id }).get();
 		if (fresh) setLitter(fresh as typeof litter);
@@ -474,17 +501,29 @@ export function AdminLitterDetail() {
 								onChange={(e) => setF('status', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							>
-								{['planned', 'born', 'available', 'completed'].map((s) => (
+								{['planned', 'available', 'completed'].map((s) => (
 									<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
 								))}
 							</select>
 						</div>
 						<div>
-							<label className="block text-xs font-medium text-warm-500 mb-1">Expected Date</label>
+							<label className="block text-xs font-medium text-warm-500 mb-1">
+								Selection Date<span className="text-red-400 ml-0.5">*</span>
+							</label>
 							<input
 								type="date"
-								value={newForm.expectedDate}
-								onChange={(e) => setF('expectedDate', e.target.value)}
+								value={newForm.selectionDate}
+								onChange={(e) => setF('selectionDate', e.target.value)}
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
+							/>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Go-Home Date</label>
+							<input
+								type="date"
+								value={newForm.goHomeDate}
+								onChange={(e) => setF('goHomeDate', e.target.value)}
+								min={newForm.selectionDate || undefined}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							/>
 						</div>
@@ -646,7 +685,7 @@ export function AdminLitterDetail() {
 	const fmtDate = (d: Date | string | null | undefined) =>
 		d ? new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
-	const statuses = ['planned', 'born', 'available', 'completed'];
+	const statuses = ['planned', 'available', 'completed'];
 
 	return (
 		<div className="p-4 md:p-8 max-w-4xl">
@@ -761,20 +800,31 @@ export function AdminLitterDetail() {
 				<Card className="p-6">
 					<h3 className="font-semibold text-warm-800 mb-4">Details</h3>
 					<div className="space-y-2 text-sm">
-						<div className="flex justify-between">
-							<span className="text-warm-500">Whelp date</span>
-							<span>{fmtDate(litter.whelpDate)}</span>
-						</div>
 						<div className="flex justify-between items-center">
-							<span className="text-warm-500">Expected</span>
+							<span className="text-warm-500">Selection date<span className="text-red-400 ml-0.5">*</span></span>
 							<input
 								type="date"
-								defaultValue={litter.expectedDate ? new Date(litter.expectedDate).toISOString().slice(0, 10) : ''}
+								defaultValue={litter.selectionDate ? new Date(litter.selectionDate as unknown as string).toISOString().slice(0, 10) : ''}
+								onChange={async (e) => {
+									if (!id) return;
+									const value = e.target.value;
+									if (!value) return;
+									await api.litters({ id }).patch({ selectionDate: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+									setLitter((l) => l ? { ...l, selectionDate: value as unknown as Date } : l);
+								}}
+								className="px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors cursor-pointer"
+							/>
+						</div>
+						<div className="flex justify-between items-center">
+							<span className="text-warm-500">Go-home date</span>
+							<input
+								type="date"
+								defaultValue={litter.goHomeDate ? new Date(litter.goHomeDate as unknown as string).toISOString().slice(0, 10) : ''}
 								onChange={async (e) => {
 									if (!id) return;
 									const value = e.target.value || null;
-									await api.litters({ id }).patch({ expectedDate: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
-									setLitter((l) => l ? { ...l, expectedDate: value as unknown as Date } : l);
+									await api.litters({ id }).patch({ goHomeDate: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+									setLitter((l) => l ? { ...l, goHomeDate: value as unknown as Date } : l);
 								}}
 								className="px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors cursor-pointer"
 							/>
@@ -789,6 +839,37 @@ export function AdminLitterDetail() {
 						</div>
 					</div>
 				</Card>
+
+				{/* Available-before-selectionDate warning dialog */}
+				{availableWarning && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true" aria-labelledby="avail-warn-title">
+						<div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+							<h3 id="avail-warn-title" className="font-semibold text-warm-900 mb-2">Selection date is in the future</h3>
+							<p className="text-sm text-warm-600 mb-5">
+								The selection date is set to{' '}
+								<strong>{fmtDate(litter.selectionDate as unknown as string)}</strong>, which hasn't arrived yet.
+								Do you want to update the selection date to today and mark this litter as available?
+							</p>
+							<div className="flex gap-3 justify-end">
+								<button
+									onClick={() => setAvailableWarning(false)}
+									className="px-4 py-2 text-sm text-warm-600 hover:text-warm-800 transition-colors"
+								>
+									Cancel
+								</button>
+								<button
+									onClick={async () => {
+										setAvailableWarning(false);
+										await updateStatus('available', true);
+									}}
+									className="px-4 py-2 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors"
+								>
+									Set to today &amp; mark available
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
 			</div>
 
 			<Card className="p-6 mb-6">
@@ -1048,7 +1129,7 @@ export function AdminLitterDetail() {
 										{selectedIds.size === 0 ? 'Select clients below' : `${selectedIds.size} selected`}
 									</span>
 								)}
-								{(['born', 'available'] as LitterStatus[]).includes(litter.status) ? (
+								{(litter.status === 'available' as LitterStatus) ? (
 									notifyOpen ? (
 										<button
 											onClick={() => { setNotifyOpen(false); setSelectedIds(new Set()); }}

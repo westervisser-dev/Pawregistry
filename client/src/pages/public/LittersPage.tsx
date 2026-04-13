@@ -126,14 +126,12 @@ export function LittersPage() {
 									</div>
 
 									<div className="flex flex-col gap-1 flex-1">
-										{litter.expectedDate && !litter.whelpDate && (
+										<p className="text-xs text-warm-400">
+											Selection {new Date(litter.selectionDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
+										</p>
+										{litter.goHomeDate && (
 											<p className="text-xs text-warm-400">
-												Expected {new Date(litter.expectedDate).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })}
-											</p>
-										)}
-										{litter.whelpDate && (
-											<p className="text-xs text-warm-400">
-												Born {new Date(litter.whelpDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
+												Go home {new Date(litter.goHomeDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}
 											</p>
 										)}
 									</div>
