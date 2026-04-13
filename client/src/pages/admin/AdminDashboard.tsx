@@ -8,9 +8,6 @@ import {
 	PageHeader,
 	StatCard,
 	ActionButton,
-	CountBadge,
-	ActivityFeed,
-	Avatar,
 	ViewAllLink,
 } from '@/components/ui';
 import type { Litter, Client } from '@paw-registry/shared';
@@ -32,10 +29,19 @@ function timeAgo(dateStr: string): string {
 	return `${days}d ago`;
 }
 
+type ActivityColor = 'brand' | 'green' | 'blue' | 'brown';
+
+const dotColorMap: Record<ActivityColor, string> = {
+	brand: 'bg-brand-500',
+	green: 'bg-[#4A6741]',
+	blue: 'bg-[#1E5B8A]',
+	brown: 'bg-[#8B5E3C]',
+};
+
 export function AdminDashboard() {
 	const [counts, setCounts] = useState({ litters: 0, clients: 0, enquiries: 0 });
-	const [recentEnquiries, setRecentEnquiries] = useState<Pick<Client, 'id' | 'firstName' | 'lastName' | 'email' | 'createdAt'>[]>([]);
 	const [allClients, setAllClients] = useState<Client[]>([]);
+	const [allLitters, setAllLitters] = useState<Litter[]>([]);
 	const [docsCompleteIds, setDocsCompleteIds] = useState<Set<string>>(new Set());
 	const [loading, setLoading] = useState(true);
 	const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -75,30 +81,51 @@ export function AdminDashboard() {
 			});
 
 			setDocsCompleteIds(new Set(attentionData?.docsCompleteIds ?? []));
-
-			setRecentEnquiries(
-				enquired
-					.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-					.slice(0, 5),
-			);
-
 			setAllClients(clients);
+			setAllLitters(litters);
 			setLoading(false);
 		});
 	}, []);
 
-	// Build activity feed from recent client events — only show clients still at enquired stage
-	const recentActivity = allClients
-		.filter((c) => c.stage === 'enquired')
-		.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-		.slice(0, 4)
-		.map((c) => ({
-			text: `New enquiry from ${c.firstName} ${c.lastName}`,
-			time: timeAgo(c.createdAt),
-			color: 'brand' as const,
-		}));
+	// Build unified activity feed from multiple event sources
+	type ActivityEvent = { text: string; ts: number; color: ActivityColor; link: string };
+	const events: ActivityEvent[] = [];
 
-	const newCount = recentEnquiries.length;
+	for (const c of allClients) {
+		const name = `${c.firstName} ${c.lastName}`;
+		const link = `/admin/clients/${c.id}`;
+		if (c.stage === 'enquired') {
+			events.push({ text: `New enquiry from ${name}`, ts: new Date(c.createdAt).getTime(), color: 'brand', link });
+		} else if (c.stage === 'approved') {
+			events.push({ text: `${name} approved`, ts: new Date(c.updatedAt).getTime(), color: 'green', link });
+		} else if (c.stage === 'waitlisted') {
+			if (c.depositStatus === 'paid') {
+				events.push({ text: `${name} waitlisted — deposit paid`, ts: new Date(c.updatedAt).getTime(), color: 'brown', link });
+			} else {
+				events.push({ text: `${name} added to waitlist`, ts: new Date(c.updatedAt).getTime(), color: 'green', link });
+			}
+		} else if (c.stage === 'match_requested') {
+			events.push({ text: `${name} requested a match`, ts: new Date(c.updatedAt).getTime(), color: 'blue', link });
+		} else if (c.stage === 'matched') {
+			events.push({ text: `${name} matched to litter`, ts: new Date(c.updatedAt).getTime(), color: 'blue', link });
+		} else if (c.stage === 'matched_paid') {
+			events.push({ text: `${name} — placement complete`, ts: new Date(c.updatedAt).getTime(), color: 'green', link });
+		}
+	}
+
+	for (const l of allLitters) {
+		events.push({ text: `New litter: ${l.name}`, ts: new Date(l.createdAt).getTime(), color: 'brown', link: `/admin/litters/${l.id}` });
+	}
+
+	const recentActivity = events
+		.sort((a, b) => b.ts - a.ts)
+		.slice(0, 10)
+		.map(({ text, ts, color, link }) => ({
+			text,
+			time: timeAgo(new Date(ts).toISOString()),
+			color,
+			link,
+		}));
 
 	return (
 		<div className="p-5 md:p-8 max-w-[1600px]">
@@ -230,59 +257,52 @@ export function AdminDashboard() {
 
 			{/* ── Lower Grid: Table + Actions Panel ───────────────── */}
 			<div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
-				{/* Recent Enquiries Table */}
+				{/* Recent Activity Table */}
 				<Card>
 					<CardHeader
-						title="Recent Enquiries"
-						badge={newCount > 0 ? <CountBadge count={newCount} /> : undefined}
-						action={<ViewAllLink to="/admin/clients?stage=enquired" />}
+						title="Recent Activity"
+						action={<ViewAllLink to="/admin/clients" />}
 					/>
 					<div className="overflow-x-auto">
 						<table className="w-full mt-3.5">
 							<thead>
 								<tr>
-									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Name</th>
-									<th className="hidden md:table-cell text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Email</th>
-									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Applied</th>
+									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">Activity</th>
+									<th className="text-[10.5px] uppercase tracking-[0.06em] text-warm-400 font-medium px-[22px] pb-2.5 text-left border-b border-black/[0.06]">When</th>
 									<th className="px-[22px] pb-2.5 border-b border-black/[0.06]" />
 								</tr>
 							</thead>
 							<tbody>
 								{loading ? (
 									<tr>
-										<td colSpan={4} className="px-[22px] py-8 text-center text-warm-400 text-sm">
+										<td colSpan={3} className="px-[22px] py-8 text-center text-warm-400 text-sm">
 											Loading…
 										</td>
 									</tr>
-								) : recentEnquiries.length === 0 ? (
+								) : recentActivity.length === 0 ? (
 									<tr>
-										<td colSpan={4} className="px-[22px] py-8 text-center text-warm-400 text-sm">
-											No pending enquiries
+										<td colSpan={3} className="px-[22px] py-8 text-center text-warm-400 text-sm">
+											No recent activity
 										</td>
 									</tr>
 								) : (
-									recentEnquiries.map((client) => (
-										<tr key={client.id} className="border-b border-black/[0.05] last:border-0 hover:bg-warm-50 transition-colors">
+									recentActivity.map((item, i) => (
+										<tr key={i} className="border-b border-black/[0.05] last:border-0 hover:bg-warm-50 transition-colors">
 											<td className="px-[22px] py-[13px]">
 												<div className="flex items-center gap-2.5">
-													<Avatar name={`${client.firstName} ${client.lastName}`} />
-													<span className="text-[13px] text-warm-800 font-medium">
-														{client.firstName} {client.lastName}
-													</span>
+													<div className={`w-2 h-2 rounded-full shrink-0 ${dotColorMap[item.color]}`} aria-hidden="true" />
+													<span className="text-[13px] text-warm-800 font-medium">{item.text}</span>
 												</div>
 											</td>
-											<td className="hidden md:table-cell px-[22px] py-[13px] text-[12.5px] text-warm-500">
-												{client.email}
-											</td>
-											<td className="px-[22px] py-[13px] text-xs text-warm-400">
-												{new Date(client.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+											<td className="px-[22px] py-[13px] text-xs text-warm-400 whitespace-nowrap">
+												{item.time}
 											</td>
 											<td className="px-[22px] py-[13px]">
 												<Link
-													to={`/admin/clients/${client.id}`}
+													to={item.link}
 													className="text-xs text-brand-500 font-medium hover:underline whitespace-nowrap"
 												>
-													Review →
+													View →
 												</Link>
 											</td>
 										</tr>
@@ -295,7 +315,6 @@ export function AdminDashboard() {
 
 				{/* Actions Panel */}
 				<div className="flex flex-col gap-3.5">
-					{/* Quick Actions */}
 					<Card className="p-5">
 						<h3 className="font-serif text-[15px] text-warm-900 mb-3.5">Quick Actions</h3>
 						<div className="flex flex-col gap-2">
@@ -303,16 +322,6 @@ export function AdminDashboard() {
 							<ActionButton icon="📋" label="Waiting List" to="/admin/clients" />
 							<ActionButton icon="📢" label="Post Update" to="/admin/updates" />
 						</div>
-					</Card>
-
-					{/* Recent Activity */}
-					<Card className="p-5">
-						<h3 className="font-serif text-[15px] text-warm-900 mb-3.5">Recent Activity</h3>
-						{recentActivity.length > 0 ? (
-							<ActivityFeed items={recentActivity} />
-						) : (
-							<p className="text-xs text-warm-400">No recent activity</p>
-						)}
 					</Card>
 				</div>
 			</div>

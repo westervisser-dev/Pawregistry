@@ -176,7 +176,15 @@ function App() {
 	);
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// Preserve the root across Vite HMR re-evaluations — prevents two React trees
+// from mounting into the same container and causing DOM corruption.
+const container = document.getElementById('root')!;
+type ReactRoot = ReturnType<typeof ReactDOM.createRoot>;
+const root: ReactRoot = (container as unknown as Record<string, ReactRoot>).__reactRoot
+	?? ReactDOM.createRoot(container);
+(container as unknown as Record<string, ReactRoot>).__reactRoot = root;
+
+root.render(
 	<React.StrictMode>
 		<ErrorBoundary>
 			<App />
