@@ -76,8 +76,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				});
 			}
 
-			const tier = body.depositTier;
-			const amountRands = tier === 'r5000' ? 5000 : 500;
+			const tier = body.depositTier; // null means no deposit chosen
 
 			const [client] = await db.insert(clients).values({
 				firstName: body.firstName,
@@ -87,9 +86,9 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				city: body.city ?? null,
 				country: body.country ?? 'ZA',
 				applicationData: body.applicationData,
-				depositStatus: 'pending',
-				depositTier: tier,
-				depositChosenAt: new Date(),
+				depositStatus: tier ? 'pending' : 'none',
+				depositTier: tier ?? null,
+				...(tier ? { depositChosenAt: new Date() } : {}),
 				stage: 'enquired',
 			}).returning();
 
@@ -100,7 +99,17 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			).catch(console.error);
 			logActivity(client.id, 'application_submitted', 'Application submitted', 'client');
 
-			// Initialise Paystack payment — always required (no free tier)
+			// No deposit chosen — return without Paystack redirect
+			if (!tier) {
+				return {
+					id: client.id,
+					authorizationUrl: null,
+					message: 'Application received.',
+				};
+			}
+
+			// Initialise Paystack payment
+			const amountRands = tier === 'r5000' ? 5000 : 500;
 			const reference = generateReference('dep');
 			const { authorizationUrl } = await initializeTransaction({
 				email: client.email,
@@ -134,7 +143,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				phone: t.Optional(t.String()),
 				city: t.Optional(t.String()),
 				country: t.Optional(t.String()),
-				depositTier: t.Union([t.Literal('r5000'), t.Literal('r500')]),
+				depositTier: t.Nullable(t.Union([t.Literal('r5000'), t.Literal('r500')])),
 				applicationData: applicationDataSchema,
 			}),
 		}
