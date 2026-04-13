@@ -1,16 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
-import { LoadingPage, Card, Badge } from '@/components/ui';
+import { LoadingPage, Card } from '@/components/ui';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import type { Client, Document, DocumentTemplateWithChecklist } from '@paw-registry/shared';
-
-const docTypeLabel: Record<string, string> = {
-	contract: 'Contract',
-	health_record: 'Health Record',
-	go_home_pack: 'Go-Home Pack',
-	invoice: 'Invoice',
-	other: 'Document',
-};
+import type { Client, DocumentTemplateWithChecklist } from '@paw-registry/shared';
 
 const PAST_REVIEW_STAGES = new Set(['waitlisted', 'placed', 'match_requested', 'matched', 'matched_paid']);
 const POPUP_SHOWN_KEY = 'docs_complete_popup_shown';
@@ -63,7 +55,6 @@ function DocsCompletePopup({ onClose }: { onClose: () => void }) {
 }
 
 export function PortalDocuments() {
-	const [documents, setDocuments] = useState<Document[]>([]);
 	const [templates, setTemplates] = useState<DocumentTemplateWithChecklist[]>([]);
 	const [clientStage, setClientStage] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -75,11 +66,9 @@ export function PortalDocuments() {
 
 	useEffect(() => {
 		Promise.all([
-			api.documents.my.get(),
 			api.templates.my.get(),
 			api.clients.me.get(),
-		]).then(([docsRes, templatesRes, clientRes]) => {
-			if (docsRes.data) setDocuments(docsRes.data as Document[]);
+		]).then(([templatesRes, clientRes]) => {
 			if (templatesRes.data) setTemplates(templatesRes.data as DocumentTemplateWithChecklist[]);
 			if (clientRes.data) setClientStage((clientRes.data as Client).stage);
 			setLoading(false);
@@ -146,45 +135,12 @@ export function PortalDocuments() {
 				</div>
 			)}
 
-			{/* Client-specific documents */}
-			{documents.length > 0 && (
-				<section className="mb-8">
-					<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Your Documents</h2>
-					<div className="flex flex-col gap-3">
-						{documents.map((doc) => (
-							<Card key={doc.id} className="p-4 flex items-center justify-between">
-								<div className="flex items-center gap-4">
-									<span className="text-2xl" aria-hidden="true">📄</span>
-									<div>
-										<p className="font-medium text-warm-900 text-sm">{doc.label}</p>
-										<p className="text-xs text-warm-400 mt-0.5">
-											{docTypeLabel[doc.type]} · {new Date(doc.createdAt).toLocaleDateString()}
-										</p>
-									</div>
-								</div>
-								<div className="flex items-center gap-3">
-									{doc.signedAt && <Badge variant="green">Signed</Badge>}
-									<a
-										href={doc.fileUrl}
-										target="_blank"
-										rel="noreferrer"
-										className="text-sm text-brand-600 font-medium hover:underline"
-									>
-										Download
-									</a>
-								</div>
-							</Card>
-						))}
-					</div>
-				</section>
-			)}
-
 			{/* Template documents checklist */}
 			{templates.length > 0 && (
 				<section>
 					<div className="flex items-center justify-between mb-3">
 						<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide">Template Documents</h2>
-						<span className="text-xs text-warm-400">{checkedCount} of {templates.length} downloaded</span>
+						<span className="text-xs text-warm-400">{checkedCount} of {templates.length} uploaded</span>
 					</div>
 					<div className="mb-4 bg-warm-100 rounded-full h-1.5 overflow-hidden">
 						<div
@@ -271,7 +227,7 @@ export function PortalDocuments() {
 			)}
 
 			{/* Empty state */}
-			{documents.length === 0 && templates.length === 0 && (
+			{templates.length === 0 && (
 				<Card className="p-12 text-center">
 					<p className="text-4xl mb-4" aria-hidden="true">📄</p>
 					<p className="text-warm-600 font-medium">No documents yet</p>

@@ -29,12 +29,12 @@ export function AdminTable({ headers, children }: { headers: TableHeader[]; chil
 			<table className="w-full text-sm">
 				<thead>
 					<tr className="border-b border-black/[0.06]">
-						{headers.map((h) => {
+						{headers.map((h, i) => {
 							const label = typeof h === 'string' ? h : h.label;
 							const hide = typeof h === 'object' && h.hideMobile;
 							const mobileLabel = typeof h === 'object' ? h.mobileLabel : undefined;
 							return (
-								<th key={label} className={`text-left py-3 px-2 md:px-4 text-[10.5px] font-medium text-warm-400 uppercase tracking-[0.06em]${hide ? ' hidden md:table-cell' : ''}`}>
+								<th key={i} className={`text-left py-3 px-2 md:px-4 text-[10.5px] font-medium text-warm-400 uppercase tracking-[0.06em]${hide ? ' hidden md:table-cell' : ''}`}>
 									{mobileLabel ? (
 										<>
 											<span className="md:hidden">{mobileLabel}</span>

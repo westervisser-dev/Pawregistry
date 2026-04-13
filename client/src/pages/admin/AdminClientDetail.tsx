@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
-import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, DocumentType, Payment } from '@paw-registry/shared';
+import type { Client, ClientStage, ClientActivity, EmailLog, DocumentTemplateWithChecklist, Payment } from '@paw-registry/shared';
 import { DeleteModal, DepositStatusBadge } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
@@ -98,8 +98,6 @@ const ACTIVITY_CONFIG: Record<string, { icon: string; label: string; colour: str
 	deposit_changed: { icon: '💰', label: 'Deposit Updated', colour: 'text-green-600' },
 	preferences_updated: { icon: '✏️', label: 'Preferences Updated', colour: 'text-amber-600' },
 	notes_updated: { icon: '📝', label: 'Notes Updated', colour: 'text-warm-500' },
-	document_uploaded: { icon: '📄', label: 'Document Uploaded', colour: 'text-blue-500' },
-	document_signed: { icon: '✅', label: 'Document Signed', colour: 'text-green-500' },
 };
 
 const ACTOR_LABELS: Record<string, string> = {
@@ -172,12 +170,6 @@ function ActivityTimeline({ activities }: { activities: ClientActivity[] }) {
 									{activity.type === 'deposit_changed' && !!meta.from && !!meta.to && (
 										<span className="text-warm-400 font-normal"> {String(meta.from)} → {String(meta.to)}</span>
 									)}
-									{activity.type === 'document_uploaded' && !!meta.label && (
-										<span className="text-warm-400 font-normal"> — {String(meta.label)}</span>
-									)}
-									{activity.type === 'document_signed' && !!meta.label && (
-										<span className="text-warm-400 font-normal"> — {String(meta.label)}</span>
-									)}
 								</p>
 								{activity.type === 'preferences_updated' && !!meta.changes && (
 									<PreferenceChanges changes={meta.changes as Record<string, { from: unknown; to: unknown }>} />
@@ -209,16 +201,8 @@ export function AdminClientDetail() {
 	const [impersonating, setImpersonating] = useState(false);
 	const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
 	const [activities, setActivities] = useState<ClientActivity[]>([]);
-	const [documents, setDocuments] = useState<Document[]>([]);
 	const [templates, setTemplates] = useState<DocumentTemplateWithChecklist[]>([]);
-	const [signing, setSigning] = useState<string | null>(null);
-	const [removingDoc, setRemovingDoc] = useState<string | null>(null);
-	const [uploadFile, setUploadFile] = useState<File | null>(null);
-	const [uploadType, setUploadType] = useState<DocumentType>('other');
-	const [uploadLabel, setUploadLabel] = useState('');
-	const [uploading, setUploading] = useState(false);
-	const [uploadError, setUploadError] = useState('');
-	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [stagingTo, setStagingTo] = useState<string | null>(null);
 	const [clientLitterInterests, setClientLitterInterests] = useState<Array<{
 		id: string; clientId: string; litterId: string; createdAt: string;
 		litter: { id: string; name: string; breed: string | null; status: string; expectedDate: string | null };
@@ -228,12 +212,8 @@ export function AdminClientDetail() {
 	const [finalPrice, setFinalPrice] = useState('');
 	const [requestingFinal, setRequestingFinal] = useState(false);
 	const [finalError, setFinalError] = useState('');
-	const loadDocuments = () => {
+	const loadTemplates = () => {
 		if (!id) return;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(api.documents as any).admin({ clientId: id }).get().then(({ data }: { data: Document[] | null }) => {
-			if (data) setDocuments(data);
-		});
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.templates as any).admin({ clientId: id }).checklist.get().then(({ data }: { data: DocumentTemplateWithChecklist[] | null }) => {
 			if (data) setTemplates(data);
@@ -275,7 +255,7 @@ export function AdminClientDetail() {
 		(api.payments as any).client({ clientId: id }).get().then(({ data }: { data: Payment[] | null }) => {
 			if (data) setPayments(data);
 		}).catch(() => {});
-		loadDocuments();
+		loadTemplates();
 	};
 
 	useEffect(() => { load(); }, [id]);
@@ -292,7 +272,10 @@ export function AdminClientDetail() {
 
 	const updateStage = async (stage: string) => {
 		if (!id) return;
+		setStagingTo(stage);
+		setClient(prev => prev ? { ...prev, stage: stage as Client['stage'] } : prev);
 		await api.clients.admin({ id }).patch({ stage: stage as Client['stage'] });
+		setStagingTo(null);
 		load();
 	};
 
@@ -317,46 +300,7 @@ export function AdminClientDetail() {
 		setDeleting(false);
 	};
 
-	const removeDocument = async (docId: string) => {
-		setRemovingDoc(docId);
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		await (api.documents as any).admin({ id: docId }).delete();
-		setRemovingDoc(null);
-		loadDocuments();
-	};
 
-	const signDocument = async (docId: string) => {
-		setSigning(docId);
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		await (api.documents as any).admin({ id: docId }).sign.patch();
-		setSigning(null);
-		loadDocuments();
-		load();
-	};
-
-	const uploadDocument = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!id || !uploadFile || !uploadLabel.trim()) return;
-		setUploading(true);
-		setUploadError('');
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const { error } = await (api.documents as any).admin({ clientId: id }).post({
-			file: uploadFile,
-			type: uploadType,
-			label: uploadLabel.trim(),
-		});
-		setUploading(false);
-		if (error) {
-			setUploadError('Upload failed. Please try again.');
-			return;
-		}
-		setUploadFile(null);
-		setUploadLabel('');
-		setUploadType('other');
-		if (fileInputRef.current) fileInputRef.current.value = '';
-		loadDocuments();
-		load();
-	};
 
 	if (loading) return <LoadingPage />;
 	if (!client) return <div className="p-4 md:p-8 text-warm-500">Client not found.</div>;
@@ -451,12 +395,19 @@ export function AdminClientDetail() {
 						<button
 							key={s}
 							onClick={() => updateStage(s)}
-							className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+							disabled={!!stagingTo}
+							className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1.5 disabled:opacity-60 ${
 								client.stage === s
 									? 'bg-warm-900 text-white'
 									: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
 							}`}
 						>
+							{stagingTo === s && (
+								<svg className="animate-spin h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+									<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+									<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+								</svg>
+							)}
 							{label}
 						</button>
 					))}
@@ -624,109 +575,6 @@ export function AdminClientDetail() {
 					</div>
 				)}
 
-				{/* Admin-uploaded documents */}
-				<div className="mb-5">
-					<p className="text-xs font-semibold text-amber-700 uppercase tracking-widest mb-2">Admin Documents</p>
-					{documents.length === 0 ? (
-						<p className="text-sm text-warm-400 mb-3">No documents uploaded yet.</p>
-					) : (
-						<div className="divide-y divide-black/[0.05] mb-3">
-							{documents.map(doc => (
-								<div key={doc.id} className="py-2.5 flex items-center gap-3">
-									<span className="text-base shrink-0" aria-hidden="true">📄</span>
-									<div className="flex-1 min-w-0">
-										<p className="text-sm text-warm-800 truncate">{doc.label}</p>
-										<p className="text-xs text-warm-400">
-											{doc.type} · {new Date(doc.createdAt).toLocaleDateString()}
-											{doc.signedAt && (
-												<span className="ml-2 inline-flex items-center gap-0.5 text-green-600">
-													✓ Signed {new Date(doc.signedAt).toLocaleDateString()}
-												</span>
-											)}
-										</p>
-									</div>
-									<div className="flex items-center gap-2 shrink-0">
-										<a
-											href={doc.fileUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="px-2.5 py-1 rounded text-xs font-medium bg-warm-100 text-warm-700 hover:bg-warm-200 transition-colors"
-										>
-											View →
-										</a>
-										{!doc.signedAt && (
-											<button
-												onClick={() => signDocument(doc.id)}
-												disabled={signing === doc.id}
-												className="px-2.5 py-1 rounded text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 transition-colors"
-											>
-												{signing === doc.id ? 'Signing…' : 'Mark signed'}
-											</button>
-										)}
-										<button
-											onClick={() => removeDocument(doc.id)}
-											disabled={removingDoc === doc.id}
-											className="px-2.5 py-1 rounded text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 disabled:opacity-50 transition-colors"
-										>
-											{removingDoc === doc.id ? 'Removing…' : 'Remove'}
-										</button>
-									</div>
-								</div>
-							))}
-						</div>
-					)}
-				</div>
-
-				{/* Upload form */}
-				<form onSubmit={uploadDocument} className="border border-black/[0.07] rounded-lg p-4 bg-warm-50/50">
-					<p className="text-xs font-semibold text-warm-600 uppercase tracking-wide mb-3">Upload Document</p>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-						<div>
-							<label className="block text-xs text-warm-500 mb-1">Label</label>
-							<input
-								type="text"
-								value={uploadLabel}
-								onChange={e => setUploadLabel(e.target.value)}
-								placeholder="e.g. Signed Contract"
-								className="w-full px-3 py-1.5 text-sm border border-black/[0.1] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
-								required
-							/>
-						</div>
-						<div>
-							<label className="block text-xs text-warm-500 mb-1">Type</label>
-							<select
-								value={uploadType}
-								onChange={e => setUploadType(e.target.value as DocumentType)}
-								className="w-full px-3 py-1.5 text-sm border border-black/[0.1] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
-							>
-								<option value="contract">Contract</option>
-								<option value="invoice">Invoice</option>
-								<option value="health_record">Health Record</option>
-								<option value="go_home_pack">Go-Home Pack</option>
-								<option value="other">Other</option>
-							</select>
-						</div>
-					</div>
-					<div className="mb-3">
-						<label className="block text-xs text-warm-500 mb-1">File</label>
-						<input
-							ref={fileInputRef}
-							type="file"
-							accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-							onChange={e => setUploadFile(e.target.files?.[0] ?? null)}
-							className="w-full text-sm text-warm-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-warm-100 file:text-warm-700 hover:file:bg-warm-200"
-							required
-						/>
-					</div>
-					{uploadError && <p role="alert" className="text-xs text-red-500 mb-2">{uploadError}</p>}
-					<button
-						type="submit"
-						disabled={uploading || !uploadFile || !uploadLabel.trim()}
-						className="px-4 py-1.5 bg-warm-900 text-white text-xs font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 transition-colors"
-					>
-						{uploading ? 'Uploading…' : 'Upload'}
-					</button>
-				</form>
 			</Card>
 
 			{/* Portal access */}
