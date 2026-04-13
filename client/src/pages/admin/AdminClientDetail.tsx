@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
-import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, Payment } from '@paw-registry/shared';
+import type { Client, ClientStage, ClientActivity, EmailLog, DocumentTemplateWithChecklist, Payment } from '@paw-registry/shared';
 import { DeleteModal, DepositStatusBadge } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
@@ -98,8 +98,6 @@ const ACTIVITY_CONFIG: Record<string, { icon: string; label: string; colour: str
 	deposit_changed: { icon: '💰', label: 'Deposit Updated', colour: 'text-green-600' },
 	preferences_updated: { icon: '✏️', label: 'Preferences Updated', colour: 'text-amber-600' },
 	notes_updated: { icon: '📝', label: 'Notes Updated', colour: 'text-warm-500' },
-	document_uploaded: { icon: '📄', label: 'Document Uploaded', colour: 'text-blue-500' },
-	document_signed: { icon: '✅', label: 'Document Signed', colour: 'text-green-500' },
 };
 
 const ACTOR_LABELS: Record<string, string> = {
@@ -172,12 +170,6 @@ function ActivityTimeline({ activities }: { activities: ClientActivity[] }) {
 									{activity.type === 'deposit_changed' && !!meta.from && !!meta.to && (
 										<span className="text-warm-400 font-normal"> {String(meta.from)} → {String(meta.to)}</span>
 									)}
-									{activity.type === 'document_uploaded' && !!meta.label && (
-										<span className="text-warm-400 font-normal"> — {String(meta.label)}</span>
-									)}
-									{activity.type === 'document_signed' && !!meta.label && (
-										<span className="text-warm-400 font-normal"> — {String(meta.label)}</span>
-									)}
 								</p>
 								{activity.type === 'preferences_updated' && !!meta.changes && (
 									<PreferenceChanges changes={meta.changes as Record<string, { from: unknown; to: unknown }>} />
@@ -209,11 +201,8 @@ export function AdminClientDetail() {
 	const [impersonating, setImpersonating] = useState(false);
 	const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
 	const [activities, setActivities] = useState<ClientActivity[]>([]);
-	const [documents, setDocuments] = useState<Document[]>([]);
 	const [templates, setTemplates] = useState<DocumentTemplateWithChecklist[]>([]);
 	const [stagingTo, setStagingTo] = useState<string | null>(null);
-	const [signing, setSigning] = useState<string | null>(null);
-	const [removingDoc, setRemovingDoc] = useState<string | null>(null);
 	const [clientLitterInterests, setClientLitterInterests] = useState<Array<{
 		id: string; clientId: string; litterId: string; createdAt: string;
 		litter: { id: string; name: string; breed: string | null; status: string; expectedDate: string | null };
@@ -223,12 +212,8 @@ export function AdminClientDetail() {
 	const [finalPrice, setFinalPrice] = useState('');
 	const [requestingFinal, setRequestingFinal] = useState(false);
 	const [finalError, setFinalError] = useState('');
-	const loadDocuments = () => {
+	const loadTemplates = () => {
 		if (!id) return;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(api.documents as any).admin({ clientId: id }).get().then(({ data }: { data: Document[] | null }) => {
-			if (data) setDocuments(data);
-		});
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.templates as any).admin({ clientId: id }).checklist.get().then(({ data }: { data: DocumentTemplateWithChecklist[] | null }) => {
 			if (data) setTemplates(data);
@@ -270,7 +255,7 @@ export function AdminClientDetail() {
 		(api.payments as any).client({ clientId: id }).get().then(({ data }: { data: Payment[] | null }) => {
 			if (data) setPayments(data);
 		}).catch(() => {});
-		loadDocuments();
+		loadTemplates();
 	};
 
 	useEffect(() => { load(); }, [id]);
@@ -313,23 +298,6 @@ export function AdminClientDetail() {
 			navigate('/admin/clients', { state: { toast: `${client?.firstName ?? 'Client'} deleted.` } });
 		}
 		setDeleting(false);
-	};
-
-	const removeDocument = async (docId: string) => {
-		setRemovingDoc(docId);
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		await (api.documents as any).admin({ id: docId }).delete();
-		setRemovingDoc(null);
-		loadDocuments();
-	};
-
-	const signDocument = async (docId: string) => {
-		setSigning(docId);
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		await (api.documents as any).admin({ id: docId }).sign.patch();
-		setSigning(null);
-		loadDocuments();
-		load();
 	};
 
 
@@ -607,58 +575,6 @@ export function AdminClientDetail() {
 					</div>
 				)}
 
-				{/* Admin-uploaded documents */}
-				<div className="mb-5">
-					<p className="text-xs font-semibold text-amber-700 uppercase tracking-widest mb-2">Admin Documents</p>
-					{documents.length === 0 ? (
-						<p className="text-sm text-warm-400 mb-3">No documents uploaded yet.</p>
-					) : (
-						<div className="divide-y divide-black/[0.05] mb-3">
-							{documents.map(doc => (
-								<div key={doc.id} className="py-2.5 flex items-center gap-3">
-									<span className="text-base shrink-0" aria-hidden="true">📄</span>
-									<div className="flex-1 min-w-0">
-										<p className="text-sm text-warm-800 truncate">{doc.label}</p>
-										<p className="text-xs text-warm-400">
-											{doc.type} · {new Date(doc.createdAt).toLocaleDateString()}
-											{doc.signedAt && (
-												<span className="ml-2 inline-flex items-center gap-0.5 text-green-600">
-													✓ Signed {new Date(doc.signedAt).toLocaleDateString()}
-												</span>
-											)}
-										</p>
-									</div>
-									<div className="flex items-center gap-2 shrink-0">
-										<a
-											href={doc.fileUrl}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="px-2.5 py-1 rounded text-xs font-medium bg-warm-100 text-warm-700 hover:bg-warm-200 transition-colors"
-										>
-											View →
-										</a>
-										{!doc.signedAt && (
-											<button
-												onClick={() => signDocument(doc.id)}
-												disabled={signing === doc.id}
-												className="px-2.5 py-1 rounded text-xs font-medium bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 transition-colors"
-											>
-												{signing === doc.id ? 'Signing…' : 'Mark signed'}
-											</button>
-										)}
-										<button
-											onClick={() => removeDocument(doc.id)}
-											disabled={removingDoc === doc.id}
-											className="px-2.5 py-1 rounded text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 disabled:opacity-50 transition-colors"
-										>
-											{removingDoc === doc.id ? 'Removing…' : 'Remove'}
-										</button>
-									</div>
-								</div>
-							))}
-						</div>
-					)}
-				</div>
 			</Card>
 
 			{/* Portal access */}

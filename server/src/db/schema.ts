@@ -42,14 +42,6 @@ export const depositTierEnum = pgEnum('deposit_tier', ['r5000', 'r500']);
 export const paymentTypeEnum = pgEnum('payment_type', ['deposit', 'booking', 'final']);
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'complete', 'failed', 'cancelled']);
 
-export const documentTypeEnum = pgEnum('document_type', [
-	'contract',
-	'health_record',
-	'go_home_pack',
-	'invoice',
-	'other',
-]);
-
 // ─── Litters ─────────────────────────────────────────────────────────────────
 
 export const litters = pgTable('litters', {
@@ -177,7 +169,6 @@ export const clients = pgTable('clients', {
 export const clientsRelations = relations(clients, ({ one, many }) => ({
 	puppy: one(puppies, { fields: [clients.puppyId], references: [puppies.id] }),
 	litter: one(litters, { fields: [clients.litterId], references: [litters.id] }),
-	documents: many(documents),
 	puppyInterests: many(puppyInterests),
 	notifications: many(litterNotifications),
 	litterInterests: many(litterInterests),
@@ -217,24 +208,6 @@ export const litterUpdateOptOuts = pgTable('litter_update_opt_outs', {
 export const litterUpdateOptOutsRelations = relations(litterUpdateOptOuts, ({ one }) => ({
 	client: one(clients, { fields: [litterUpdateOptOuts.clientId], references: [clients.id] }),
 	litter: one(litters, { fields: [litterUpdateOptOuts.litterId], references: [litters.id] }),
-}));
-
-// ─── Documents ───────────────────────────────────────────────────────────────
-
-export const documents = pgTable('documents', {
-	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
-	puppyId: text('puppy_id').references(() => puppies.id),
-	type: documentTypeEnum('type').notNull(),
-	label: text('label').notNull(),
-	fileUrl: text('file_url').notNull(),
-	signedAt: timestamp('signed_at', { withTimezone: true }),
-	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const documentsRelations = relations(documents, ({ one }) => ({
-	client: one(clients, { fields: [documents.clientId], references: [clients.id] }),
-	puppy: one(puppies, { fields: [documents.puppyId], references: [puppies.id] }),
 }));
 
 // ─── Admins ───────────────────────────────────────────────────────────────────

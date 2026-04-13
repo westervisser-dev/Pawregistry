@@ -87,8 +87,9 @@ export function AdminDashboard() {
 		});
 	}, []);
 
-	// Build activity feed from recent client events
+	// Build activity feed from recent client events — only show clients still at enquired stage
 	const recentActivity = allClients
+		.filter((c) => c.stage === 'enquired')
 		.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 		.slice(0, 4)
 		.map((c) => ({

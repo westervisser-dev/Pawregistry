@@ -189,21 +189,6 @@ export interface LitterUpdateOptOut {
 	createdAt: string;
 }
 
-// ─── Document ────────────────────────────────────────────────────────────────
-
-export type DocumentType = 'contract' | 'health_record' | 'go_home_pack' | 'invoice' | 'other';
-
-export interface Document {
-	id: string;
-	clientId: string;
-	puppyId: string | null;
-	type: DocumentType;
-	label: string;
-	fileUrl: string;
-	signedAt: string | null;
-	createdAt: string;
-}
-
 // ─── Document Template ────────────────────────────────────────────────────────
 
 export interface DocumentTemplate {

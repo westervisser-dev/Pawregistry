@@ -7,7 +7,6 @@ import { puppies, payments, clients } from './db/schema';
 import { littersRoutes } from './routes/litters';
 import { clientsRoutes } from './routes/clients';
 import { updatesRoutes } from './routes/updates';
-import { documentsRoutes } from './routes/documents';
 import { templatesRoutes } from './routes/templates';
 import { authRoutes } from './routes/auth';
 import { adminsRoutes } from './routes/admins';
@@ -116,7 +115,6 @@ const app = new Elysia()
 	.use(littersRoutes)
 	.use(clientsRoutes)
 	.use(updatesRoutes)
-	.use(documentsRoutes)
 	.use(templatesRoutes)
 	.use(paymentsRoutes)
 

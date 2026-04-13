@@ -43,6 +43,13 @@
       "when": 1775817806632,
       "tag": "0005_orange_captain_midlands",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776069144215,
+      "tag": "0006_perpetual_marvel_apes",
+      "breakpoints": true
     }
   ]
 }
