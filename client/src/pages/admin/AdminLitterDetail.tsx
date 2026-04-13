@@ -223,19 +223,22 @@ export function AdminLitterDetail() {
 		const { data } = await api.litters({ id }).puppies.post(newPuppy);
 		if (data && litter) {
 			const created = data as { id: string };
-			setLitter({ ...litter, puppies: [...litter.puppies, data as unknown] });
-			setNewPuppy({ collarColour: '', sex: 'male', colour: '' });
+			let uploadedImage: PuppyImage | null = null;
 			if (newPuppyImageFile) {
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const { data: imgData } = await (api.litters.puppies({ puppyId: created.id }) as any).images.post({ file: newPuppyImageFile });
-				if (imgData) {
-					setPuppyImagesMap((prev) => ({
-						...prev,
-						[created.id]: [...(prev[created.id] ?? []), imgData as PuppyImage],
-					}));
-				}
+				if (imgData) uploadedImage = imgData as PuppyImage;
 				setNewPuppyImageFile(null);
 			}
+			// Single update: row appears fully-formed with image already present
+			setLitter({ ...litter, puppies: [...litter.puppies, data as unknown] });
+			if (uploadedImage) {
+				setPuppyImagesMap((prev) => ({
+					...prev,
+					[created.id]: [...(prev[created.id] ?? []), uploadedImage!],
+				}));
+			}
+			setNewPuppy({ collarColour: '', sex: 'male', colour: '' });
 		}
 		setAddingPuppy(false);
 	};
