@@ -243,7 +243,7 @@ export function PortalLitterDetail() {
 	};
 
 	const isWaitlistedOrLater = !!clientStage && ['waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
-	const notifiedOrNoQueue = !eligibility || eligibility.isNotified;
+	const notifiedOrNoQueue = !!eligibility && eligibility.isNotified;
 	const canInteract = isWaitlistedOrLater && notifiedOrNoQueue;
 
 	if (loading) return <LoadingPage />;
