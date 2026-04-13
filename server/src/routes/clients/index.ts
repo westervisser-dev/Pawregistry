@@ -416,12 +416,6 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 						`${updated.firstName} ${updated.lastName} (${updated.email}) has been matched with a puppy.\n\nConfirm payment here: ${process.env.CLIENT_URL}/admin/clients/${params.id}`,
 					).catch(console.error);
 				}
-				// When marking matched_paid, sync the linked puppy to matched_paid
-				if (body.stage === 'matched_paid' && updated.puppyId) {
-					await db.update(puppies)
-						.set({ status: 'matched_paid', updatedAt: new Date() })
-						.where(eq(puppies.id, updated.puppyId));
-				}
 			}
 			if (body.depositStatus && current && body.depositStatus !== current.depositStatus) {
 				logActivity(params.id, 'deposit_changed', `Deposit status changed from ${current.depositStatus} to ${body.depositStatus}`, 'admin', { from: current.depositStatus, to: body.depositStatus });
@@ -441,7 +435,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				stage: t.Union([
 					t.Literal('enquired'), t.Literal('approved'), t.Literal('rejected'),
 					t.Literal('waitlisted'), t.Literal('match_requested'),
-					t.Literal('matched'), t.Literal('matched_paid'),
+					t.Literal('matched'),
 				]),
 				priority: t.Number(),
 				puppyId: t.Nullable(t.String()),
