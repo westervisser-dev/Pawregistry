@@ -1037,7 +1037,7 @@ export function AdminLitterDetail() {
 											onChange={(e) => updatePuppyStatus(p.id, e.target.value)}
 											className="px-2 py-1 text-xs border border-warm-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-300 bg-white disabled:opacity-50"
 										>
-											{['available', 'reserved', 'matched', 'matched_paid', 'retained', 'not_for_sale'].map((s) => (
+											{['available', 'reserved', 'matched', 'retained', 'not_for_sale'].map((s) => (
 												<option key={s} value={s}>{s.replace('_', ' ')}</option>
 											))}
 										</select>
@@ -1101,10 +1101,16 @@ export function AdminLitterDetail() {
 																Reject
 															</button>
 														</div>
+													) : interest.status === 'approved' ? (
+														<div className="flex flex-col items-end gap-1 flex-shrink-0">
+															<span className="text-xs font-medium text-green-600">approved</span>
+															<div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-700 border border-green-200">
+																<span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
+																Email sent · <NotifyTimer since={interest.updatedAt} />
+															</div>
+														</div>
 													) : (
-														<span className={`text-xs font-medium flex-shrink-0 ${
-															interest.status === 'approved' ? 'text-green-600' : 'text-warm-400'
-														}`}>
+														<span className="text-xs font-medium flex-shrink-0 text-warm-400">
 															{interest.status}
 														</span>
 													)}

@@ -52,9 +52,8 @@ export function AdminClients() {
 		matched_paid: 'Matched & Paid',
 	};
 
-	// Derive per-client action badge — priority: confirm_payment > review_documents > confirm_deposit > review_application
+	// Derive per-client action badge — priority: review_documents > confirm_deposit > review_application
 	const getAction = (c: Client): ClientAction | undefined => {
-		if (c.stage === 'matched') return 'confirm_payment';
 		if (actionMap[c.id] === 'review_documents') return 'review_documents';
 		if (c.depositStatus === 'pending') return 'confirm_deposit';
 		if (c.stage === 'enquired') return 'review_application';

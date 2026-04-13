@@ -172,9 +172,8 @@ function ClientActionCenter({
 
 	if (client.stage === 'matched') {
 		actions.push({
-			type: 'link',
-			label: 'Check your documents for payment details',
-			to: '/portal/documents',
+			type: 'status',
+			label: 'Your match is confirmed — check your email for payment instructions',
 			color: 'green',
 		});
 	}

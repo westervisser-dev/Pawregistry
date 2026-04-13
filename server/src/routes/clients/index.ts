@@ -399,6 +399,8 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 					...body,
 					...(newPriority !== undefined ? { priority: newPriority } : {}),
 					...(tierChanged ? { depositChosenAt: new Date() } : {}),
+					...(body.stage === 'matched' && current?.stage !== 'matched' ? { matchedAt: new Date() } : {}),
+					...(body.stage && body.stage !== 'matched' && current?.stage === 'matched' ? { matchedAt: null } : {}),
 					updatedAt: new Date(),
 				})
 				.where(eq(clients.id, params.id))
