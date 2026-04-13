@@ -63,7 +63,7 @@ interface FormData {
 	agreedToContract: boolean;
 	puppyEnergyPreference: 'calm' | 'moderate' | 'active' | '';
 	// Deposit
-	depositTier: 'r5000' | 'r500' | '';
+	depositTier: 'r5000' | 'r500' | 'none' | '';
 	petInsurance: boolean;
 	wantsSettlingGuidance: boolean;
 	// Budget
@@ -315,7 +315,7 @@ export function ApplyPage() {
 			phone: form.phone || undefined,
 			city: form.city || undefined,
 			country: form.country,
-			depositTier: form.depositTier as 'r5000' | 'r500',
+			depositTier: (form.depositTier === 'none' ? null : form.depositTier) as 'r5000' | 'r500' | null,
 			applicationData: {
 				// Existing
 				livingType: form.livingType,
@@ -382,9 +382,12 @@ export function ApplyPage() {
 			if ((apiError as any)?.value?.error === 'EmailExists') setStep('personal');
 			return;
 		}
-		// Redirect to Paystack checkout — always required, no free tier
 		if (applyData?.authorizationUrl) {
+			// Redirect to Paystack checkout
 			window.location.href = applyData.authorizationUrl as string;
+		} else if (applyData?.id) {
+			// No deposit chosen — go to done screen directly
+			setStep('done');
 		} else {
 			setError('Could not start payment. Please try again.');
 		}
@@ -402,25 +405,39 @@ export function ApplyPage() {
 	const sameBrandAltSizeOptions = sizeOptions.filter((s) => s.value !== form.preferredSize);
 
 	if (step === 'done') {
-		// This screen should rarely show — normally Paystack redirect takes over.
-		// Shown if authorizationUrl is somehow missing.
+		const noDeposit = form.depositTier === 'none';
 		return (
 			<div className="max-w-lg mx-auto px-6 py-24 text-center">
 				<div className="text-5xl mb-6">🐾</div>
 				<h1 className="font-serif text-3xl font-bold text-warm-900 mb-4">Application Received!</h1>
-				<p className="text-warm-600 leading-relaxed">
-					Thank you for applying. You should have been redirected to complete your deposit — if not, please log in to your portal to pay.
-				</p>
-				<div className="mt-8 p-4 bg-white border border-warm-200 rounded-lg text-sm text-warm-700">
-					<p className="font-semibold text-warm-900 mb-1">What's next?</p>
-					<p>Once your deposit is received, you'll receive a magic link to log in to your client portal — where you can track your application, upload documents, and stay up to date.</p>
-					<a
-						href="/login"
-						className="inline-block mt-3 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors"
-					>
-						Go to client login →
-					</a>
-				</div>
+				{noDeposit ? (
+					<>
+						<p className="text-warm-600 leading-relaxed">
+							Thank you for applying. Your application is in review — we'll be in touch soon.
+						</p>
+						<div className="mt-8 p-4 bg-white border border-warm-200 rounded-lg text-sm text-warm-700 text-left">
+							<p className="font-semibold text-warm-900 mb-1">What's next?</p>
+							<p>Once we've reviewed your application, you'll receive a magic link to log in to your client portal. From there you can upload documents, join the waiting list, and track your application.</p>
+							<p className="mt-2 text-warm-500">A full booking deposit will be required when a puppy is reserved for you.</p>
+						</div>
+					</>
+				) : (
+					<>
+						<p className="text-warm-600 leading-relaxed">
+							Thank you for applying. You should have been redirected to complete your deposit — if not, please log in to your portal to pay.
+						</p>
+						<div className="mt-8 p-4 bg-white border border-warm-200 rounded-lg text-sm text-warm-700 text-left">
+							<p className="font-semibold text-warm-900 mb-1">What's next?</p>
+							<p>Once your deposit is received, you'll receive a magic link to log in to your client portal — where you can track your application, upload documents, and stay up to date.</p>
+						</div>
+					</>
+				)}
+				<a
+					href="/login"
+					className="inline-block mt-6 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors"
+				>
+					Go to client login →
+				</a>
 			</div>
 		);
 	}
@@ -934,7 +951,7 @@ export function ApplyPage() {
 					<div className="flex flex-col gap-6">
 						<div>
 							<h2 className="font-serif text-xl font-bold text-warm-900 mb-1">Deposit & Waiting List</h2>
-							<p className="text-sm text-warm-500">Choose your waiting list. You'll be taken to our secure payment page to complete your deposit immediately after submitting.</p>
+							<p className="text-sm text-warm-500">Choose how you'd like to join the waiting list. You can always upgrade later from your portal.</p>
 						</div>
 
 						<div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 leading-relaxed">
@@ -942,7 +959,7 @@ export function ApplyPage() {
 						</div>
 
 						<div>
-							<p className="text-sm font-medium text-warm-700 mb-3">Which list would you like to join?<span className="text-red-500 ml-0.5">*</span></p>
+							<p className="text-sm font-medium text-warm-700 mb-3">Which option would you like?<span className="text-red-500 ml-0.5">*</span></p>
 							<div className="flex flex-col gap-3">
 
 								{/* R5,000 secured deposit */}
@@ -997,6 +1014,32 @@ export function ApplyPage() {
 									</ul>
 								</button>
 
+								{/* No deposit */}
+								<button
+									type="button"
+									onClick={() => set('depositTier', 'none')}
+									className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${form.depositTier === 'none' ? 'border-warm-400 bg-warm-50' : 'border-warm-200 bg-white hover:border-warm-300'}`}
+								>
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-2">
+											<span className="text-2xl">📋</span>
+											<span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-warm-100 text-warm-600 border border-warm-200">No deposit now</span>
+										</div>
+										{form.depositTier === 'none' && (
+											<span className="text-xs font-semibold text-warm-700 bg-warm-100 px-2 py-0.5 rounded-full">Selected</span>
+										)}
+									</div>
+									<div>
+										<p className="font-semibold text-warm-900 text-sm">No Deposit — Application Only</p>
+										<p className="text-xs text-warm-500 mt-1">Submit your application without a deposit now. You can join the waiting list at any time through your portal, or pay a booking deposit when a puppy is offered to you.</p>
+									</div>
+									<ul className="text-xs text-warm-600 space-y-1">
+										<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> No upfront payment required</li>
+										<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> Join the waiting list later via your portal</li>
+										<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> Full booking deposit required when securing a puppy</li>
+									</ul>
+								</button>
+
 							</div>
 						</div>
 
@@ -1023,26 +1066,40 @@ export function ApplyPage() {
 							<p className="text-sm text-warm-500">Please review your selection before submitting.</p>
 						</div>
 
-						<div className="p-4 bg-brand-50 border border-brand-200 rounded-xl">
-							<p className="text-xs font-semibold text-brand-600 uppercase tracking-wide mb-1">Selected waiting list</p>
+						<div className={`p-4 rounded-xl border ${form.depositTier === 'none' ? 'bg-warm-50 border-warm-200' : 'bg-brand-50 border-brand-200'}`}>
+							<p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${form.depositTier === 'none' ? 'text-warm-600' : 'text-brand-600'}`}>Selected option</p>
 							{form.depositTier === 'r5000' ? (
 								<>
 									<p className="font-semibold text-warm-900 text-sm">Secured Waiting List — R5,000 deposit</p>
 									<p className="text-xs text-warm-500 mt-0.5">Highest priority — first to be offered puppies from each litter.</p>
 								</>
-							) : (
+							) : form.depositTier === 'r500' ? (
 								<>
 									<p className="font-semibold text-warm-900 text-sm">Standard Waiting List — R500 list fee</p>
 									<p className="text-xs text-warm-500 mt-0.5">Second priority — offered puppies remaining after the secured list.</p>
+								</>
+							) : (
+								<>
+									<p className="font-semibold text-warm-900 text-sm">No Deposit — Application Only</p>
+									<p className="text-xs text-warm-500 mt-0.5">You can join the waiting list or pay a booking deposit later via your portal.</p>
 								</>
 							)}
 						</div>
 
 						<div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 leading-relaxed space-y-2">
-							<p>
-								<span className="font-semibold">Next step:</span> After submitting, you will be redirected to our secure payment page to complete your {form.depositTier === 'r5000' ? 'R5,000 deposit' : 'R500 list fee'}.
-							</p>
-							<p>Once payment is confirmed, you will be directed to your client portal where you can track your application, upload documents, and stay up to date.</p>
+							{form.depositTier === 'none' ? (
+								<>
+									<p><span className="font-semibold">Next step:</span> After submitting, you'll receive a link to log in to your client portal — where you can complete documents, join the waiting list, and track your application.</p>
+									<p>A full booking deposit will be required when a puppy is offered and reserved for you.</p>
+								</>
+							) : (
+								<>
+									<p>
+										<span className="font-semibold">Next step:</span> After submitting, you will be redirected to our secure payment page to complete your {form.depositTier === 'r5000' ? 'R5,000 deposit' : 'R500 list fee'}.
+									</p>
+									<p>Once payment is confirmed, you will be directed to your client portal where you can track your application, upload documents, and stay up to date.</p>
+								</>
+							)}
 						</div>
 					</div>
 				)}
@@ -1072,7 +1129,7 @@ export function ApplyPage() {
 							disabled={submitting}
 							className="px-6 py-2.5 bg-brand-500 text-white text-sm font-medium rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50"
 						>
-							{submitting ? 'Submitting…' : 'Submit & Pay Deposit'}
+							{submitting ? 'Submitting…' : form.depositTier === 'none' ? 'Submit Application' : 'Submit & Pay Deposit'}
 						</button>
 					)}
 				</div>

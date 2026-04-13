@@ -87,6 +87,49 @@ function DepositUpgradeCard({ currentTier, onPay }: {
 	return null;
 }
 
+function DepositJoinCard({ onPay }: { onPay: (tier: 'r5000' | 'r500') => Promise<void> }) {
+	const [paying, setPaying] = useState<'r5000' | 'r500' | null>(null);
+
+	const handle = async (tier: 'r5000' | 'r500') => {
+		setPaying(tier);
+		await onPay(tier);
+		setPaying(null);
+	};
+
+	return (
+		<div className="bg-white border border-warm-200 rounded-xl p-5 flex flex-col gap-4">
+			<div>
+				<p className="font-semibold text-warm-900 text-sm">Join the Waiting List</p>
+				<p className="text-xs text-warm-500 mt-1">Pay a deposit to secure your place on the waiting list and get notified about available puppies.</p>
+			</div>
+			<div className="flex flex-col gap-2">
+				<button
+					onClick={() => handle('r5000')}
+					disabled={!!paying}
+					className="w-full px-4 py-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors text-left flex items-center justify-between"
+				>
+					<div>
+						<span className="block">Secured List — R5,000</span>
+						<span className="text-xs font-normal opacity-80">Highest priority · first pick from every litter</span>
+					</div>
+					{paying === 'r5000' ? <span className="text-xs">Redirecting…</span> : <span>→</span>}
+				</button>
+				<button
+					onClick={() => handle('r500')}
+					disabled={!!paying}
+					className="w-full px-4 py-3 bg-white hover:bg-warm-50 disabled:opacity-50 border border-warm-200 text-warm-800 text-sm font-semibold rounded-lg transition-colors text-left flex items-center justify-between"
+				>
+					<div>
+						<span className="block">Standard List — R500</span>
+						<span className="text-xs font-normal text-warm-500">Second priority · R500 applied to final price</span>
+					</div>
+					{paying === 'r500' ? <span className="text-xs text-warm-500">Redirecting…</span> : <span className="text-warm-400">→</span>}
+				</button>
+			</div>
+		</div>
+	);
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function PortalPayments() {
@@ -175,26 +218,30 @@ export function PortalPayments() {
 			{/* ── Deposit management ── */}
 			{depositNotPaid && (
 				<section className="mb-8">
-					<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Your Deposit</h2>
-					<div className="flex flex-col gap-3">
-						<div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-							Your deposit has not been received yet. Pay now to secure your position on the waiting list.
+					<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Waiting List</h2>
+					{client?.depositStatus === 'none' ? (
+						<DepositJoinCard onPay={handlePay} />
+					) : (
+						<div className="flex flex-col gap-3">
+							<div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+								Your deposit has not been received yet. Pay now to secure your position on the waiting list.
+							</div>
+							<div className="flex flex-col sm:flex-row gap-3">
+								<button
+									onClick={() => handlePay('r5000')}
+									className="flex-1 px-4 py-3 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-lg transition-colors"
+								>
+									Pay R5,000 — Secured List
+								</button>
+								<button
+									onClick={() => handlePay('r500')}
+									className="flex-1 px-4 py-3 bg-white hover:bg-warm-50 border border-warm-200 text-warm-800 text-sm font-semibold rounded-lg transition-colors"
+								>
+									Pay R500 — Standard List
+								</button>
+							</div>
 						</div>
-						<div className="flex flex-col sm:flex-row gap-3">
-							<button
-								onClick={() => handlePay('r5000')}
-								className="flex-1 px-4 py-3 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-lg transition-colors"
-							>
-								Pay R5,000 — Secured List
-							</button>
-							<button
-								onClick={() => handlePay('r500')}
-								className="flex-1 px-4 py-3 bg-white hover:bg-warm-50 border border-warm-200 text-warm-800 text-sm font-semibold rounded-lg transition-colors"
-							>
-								Pay R500 — Standard List
-							</button>
-						</div>
-					</div>
+					)}
 				</section>
 			)}
 
