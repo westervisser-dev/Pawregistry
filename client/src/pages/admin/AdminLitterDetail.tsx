@@ -1186,7 +1186,7 @@ export function AdminLitterDetail() {
 				</div>
 
 				{/* Notify bar */}
-				{!matchingLoading && (interestedWaitlisted.length > 0 || matchingClients.length > 0 || notifications.length > 0) && (
+				{!matchingLoading && (
 					<>
 						<div className={`mb-4 rounded-lg border p-3 flex flex-wrap items-center gap-2 transition-colors ${notifyOpen ? 'bg-amber-50 border-amber-300' : 'bg-warm-50 border-warm-200'}`}>
 							<p className={`text-xs flex-1 min-w-0 ${notifications.length > 0 ? 'text-blue-600 font-medium' : 'text-warm-500'}`}>
@@ -1237,10 +1237,11 @@ export function AdminLitterDetail() {
 					<p className="text-sm text-warm-400">Loading matches…</p>
 				) : interestedWaitlisted.length === 0 && !litter.breed ? (
 					<p className="text-sm text-warm-400">Set a breed on this litter to see matching clients.</p>
-				) : interestedWaitlisted.length === 0 && dedupedMatchingClients.length === 0 ? (
-					<EmptyState icon="👥" title="No matching clients" />
 				) : (
 					<div>
+						{interestedWaitlisted.length === 0 && dedupedMatchingClients.length === 0 && (
+							<p className="text-sm text-warm-400 mb-4">No clients have indicated interest or matched preferences for this litter.</p>
+						)}
 						{/* Litter Interested */}
 						{interestedWaitlisted.length > 0 && (
 							<>
