@@ -84,27 +84,27 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			if (!puppy) return error(404, { error: 'Not found', message: 'Puppy not found' });
 			if (puppy.status !== 'available') return error(400, { error: 'Unavailable', message: 'This puppy is no longer available' });
 
-			// Check notification eligibility
+			// Check notification eligibility — client must have been explicitly invited to this litter
 			const batchRecords = await db.query.litterNotifications.findMany({
 				where: eq(litterNotifications.litterId, puppy.litterId),
 				columns: { clientId: true },
 			});
-			if (batchRecords.length > 0) {
-				const isNotified = batchRecords.some((n) => n.clientId === client.id);
-				if (!isNotified) {
-					const allWaitlisted = await db.query.clients.findMany({
-						where: eq(clients.stage, 'waitlisted'),
-						columns: { id: true, priority: true },
-						orderBy: [asc(clients.priority)],
-					});
-					const position = allWaitlisted.findIndex((c) => c.id === client.id) + 1;
-					return error(403, {
-						error: 'NotEligible',
-						message: `This litter is currently open to the top ${batchRecords.length} waitlisted clients. You are currently #${position || '?'}.`,
-						position,
-						notifiedUpTo: batchRecords.length,
-					});
-				}
+			const isNotified = batchRecords.some((n) => n.clientId === client.id);
+			if (!isNotified) {
+				const allWaitlisted = await db.query.clients.findMany({
+					where: eq(clients.stage, 'waitlisted'),
+					columns: { id: true, priority: true },
+					orderBy: [asc(clients.priority)],
+				});
+				const position = allWaitlisted.findIndex((c) => c.id === client.id) + 1;
+				return error(403, {
+					error: 'NotEligible',
+					message: batchRecords.length > 0
+						? `This litter is currently open to the top ${batchRecords.length} waitlisted clients. You are currently #${position || '?'}.`
+						: `You have not been invited to select a puppy from this litter yet. You are currently #${position || '?'} on the waitlist.`,
+					position,
+					notifiedUpTo: batchRecords.length,
+				});
 			}
 
 			// One-at-a-time check: client cannot have an active interest in any other puppy
@@ -273,7 +273,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				columns: { clientId: true },
 			});
 
-			const isNotified = batchRecords.length === 0 || batchRecords.some((n) => n.clientId === client.id);
+			const isNotified = batchRecords.some((n) => n.clientId === client.id);
 			let position: number | null = null;
 			if (!isNotified) {
 				const allWaitlisted = await db.query.clients.findMany({
