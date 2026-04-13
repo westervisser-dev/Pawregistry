@@ -159,7 +159,7 @@ export function AdminLitterDetail() {
 			const { data, error } = await api.litters.post({
 				name: newForm.name,
 				...(breedValue ? { breed: breedValue } : {}),
-				status: newForm.status as 'planned' | 'born' | 'available' | 'booked' | 'completed',
+				status: newForm.status as 'planned' | 'born' | 'available' | 'completed',
 				...(newForm.expectedDate ? { expectedDate: newForm.expectedDate } : {}),
 				...(newForm.notes ? { notes: newForm.notes } : {}),
 				isPublic: newForm.isPublic,
@@ -474,7 +474,7 @@ export function AdminLitterDetail() {
 								onChange={(e) => setF('status', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							>
-								{['planned', 'born', 'available', 'booked', 'completed'].map((s) => (
+								{['planned', 'born', 'available', 'completed'].map((s) => (
 									<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
 								))}
 							</select>
@@ -646,7 +646,7 @@ export function AdminLitterDetail() {
 	const fmtDate = (d: Date | string | null | undefined) =>
 		d ? new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
-	const statuses = ['planned', 'born', 'available', 'booked', 'completed'];
+	const statuses = ['planned', 'born', 'available', 'completed'];
 
 	return (
 		<div className="p-4 md:p-8 max-w-4xl">

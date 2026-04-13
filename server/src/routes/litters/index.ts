@@ -11,6 +11,27 @@ import { parseBreedSize } from '@paw-registry/shared';
 const CLIENT_URL = process.env.CLIENT_URL ?? 'http://localhost:5173';
 const BOOKING_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+/** Auto-transition a litter to/from 'booked' based on puppy availability.
+ *  - 'available' → 'booked' when every puppy is non-available
+ *  - 'booked' → 'available' when any puppy is reset to available
+ */
+async function syncLitterBookedStatus(litterId: string): Promise<void> {
+	const litter = await db.query.litters.findFirst({
+		where: eq(litters.id, litterId),
+		columns: { status: true },
+		with: { puppies: { columns: { status: true } } },
+	});
+	if (!litter || litter.puppies.length === 0) return;
+
+	const allTaken = litter.puppies.every((p) => p.status !== 'available');
+
+	if (allTaken && litter.status === 'available') {
+		await db.update(litters).set({ status: 'booked', updatedAt: new Date() }).where(eq(litters.id, litterId));
+	} else if (!allTaken && litter.status === 'booked') {
+		await db.update(litters).set({ status: 'available', updatedAt: new Date() }).where(eq(litters.id, litterId));
+	}
+}
+
 export const littersRoutes = new Elysia({ prefix: '/litters' })
 	// ── Public: active public litters ──
 	.get('/', async () => {
@@ -139,6 +160,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					`Puppy booked — ${client.firstName} ${client.lastName}`,
 					`${client.firstName} ${client.lastName} expressed interest in ${puppyName}. Puppy auto-booked as R5,000 deposit was already on file.\n\nView client: ${CLIENT_URL}/admin/clients/${client.id}`,
 				);
+
+				await syncLitterBookedStatus(puppy.litterId);
 
 				return { interest, requiresPayment: false, authorizationUrl: null };
 			}
@@ -797,6 +820,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				});
 			}
 
+			await syncLitterBookedStatus(interest.puppy.litterId);
+
 			return updated;
 		},
 		{
@@ -818,7 +843,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				breed: t.Optional(t.Nullable(t.String())),
 				status: t.Optional(t.Union([
 					t.Literal('planned'), t.Literal('born'),
-					t.Literal('available'), t.Literal('booked'), t.Literal('completed'),
+					t.Literal('available'), t.Literal('completed'),
 				])),
 				expectedDate: t.Optional(t.Nullable(t.String())),
 				whelpDate: t.Optional(t.Nullable(t.String())),
@@ -857,7 +882,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			breed: t.Nullable(t.String()),
 			status: t.Union([
 				t.Literal('planned'), t.Literal('born'),
-				t.Literal('available'), t.Literal('booked'), t.Literal('completed'),
+				t.Literal('available'), t.Literal('completed'),
 			]),
 			whelpDate: t.Nullable(t.String()),
 			expectedDate: t.Nullable(t.String()), puppyCount: t.Nullable(t.Number()),
@@ -1016,6 +1041,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					});
 				}
 			}
+
+			await syncLitterBookedStatus(updated.litterId);
 
 			return updated;
 		},
