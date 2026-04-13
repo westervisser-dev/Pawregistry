@@ -101,16 +101,18 @@ function LitterCard({ litter, match, interested }: { litter: LitterWithDogs; mat
 	const sizeLabel = getSizeLabel(litter.breed);
 	const availableCount = litter.availableCount ?? 0;
 	const hasAvailable = availableCount > 0;
+	const isPlanned = litter.status === 'planned';
+	const isFullyReserved = !isPlanned && !hasAvailable;
 	const tier = match?.tier;
 	const isGreat = tier === 'great';
 
 	// Breed link color: green for great match, amber otherwise
 	const breedColor = isGreat ? 'text-green-700' : 'text-brand-500';
 
-	// Availability pill
-	const pillBg = tier ? availPillBg[tier] : 'bg-warm-100';
-	const pillNumColor = tier ? availNumColor[tier] : 'text-warm-400';
-	const pillWordColor = tier ? availWordColor[tier] : 'text-warm-400';
+	// Availability pill — muted for planned/fully-reserved, tier-coloured when puppies available
+	const pillBg = hasAvailable && tier ? availPillBg[tier] : 'bg-warm-100';
+	const pillNumColor = hasAvailable && tier ? availNumColor[tier] : 'text-warm-400';
+	const pillWordColor = hasAvailable && tier ? availWordColor[tier] : 'text-warm-400';
 
 	// Stage chip dot
 	const chipDotColor = tier ? stageDotColor[tier] : 'bg-warm-400';
@@ -178,8 +180,8 @@ function LitterCard({ litter, match, interested }: { litter: LitterWithDogs; mat
 						<span className={`font-serif leading-none ${hasAvailable ? 'text-2xl' : 'text-lg'} ${pillNumColor}`}>
 							{hasAvailable ? availableCount : '—'}
 						</span>
-						<span className={`text-[9px] mt-[3px] font-semibold tracking-[0.05em] uppercase leading-none ${!hasAvailable ? 'normal-case tracking-normal font-normal text-[9.5px]' : ''} ${pillWordColor}`}>
-							{hasAvailable ? 'available' : 'expected soon'}
+						<span className={`text-[9px] mt-[3px] leading-none ${hasAvailable ? 'font-semibold tracking-[0.05em] uppercase' : 'normal-case tracking-normal font-normal text-[9.5px]'} ${pillWordColor}`}>
+							{hasAvailable ? 'available' : isPlanned ? 'expected soon' : 'fully reserved'}
 						</span>
 					</div>
 				</div>

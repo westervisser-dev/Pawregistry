@@ -66,7 +66,8 @@ type Action =
 	| { type: 'link'; label: string; to: string; color: ActionColor }
 	| { type: 'button'; label: string; onClick: () => void; color: ActionColor }
 	| { type: 'status'; label: string; color: ActionColor }
-	| { type: 'dismissible-link'; label: string; to: string; color: ActionColor; dismissKey: string };
+	| { type: 'dismissible-link'; label: string; to: string; color: ActionColor; dismissKey: string }
+	| { type: 'dismissible-status'; label: string; color: ActionColor; dismissKey: string };
 
 function ClientActionCenter({
 	client,
@@ -136,9 +137,10 @@ function ClientActionCenter({
 			});
 		} else if (total > 0 && uploaded === total && checked < total) {
 			actions.push({
-				type: 'status',
-				label: 'Documents submitted — we\'re reviewing them now',
+				type: 'dismissible-status',
+				label: 'Hang tight — we\'re reviewing your documents before placing you on the waitlist',
 				color: 'blue',
+				dismissKey: 'docs-under-review',
 			});
 		}
 	}
@@ -206,6 +208,25 @@ function ClientActionCenter({
 							<span key={i} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium ${ACTION_PILL[action.color]} cursor-default`}>
 								{dot}
 								{action.label}
+							</span>
+						);
+					}
+
+					if (action.type === 'dismissible-status') {
+						return (
+							<span key={i} className="inline-flex items-center">
+								<span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-l-full border border-r-0 text-xs font-medium cursor-default ${ACTION_PILL[action.color]}`}>
+									{dot}
+									{action.label}
+								</span>
+								<button
+									type="button"
+									aria-label="Dismiss"
+									onClick={() => dismiss(action.dismissKey)}
+									className={`inline-flex items-center justify-center px-2 py-1.5 rounded-r-full border text-xs transition-colors cursor-pointer ${ACTION_PILL[action.color]}`}
+								>
+									✕
+								</button>
 							</span>
 						);
 					}

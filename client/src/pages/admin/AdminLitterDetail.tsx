@@ -650,35 +650,38 @@ export function AdminLitterDetail() {
 										))}
 									</div>
 								)}
-								<div className="flex gap-2 items-start">
-									<div className="flex flex-wrap gap-1 flex-shrink-0">
-										{newPuppyDraftImageFiles.map((f, idx) => (
-											<div key={idx} className="relative w-9 h-9">
-												<img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover rounded-lg border border-warm-200" />
-												<button
-													type="button"
-													onClick={() => setNewPuppyDraftImageFiles((prev) => prev.filter((_, j) => j !== idx))}
-													className="absolute -top-1 -right-1 w-4 h-4 bg-black/50 hover:bg-red-500 text-white rounded-full text-[9px] flex items-center justify-center"
-												>&#10005;</button>
-											</div>
-										))}
-										{newPuppyDraftImageFiles.length < 10 && (
-											<label className="w-9 h-9 flex items-center justify-center rounded-lg border-2 border-dashed border-warm-200 cursor-pointer hover:border-brand-300 hover:bg-warm-50 transition-colors" title="Add photos">
-												<span className="text-warm-400 text-base leading-none">+</span>
-												<input
-													type="file"
-													accept="image/jpeg,image/jpg,image/png,image/webp,image/heic"
-													multiple
-													onChange={(e) => {
-														const files = Array.from(e.target.files ?? []);
-														setNewPuppyDraftImageFiles((prev) => [...prev, ...files].slice(0, 10));
-														e.target.value = '';
-													}}
-													className="hidden"
-												/>
-											</label>
-										)}
-									</div>
+								<div className="flex flex-col gap-2">
+									{(newPuppyDraftImageFiles.length > 0 || true) && (
+										<div className="flex flex-wrap gap-1">
+											{newPuppyDraftImageFiles.map((f, idx) => (
+												<div key={idx} className="relative w-9 h-9">
+													<img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover rounded-lg border border-warm-200" />
+													<button
+														type="button"
+														onClick={() => setNewPuppyDraftImageFiles((prev) => prev.filter((_, j) => j !== idx))}
+														className="absolute -top-1 -right-1 w-4 h-4 bg-black/50 hover:bg-red-500 text-white rounded-full text-[9px] flex items-center justify-center"
+													>&#10005;</button>
+												</div>
+											))}
+											{newPuppyDraftImageFiles.length < 10 && (
+												<label className="w-9 h-9 flex items-center justify-center rounded-lg border-2 border-dashed border-warm-200 cursor-pointer hover:border-brand-300 hover:bg-warm-50 transition-colors" title="Add photos">
+													<span className="text-warm-400 text-base leading-none">+</span>
+													<input
+														type="file"
+														accept="image/jpeg,image/jpg,image/png,image/webp,image/heic"
+														multiple
+														onChange={(e) => {
+															const files = Array.from(e.target.files ?? []);
+															setNewPuppyDraftImageFiles((prev) => [...prev, ...files].slice(0, 10));
+															e.target.value = '';
+														}}
+														className="hidden"
+													/>
+												</label>
+											)}
+										</div>
+									)}
+									<div className="flex gap-2 items-center">
 									<select
 										value={newPuppyDraft.collarColour}
 										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, collarColour: e.target.value }))}
@@ -713,6 +716,7 @@ export function AdminLitterDetail() {
 										}}
 										className="px-4 py-2 bg-warm-100 text-warm-700 text-sm rounded-lg hover:bg-warm-200 transition-colors"
 									>Add</button>
+									</div>
 								</div>
 							</>
 						)}
