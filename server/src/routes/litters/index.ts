@@ -86,6 +86,18 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				}
 			}
 
+			// One-at-a-time check: client cannot have an active interest in any other puppy
+			const activeInterest = await db.query.puppyInterests.findFirst({
+				where: and(
+					eq(puppyInterests.clientId, client.id),
+					or(eq(puppyInterests.status, 'pending'), eq(puppyInterests.status, 'approved')),
+				),
+				columns: { id: true, puppyId: true },
+			});
+			if (activeInterest && activeInterest.puppyId !== params.puppyId) {
+				return error(409, { error: 'AlreadyInterested', message: 'You already have an active interest in a puppy. You can only select one at a time.' });
+			}
+
 			// Duplicate interest check
 			const existing = await db.query.puppyInterests.findFirst({
 				where: and(eq(puppyInterests.puppyId, params.puppyId), eq(puppyInterests.clientId, client.id)),
@@ -209,7 +221,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	.get(
 		'/:id/my-interests',
 		async ({ params, user }) => {
-			const empty = { interests: [], isNotified: false, position: null as number | null, notifiedUpTo: null as number | null };
+			const empty = { interests: [], isNotified: false, position: null as number | null, notifiedUpTo: null as number | null, hasActivePuppyInterest: false };
 			if (!user) return empty;
 
 			const client = await db.query.clients.findFirst({
@@ -249,11 +261,20 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				position = allWaitlisted.findIndex((c) => c.id === client.id) + 1 || null;
 			}
 
+			const activeInterestGlobal = await db.query.puppyInterests.findFirst({
+				where: and(
+					eq(puppyInterests.clientId, client.id),
+					or(eq(puppyInterests.status, 'pending'), eq(puppyInterests.status, 'approved')),
+				),
+				columns: { id: true },
+			});
+
 			return {
 				interests,
 				isNotified,
 				position,
 				notifiedUpTo: batchRecords.length > 0 ? batchRecords.length : null,
+				hasActivePuppyInterest: !!activeInterestGlobal,
 			};
 		}
 	)

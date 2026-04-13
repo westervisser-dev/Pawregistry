@@ -145,7 +145,7 @@ export function PortalLitterDetail() {
 	const [myInterestPuppyIds, setMyInterestPuppyIds] = useState<Set<string>>(new Set());
 	const [submittingInterest, setSubmittingInterest] = useState<string | null>(null);
 	const [interestMessage, setInterestMessage] = useState<Record<string, string>>({});
-	const [eligibility, setEligibility] = useState<{ isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null>(null);
+	const [eligibility, setEligibility] = useState<{ isNotified: boolean; position: number | null; notifiedUpTo: number | null; hasActivePuppyInterest: boolean } | null>(null);
 	const [myMatch, setMyMatch] = useState<LitterMatchResult | null>(null);
 	const [myLitterInterest, setMyLitterInterest] = useState(false);
 	const [litterInterestLoading, setLitterInterestLoading] = useState(false);
@@ -168,7 +168,7 @@ export function PortalLitterDetail() {
 		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: { interests: Array<{ puppyId: string; status: string }>; isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null }) => {
 			if (data) {
 				setMyInterestPuppyIds(new Set(data.interests.map((i) => i.puppyId)));
-				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo });
+				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo, hasActivePuppyInterest: data.hasActivePuppyInterest ?? false });
 			}
 		}).catch(() => {});
 
@@ -462,6 +462,18 @@ export function PortalLitterDetail() {
 													</button>
 													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
 														Not yet invited
+													</p>
+												</div>
+											) : eligibility?.hasActivePuppyInterest ? (
+												<div>
+													<button
+														disabled
+														className="w-full px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
+													>
+														Express Interest
+													</button>
+													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
+														Already selected a puppy
 													</p>
 												</div>
 											) : (
