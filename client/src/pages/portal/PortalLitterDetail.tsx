@@ -446,7 +446,7 @@ export function PortalLitterDetail() {
 														disabled
 														className="w-full px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
 													>
-														Express Interest
+														Reserve
 													</button>
 													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
 														Waitlist required
@@ -458,7 +458,7 @@ export function PortalLitterDetail() {
 														disabled
 														className="w-full px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
 													>
-														Express Interest
+														Reserve
 													</button>
 													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
 														Not yet invited
@@ -470,7 +470,7 @@ export function PortalLitterDetail() {
 														disabled
 														className="w-full px-2 py-1.5 bg-warm-100 text-warm-400 text-xs rounded-lg cursor-not-allowed border border-warm-200"
 													>
-														Express Interest
+														Reserve
 													</button>
 													<p className="text-[10px] text-warm-400 mt-1 text-center leading-tight">
 														Already selected a puppy
@@ -482,7 +482,7 @@ export function PortalLitterDetail() {
 													disabled={submittingInterest === puppy.id}
 													className="w-full px-2 py-1.5 bg-brand-500 text-white text-xs rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
 												>
-													{submittingInterest === puppy.id ? 'Sending…' : 'Express Interest'}
+													{submittingInterest === puppy.id ? 'Reserving…' : 'Reserve'}
 												</button>
 											)}
 										</div>
