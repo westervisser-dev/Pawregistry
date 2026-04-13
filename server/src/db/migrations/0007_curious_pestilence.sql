@@ -1,0 +1,1 @@
+ALTER TYPE "litter_status" ADD VALUE 'booked';

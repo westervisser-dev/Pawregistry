@@ -1,6 +1,6 @@
 {
-  "id": "ff3b0225-3f94-4efb-9e67-70bfdcaf30a8",
-  "prevId": "30049d50-5188-44cd-8d84-e617b6e2b25c",
+  "id": "cf2cdf85-4e31-4d09-bbbc-f400ced84a5e",
+  "prevId": "ff3b0225-3f94-4efb-9e67-70bfdcaf30a8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1412,6 +1412,7 @@
         "planned",
         "born",
         "available",
+        "booked",
         "completed"
       ]
     },
