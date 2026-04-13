@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
-import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, DocumentType, Payment } from '@paw-registry/shared';
+import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, Payment } from '@paw-registry/shared';
 import { DeleteModal, DepositStatusBadge } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
@@ -213,12 +213,6 @@ export function AdminClientDetail() {
 	const [templates, setTemplates] = useState<DocumentTemplateWithChecklist[]>([]);
 	const [signing, setSigning] = useState<string | null>(null);
 	const [removingDoc, setRemovingDoc] = useState<string | null>(null);
-	const [uploadFile, setUploadFile] = useState<File | null>(null);
-	const [uploadType, setUploadType] = useState<DocumentType>('other');
-	const [uploadLabel, setUploadLabel] = useState('');
-	const [uploading, setUploading] = useState(false);
-	const [uploadError, setUploadError] = useState('');
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [clientLitterInterests, setClientLitterInterests] = useState<Array<{
 		id: string; clientId: string; litterId: string; createdAt: string;
 		litter: { id: string; name: string; breed: string | null; status: string; expectedDate: string | null };
@@ -334,29 +328,7 @@ export function AdminClientDetail() {
 		load();
 	};
 
-	const uploadDocument = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!id || !uploadFile || !uploadLabel.trim()) return;
-		setUploading(true);
-		setUploadError('');
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const { error } = await (api.documents as any).admin({ clientId: id }).post({
-			file: uploadFile,
-			type: uploadType,
-			label: uploadLabel.trim(),
-		});
-		setUploading(false);
-		if (error) {
-			setUploadError('Upload failed. Please try again.');
-			return;
-		}
-		setUploadFile(null);
-		setUploadLabel('');
-		setUploadType('other');
-		if (fileInputRef.current) fileInputRef.current.value = '';
-		loadDocuments();
-		load();
-	};
+
 
 	if (loading) return <LoadingPage />;
 	if (!client) return <div className="p-4 md:p-8 text-warm-500">Client not found.</div>;
@@ -676,57 +648,6 @@ export function AdminClientDetail() {
 						</div>
 					)}
 				</div>
-
-				{/* Upload form */}
-				<form onSubmit={uploadDocument} className="border border-black/[0.07] rounded-lg p-4 bg-warm-50/50">
-					<p className="text-xs font-semibold text-warm-600 uppercase tracking-wide mb-3">Upload Document</p>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-						<div>
-							<label className="block text-xs text-warm-500 mb-1">Label</label>
-							<input
-								type="text"
-								value={uploadLabel}
-								onChange={e => setUploadLabel(e.target.value)}
-								placeholder="e.g. Signed Contract"
-								className="w-full px-3 py-1.5 text-sm border border-black/[0.1] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
-								required
-							/>
-						</div>
-						<div>
-							<label className="block text-xs text-warm-500 mb-1">Type</label>
-							<select
-								value={uploadType}
-								onChange={e => setUploadType(e.target.value as DocumentType)}
-								className="w-full px-3 py-1.5 text-sm border border-black/[0.1] rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-300"
-							>
-								<option value="contract">Contract</option>
-								<option value="invoice">Invoice</option>
-								<option value="health_record">Health Record</option>
-								<option value="go_home_pack">Go-Home Pack</option>
-								<option value="other">Other</option>
-							</select>
-						</div>
-					</div>
-					<div className="mb-3">
-						<label className="block text-xs text-warm-500 mb-1">File</label>
-						<input
-							ref={fileInputRef}
-							type="file"
-							accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-							onChange={e => setUploadFile(e.target.files?.[0] ?? null)}
-							className="w-full text-sm text-warm-600 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-warm-100 file:text-warm-700 hover:file:bg-warm-200"
-							required
-						/>
-					</div>
-					{uploadError && <p role="alert" className="text-xs text-red-500 mb-2">{uploadError}</p>}
-					<button
-						type="submit"
-						disabled={uploading || !uploadFile || !uploadLabel.trim()}
-						className="px-4 py-1.5 bg-warm-900 text-white text-xs font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 transition-colors"
-					>
-						{uploading ? 'Uploading…' : 'Upload'}
-					</button>
-				</form>
 			</Card>
 
 			{/* Portal access */}
