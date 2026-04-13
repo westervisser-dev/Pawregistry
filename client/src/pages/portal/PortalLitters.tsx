@@ -277,8 +277,8 @@ export function PortalLitters() {
 		? litters
 		: litters.filter((l) => matches[l.id]?.tier === filter);
 
-	const availableNow = filtered.filter((l) => (l.availableCount ?? 0) > 0);
-	const upcoming = filtered.filter((l) => (l.availableCount ?? 0) === 0);
+	const availableNow = filtered.filter((l) => l.status === 'available' || l.status === 'booked');
+	const upcoming = filtered.filter((l) => l.status === 'planned');
 
 	return (
 		<div>
