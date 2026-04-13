@@ -76,6 +76,7 @@ const lazy$ = <M, K extends keyof M>(
 const HomePage = lazy$(() => import('@/pages/public/HomePage'), 'HomePage');
 const LittersPage = lazy$(() => import('@/pages/public/LittersPage'), 'LittersPage');
 const ApplyPage = lazy$(() => import('@/pages/public/ApplyPage'), 'ApplyPage');
+const ApplySuccess = lazy$(() => import('@/pages/public/ApplySuccess'), 'ApplySuccess');
 const AboutPage = lazy$(() => import('@/pages/public/AboutPage'), 'AboutPage');
 const FaqPage = lazy$(() => import('@/pages/public/FaqPage'), 'FaqPage');
 const FounderPage = lazy$(() => import('@/pages/public/FounderPage'), 'FounderPage');
@@ -95,6 +96,7 @@ const PortalDocuments = lazy$(() => import('@/pages/portal/PortalDocuments'), 'P
 const PortalLitters = lazy$(() => import('@/pages/portal/PortalLitters'), 'PortalLitters');
 const PortalLitterDetail = lazy$(() => import('@/pages/portal/PortalLitterDetail'), 'PortalLitterDetail');
 const PortalPreferences = lazy$(() => import('@/pages/portal/PortalPreferences'), 'PortalPreferences');
+const PortalPayments = lazy$(() => import('@/pages/portal/PortalPayments'), 'PortalPayments');
 
 // Admin
 const AdminDashboard = lazy$(() => import('@/pages/admin/AdminDashboard'), 'AdminDashboard');
@@ -125,6 +127,7 @@ function App() {
 						<Route path="/" element={<HomePage />} />
 						<Route path="/litters" element={<LittersPage />} />
 						<Route path="/apply" element={<ApplyPage />} />
+							<Route path="/apply/success" element={<ApplySuccess />} />
 						<Route path="/about" element={<AboutPage />} />
 						<Route path="/founder" element={<FounderPage />} />
 							<Route path="/faq" element={<FaqPage />} />
@@ -147,6 +150,7 @@ function App() {
 							<Route path="/portal/updates" element={<PortalUpdates />} />
 							<Route path="/portal/documents" element={<PortalDocuments />} />
 							<Route path="/portal/preferences" element={<PortalPreferences />} />
+							<Route path="/portal/payments" element={<PortalPayments />} />
 						</Route>
 					</Route>
 

@@ -73,6 +73,8 @@ export function AdminLitterDetail() {
 	const [puppyImagesMap, setPuppyImagesMap] = useState<Record<string, PuppyImage[]>>({});
 	const [puppyImageIndex, setPuppyImageIndex] = useState<Record<string, number>>({});
 	const [uploadingPuppyId, setUploadingPuppyId] = useState<string | null>(null);
+	const [uploadingPuppyImages, setUploadingPuppyImages] = useState(false);
+	const [addingPuppy, setAddingPuppy] = useState(false);
 	const [newPuppyDraftImageFile, setNewPuppyDraftImageFile] = useState<File | null>(null);
 	const [newPuppyImageFile, setNewPuppyImageFile] = useState<File | null>(null);
 
@@ -173,6 +175,8 @@ export function AdminLitterDetail() {
 					}
 					setUploadProgress(null);
 				}
+				const puppiesWithImages = pendingPuppies.filter((p) => p.imageFile);
+				if (puppiesWithImages.length > 0) setUploadingPuppyImages(true);
 				for (const puppy of pendingPuppies) {
 					const { data: puppyData } = await api.litters({ id: newId }).puppies.post({
 						collarColour: puppy.collarColour,
@@ -185,6 +189,7 @@ export function AdminLitterDetail() {
 						await (api.litters.puppies({ puppyId: created.id }) as any).images.post({ file: puppy.imageFile });
 					}
 				}
+				setUploadingPuppyImages(false);
 				navigate('/admin/litters');
 			}
 		} catch {
@@ -214,6 +219,7 @@ export function AdminLitterDetail() {
 
 	const addPuppy = async () => {
 		if (!id || !newPuppy.collarColour || !newPuppy.colour) return;
+		setAddingPuppy(true);
 		const { data } = await api.litters({ id }).puppies.post(newPuppy);
 		if (data && litter) {
 			const created = data as { id: string };
@@ -231,6 +237,7 @@ export function AdminLitterDetail() {
 				setNewPuppyImageFile(null);
 			}
 		}
+		setAddingPuppy(false);
 	};
 
 	const deleteLitter = async () => {
@@ -621,6 +628,7 @@ export function AdminLitterDetail() {
 					>
 						{uploadProgress
 						? `Uploading photo ${uploadProgress.current} of ${uploadProgress.total}…`
+						: uploadingPuppyImages ? 'Uploading image(s)…'
 						: saving ? 'Saving…' : 'Create Litter'
 					}
 					</button>
@@ -1002,9 +1010,10 @@ export function AdminLitterDetail() {
 								</select>
 								<button
 									onClick={addPuppy}
-									className="px-4 py-2 bg-brand-500 text-white text-sm rounded-lg hover:bg-brand-600 transition-colors"
+									disabled={addingPuppy}
+									className="px-4 py-2 bg-brand-500 text-white text-sm rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
 								>
-									Add
+									{addingPuppy ? (newPuppyImageFile ? 'Uploading…' : 'Adding…') : 'Add'}
 								</button>
 							</div>
 						</>

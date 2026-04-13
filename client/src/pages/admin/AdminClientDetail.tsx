@@ -3,8 +3,8 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
-import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, DocumentType } from '@paw-registry/shared';
-import { DeleteModal, DepositStatusSelect } from './_shared';
+import type { Client, ClientStage, ClientActivity, EmailLog, Document, DocumentTemplateWithChecklist, DocumentType, Payment } from '@paw-registry/shared';
+import { DeleteModal, DepositStatusBadge } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
 	stage_enquired: 'Application Received',
@@ -223,7 +223,11 @@ export function AdminClientDetail() {
 		id: string; clientId: string; litterId: string; createdAt: string;
 		litter: { id: string; name: string; breed: string | null; status: string; expectedDate: string | null };
 	}>>([]);
-
+	const [payments, setPayments] = useState<Payment[]>([]);
+	const [showFinalPaymentModal, setShowFinalPaymentModal] = useState(false);
+	const [finalPrice, setFinalPrice] = useState('');
+	const [requestingFinal, setRequestingFinal] = useState(false);
+	const [finalError, setFinalError] = useState('');
 	const loadDocuments = () => {
 		if (!id) return;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -266,6 +270,10 @@ export function AdminClientDetail() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.clients as any).admin({ id })['litter-interests'].get().then(({ data }: { data: typeof clientLitterInterests | null }) => {
 			if (data) setClientLitterInterests(data);
+		}).catch(() => {});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.payments as any).client({ clientId: id }).get().then(({ data }: { data: Payment[] | null }) => {
+			if (data) setPayments(data);
 		}).catch(() => {});
 		loadDocuments();
 	};
@@ -400,7 +408,7 @@ export function AdminClientDetail() {
 				</div>
 				<div id="deposit" className="flex flex-col items-end gap-2 scroll-mt-6">
 					<StageBadge stage={client.stage} />
-					<DepositStatusSelect client={client} onUpdate={(updated) => setClient(updated)} />
+					<DepositStatusBadge client={client} />
 				</div>
 			</div>
 
@@ -722,6 +730,145 @@ export function AdminClientDetail() {
 			</Card>
 
 			{/* Portal access */}
+			{/* Payments */}
+			<Card id="payments" className="p-5 mb-6 scroll-mt-6">
+				<div className="flex items-center justify-between mb-4">
+					<h3 className="font-medium text-warm-900">Payments</h3>
+					{client.stage === 'matched' && (
+						<button
+							onClick={() => { setFinalPrice(''); setFinalError(''); setShowFinalPaymentModal(true); }}
+							className="px-3 py-1.5 bg-warm-900 hover:bg-warm-700 text-white text-xs font-medium rounded-lg transition-colors"
+						>
+							Request Final Payment
+						</button>
+					)}
+				</div>
+
+				{payments.length === 0 ? (
+					<p className="text-sm text-warm-400">No payment records yet.</p>
+				) : (
+					<div className="divide-y divide-black/[0.05]">
+						{payments.map((p) => {
+							const typeLabel = p.type === 'deposit' ? 'Deposit' : p.type === 'booking' ? 'Booking Deposit' : 'Final Payment';
+							const statusStyles: Record<Payment['status'], string> = {
+								pending: 'bg-amber-100 text-amber-700',
+								complete: 'bg-green-100 text-green-700',
+								failed: 'bg-red-100 text-red-700',
+								cancelled: 'bg-warm-100 text-warm-500',
+							};
+							const hoursLeft = p.expiresAt
+								? Math.max(0, Math.floor((new Date(p.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
+								: null;
+							return (
+								<div key={p.id} className="py-3 flex items-center justify-between gap-4">
+									<div>
+										<div className="flex items-center gap-2">
+											<p className="text-sm font-medium text-warm-900">
+												R{p.amountRands.toLocaleString()} — {typeLabel}
+											</p>
+											<span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyles[p.status]}`}>
+												{p.status === 'pending' ? 'Awaiting' : p.status === 'complete' ? 'Paid' : p.status === 'failed' ? 'Failed' : 'Cancelled'}
+											</span>
+										</div>
+										<p className="text-xs text-warm-400 mt-0.5">
+											{p.paidAt
+												? `Paid ${new Date(p.paidAt).toLocaleDateString()}`
+												: `Created ${new Date(p.createdAt).toLocaleDateString()}`}
+											{p.status === 'pending' && hoursLeft !== null && (
+												<span className="text-amber-600 ml-2">{hoursLeft}h remaining</span>
+											)}
+										</p>
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				)}
+			</Card>
+
+			{/* Final payment modal */}
+			{showFinalPaymentModal && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center p-4"
+					style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+					onClick={() => setShowFinalPaymentModal(false)}
+				>
+					<div
+						role="dialog"
+						aria-modal="true"
+						aria-labelledby="modal-title"
+						className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<h2 id="modal-title" className="font-serif text-lg font-bold text-warm-900 mb-1">Request Final Payment</h2>
+						<p className="text-sm text-warm-500 mb-5">Enter the total puppy price. The system will subtract any deposits already paid and send the client a payment link for the balance.</p>
+
+						{payments.filter(p => p.status === 'complete').length > 0 && (
+							<div className="mb-4 p-3 bg-warm-50 rounded-lg text-sm text-warm-600">
+								Already paid: <span className="font-semibold text-warm-900">
+									R{payments.filter(p => p.status === 'complete').reduce((sum, p) => sum + p.amountRands, 0).toLocaleString()}
+								</span>
+							</div>
+						)}
+
+						<label className="block text-sm font-medium text-warm-700 mb-1.5">
+							Total puppy price (R)
+						</label>
+						<input
+							type="number"
+							min="1"
+							value={finalPrice}
+							onChange={(e) => setFinalPrice(e.target.value)}
+							placeholder="e.g. 25000"
+							className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm text-warm-900 focus:outline-none focus:ring-2 focus:ring-brand-300 mb-1"
+						/>
+						{finalPrice && !isNaN(Number(finalPrice)) && (
+							<p className="text-xs text-warm-500 mb-4">
+								Balance due: <span className="font-semibold text-warm-900">
+									R{Math.max(0, Number(finalPrice) - payments.filter(p => p.status === 'complete').reduce((sum, p) => sum + p.amountRands, 0)).toLocaleString()}
+								</span>
+							</p>
+						)}
+
+						{finalError && <p role="alert" className="text-red-600 text-sm mb-3">{finalError}</p>}
+
+						<div className="flex gap-3 mt-2">
+							<button
+								onClick={() => setShowFinalPaymentModal(false)}
+								className="flex-1 px-4 py-2.5 border border-warm-200 text-warm-700 text-sm font-medium rounded-lg hover:bg-warm-50 transition-colors"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={async () => {
+									if (!finalPrice || isNaN(Number(finalPrice)) || Number(finalPrice) <= 0) {
+										setFinalError('Please enter a valid price.');
+										return;
+									}
+									setRequestingFinal(true);
+									setFinalError('');
+									try {
+										// eslint-disable-next-line @typescript-eslint/no-explicit-any
+										const { error: apiErr } = await (api.payments as any).final({ clientId: client!.id }).post({
+											totalPriceRands: Number(finalPrice),
+										});
+										if (apiErr) { setFinalError('Failed to request payment. Please try again.'); }
+										else { setShowFinalPaymentModal(false); load(); }
+									} catch {
+										setFinalError('Failed to request payment. Please try again.');
+									}
+									setRequestingFinal(false);
+								}}
+								disabled={requestingFinal}
+								className="flex-1 px-4 py-2.5 bg-warm-900 hover:bg-warm-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+							>
+								{requestingFinal ? 'Sending…' : 'Send payment request'}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
 			<Card className="p-5 mb-6">
 				<h3 className="font-medium text-warm-900 mb-1">Portal Access</h3>
 				<p className="text-sm text-warm-400 mb-4">Open the portal as this client.</p>

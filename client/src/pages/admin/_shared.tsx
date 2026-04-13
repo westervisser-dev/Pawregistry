@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '@/lib/api';
 import { Card, StageBadge, useFocusTrap } from '@/components/ui';
 import type { Client } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES } from '@paw-registry/shared';
@@ -150,30 +148,23 @@ export function ActionBadge({ action }: { action: ClientAction }) {
 	);
 }
 
-// ─── Deposit status inline select ────────────────────────────────────────────
+// ─── Deposit status badge (read-only) ────────────────────────────────────────
 
 const DEPOSIT_TIER_LABELS: Record<string, { label: string; cls: string }> = {
 	r5000: { label: 'R5,000', cls: 'bg-brand-50 text-brand-700 border-brand-200' },
 	r500:  { label: 'R500',   cls: 'bg-blue-50 text-blue-700 border-blue-200'   },
 };
 
-export function DepositStatusSelect({ client, onUpdate }: { client: Client; onUpdate: (c: Client) => void }) {
-	const [saving, setSaving] = useState(false);
-
-	const handleChange = async (value: string) => {
-		setSaving(true);
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const { data } = await (api.clients.admin({ id: client.id }) as any).patch({ depositStatus: value });
-		if (data) onUpdate(data as Client);
-		setSaving(false);
-	};
-
+export function DepositStatusBadge({ client }: { client: Client }) {
 	const cls =
 		client.depositStatus === 'paid'
 			? 'bg-green-50 text-green-700 border-green-200'
 			: client.depositStatus === 'pending'
 			? 'bg-amber-50 text-amber-700 border-amber-200'
 			: 'bg-warm-50 text-warm-500 border-warm-200';
+
+	const label =
+		client.depositStatus === 'paid' ? 'Paid' : client.depositStatus === 'pending' ? 'Pending' : 'None';
 
 	const tier = client.depositTier ? DEPOSIT_TIER_LABELS[client.depositTier] : null;
 
@@ -184,26 +175,18 @@ export function DepositStatusSelect({ client, onUpdate }: { client: Client; onUp
 					{tier.label}
 				</span>
 			)}
-			<select
-				value={client.depositStatus}
-				onChange={(e) => handleChange(e.target.value)}
-				disabled={saving}
-				className={`text-xs font-medium px-2 py-1 rounded-full border appearance-none cursor-pointer disabled:opacity-50 max-w-[90px] md:max-w-none ${cls}`}
-			>
-				<option value="none">None</option>
-				<option value="pending">Pending</option>
-				<option value="paid">Paid</option>
-			</select>
+			<span className={`text-xs font-medium px-2 py-1 rounded-full border ${cls}`}>
+				{label}
+			</span>
 		</div>
 	);
 }
 
 // ─── Sortable client row ──────────────────────────────────────────────────────
 
-export function SortableClientRow({ client, index, onDepositUpdate, action }: {
+export function SortableClientRow({ client, index, action }: {
 	client: Client;
 	index: number;
-	onDepositUpdate: (c: Client) => void;
 	action?: ClientAction;
 }) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: client.id });
@@ -256,7 +239,7 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 			<td className="hidden md:table-cell py-3 px-4"><StageBadge stage={client.stage} /></td>
 			<td className="py-3 px-2 md:px-4">
 				<div className="md:hidden"><StageBadge stage={client.stage} /></div>
-				<div className="hidden md:block"><DepositStatusSelect client={client} onUpdate={onDepositUpdate} /></div>
+				<div className="hidden md:block"><DepositStatusBadge client={client} /></div>
 			</td>
 			<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 				{new Date(client.createdAt).toLocaleDateString()}
@@ -272,11 +255,10 @@ export function SortableClientRow({ client, index, onDepositUpdate, action }: {
 
 // ─── Client DnD table ─────────────────────────────────────────────────────────
 
-export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, startIndex = 0, actionMap = {} }: {
+export function ClientDndTable({ title, clients, onReorder, startIndex = 0, actionMap = {} }: {
 	title: string;
 	clients: Client[];
 	onReorder: (newOrder: Client[]) => void;
-	onDepositUpdate: (c: Client) => void;
 	startIndex?: number;
 	actionMap?: Record<string, ClientAction>;
 }) {
@@ -308,7 +290,6 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, sta
 									key={client.id}
 									client={client}
 									index={startIndex + i}
-									onDepositUpdate={onDepositUpdate}
 									action={actionMap[client.id]}
 								/>
 							))}
@@ -329,10 +310,9 @@ export function ClientDndTable({ title, clients, onReorder, onDepositUpdate, sta
 
 // ─── Plain read-only client table (no DnD) ───────────────────────────────────
 
-export function ClientReadTable({ title, clients, onDepositUpdate, actionMap = {} }: {
+export function ClientReadTable({ title, clients, actionMap = {} }: {
 	title: string;
 	clients: Client[];
-	onDepositUpdate: (c: Client) => void;
 	actionMap?: Record<string, ClientAction>;
 }) {
 	const pbs = (c: Client) =>

@@ -104,10 +104,6 @@ export function AdminClients() {
 		});
 	};
 
-	const handleDepositUpdate = (updated: Client) => {
-		setClients((prev) => prev.map((c) => c.id === updated.id ? updated : c));
-	};
-
 	return (
 		<div className="p-4 md:p-8">
 			<PageHeader title="Clients" subtitle="All applications and client relationships." />
@@ -145,27 +141,23 @@ export function AdminClients() {
 						title="Waitlisted — Deposit"
 						clients={depositQueueClients}
 						onReorder={handleDepositReorder}
-						onDepositUpdate={handleDepositUpdate}
 						actionMap={computedActionMap}
 					/>
 					<ClientDndTable
 						title="Waitlisted — No Deposit"
 						clients={noDepositQueueClients}
 						onReorder={handleNoDepositReorder}
-						onDepositUpdate={handleDepositUpdate}
 						startIndex={depositQueueClients.length}
 						actionMap={computedActionMap}
 					/>
 					<ClientReadTable
 						title="Not Yet Waitlisted"
 						clients={notYetWaitlistedClients}
-						onDepositUpdate={handleDepositUpdate}
 						actionMap={computedActionMap}
 					/>
 					<ClientReadTable
 						title="Completed"
 						clients={completedClients}
-						onDepositUpdate={handleDepositUpdate}
 						actionMap={computedActionMap}
 					/>
 				</div>

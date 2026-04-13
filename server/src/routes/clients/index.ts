@@ -1,10 +1,11 @@
 import Elysia, { t } from 'elysia';
 import { eq, asc, desc, max, sql, inArray, count, and, isNotNull } from 'drizzle-orm';
 import { db } from '../../db';
-import { clients, clientActivity, documentTemplates, clientTemplateChecklist, puppies, puppyInterests, litterInterests, litters } from '../../db/schema';
+import { clients, clientActivity, documentTemplates, clientTemplateChecklist, puppies, puppyInterests, litterInterests, litters, payments } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { sendStageEmail, sendClientEmail, sendAdminNotification } from '../../lib/email';
 import { logActivity } from '../../lib/activity';
+import { initializeTransaction, generateReference } from '../../lib/paystack';
 
 const applicationDataSchema = t.Object({
 	// ── Existing fields ──
@@ -62,7 +63,22 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 	// ── Public: submit application ──
 	.post(
 		'/apply',
-		async ({ body }) => {
+		async ({ body, error }) => {
+			// Check for existing application with this email
+			const existing = await db.query.clients.findFirst({
+				where: eq(clients.email, body.email.toLowerCase().trim()),
+				columns: { id: true },
+			});
+			if (existing) {
+				return error(409, {
+					error: 'EmailExists',
+					message: 'An application already exists for this email address. Please log in to your portal instead.',
+				});
+			}
+
+			const tier = body.depositTier;
+			const amountRands = tier === 'r5000' ? 5000 : 500;
+
 			const [client] = await db.insert(clients).values({
 				firstName: body.firstName,
 				lastName: body.lastName,
@@ -71,18 +87,44 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				city: body.city ?? null,
 				country: body.country ?? 'ZA',
 				applicationData: body.applicationData,
-				depositStatus: body.depositStatus ?? 'none',
-				depositTier: body.depositTier ?? null,
-				depositChosenAt: body.depositTier ? new Date() : null,
+				depositStatus: 'pending',
+				depositTier: tier,
+				depositChosenAt: new Date(),
 				stage: 'enquired',
 			}).returning();
+
 			sendStageEmail(client.id, 'enquired').catch(console.error);
 			sendAdminNotification(
 				`New application — ${client.firstName} ${client.lastName}`,
 				`${client.firstName} ${client.lastName} (${client.email}) has submitted a new application.\n\nReview it here: ${process.env.CLIENT_URL}/admin/clients/${client.id}`,
 			).catch(console.error);
 			logActivity(client.id, 'application_submitted', 'Application submitted', 'client');
-			return { id: client.id, message: 'Application received. We will be in touch soon.' };
+
+			// Initialise Paystack payment — always required (no free tier)
+			const reference = generateReference('dep');
+			const { authorizationUrl } = await initializeTransaction({
+				email: client.email,
+				amountRands,
+				reference,
+				callbackUrl: `${process.env.CLIENT_URL}/apply/success?ref=${reference}`,
+				metadata: { clientId: client.id, tier, source: 'apply' },
+			});
+
+			await db.insert(payments).values({
+				clientId: client.id,
+				type: 'deposit',
+				amountRands,
+				reference,
+				authorizationUrl,
+				status: 'pending',
+				metadata: { tier, source: 'apply' },
+			});
+
+			return {
+				id: client.id,
+				authorizationUrl,
+				message: 'Application received. Complete your deposit payment to secure your spot.',
+			};
 		},
 		{
 			body: t.Object({
@@ -92,8 +134,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				phone: t.Optional(t.String()),
 				city: t.Optional(t.String()),
 				country: t.Optional(t.String()),
-				depositStatus: t.Optional(t.Union([t.Literal('none'), t.Literal('pending'), t.Literal('paid')])),
-				depositTier: t.Optional(t.Nullable(t.Union([t.Literal('r5000'), t.Literal('r500')]))),
+				depositTier: t.Union([t.Literal('r5000'), t.Literal('r500')]),
 				applicationData: applicationDataSchema,
 			}),
 		}

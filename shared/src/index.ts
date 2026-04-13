@@ -52,7 +52,7 @@ export interface LitterWithDogs extends Litter {
 
 // ─── Puppy ───────────────────────────────────────────────────────────────────
 
-export type PuppyStatus = 'available' | 'reserved' | 'matched' | 'matched_paid' | 'retained' | 'not_for_sale';
+export type PuppyStatus = 'available' | 'reserved' | 'booked' | 'matched' | 'matched_paid' | 'retained' | 'not_for_sale';
 
 export interface Puppy {
 	id: string;
@@ -65,6 +65,7 @@ export interface Puppy {
 	currentWeight: number | null; // grams
 	notes: string | null;
 	profileImageUrl: string | null;
+	bookingExpiresAt: string | null;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -261,7 +262,12 @@ export type ClientActivityType =
 	| 'preferences_updated'
 	| 'notes_updated'
 	| 'document_uploaded'
-	| 'document_signed';
+	| 'document_signed'
+	| 'deposit_paid'
+	| 'booking_payment_received'
+	| 'booking_expired'
+	| 'final_payment_received'
+	| 'payment_marked_paid';
 
 export type ClientActivityActor = 'client' | 'admin' | 'system';
 
@@ -273,6 +279,35 @@ export interface ClientActivity {
 	metadata: Record<string, unknown>;
 	actor: ClientActivityActor;
 	createdAt: string;
+}
+
+// ─── Payments ────────────────────────────────────────────────────────────────
+
+export type PaymentType = 'deposit' | 'booking' | 'final';
+export type PaymentStatus = 'pending' | 'complete' | 'failed' | 'cancelled';
+
+export interface Payment {
+	id: string;
+	clientId: string;
+	type: PaymentType;
+	amountRands: number;
+	reference: string;
+	paystackId: string | null;
+	authorizationUrl: string | null;
+	status: PaymentStatus;
+	expiresAt: string | null;
+	paidAt: string | null;
+	metadata: Record<string, unknown>;
+	createdAt: string;
+}
+
+export interface PaymentWithClient extends Payment {
+	client: {
+		id: string;
+		firstName: string;
+		lastName: string;
+		email: string;
+	};
 }
 
 // ─── Puppy Interest ───────────────────────────────────────────────────────────

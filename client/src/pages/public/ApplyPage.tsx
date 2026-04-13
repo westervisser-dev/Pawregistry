@@ -63,7 +63,7 @@ interface FormData {
 	agreedToContract: boolean;
 	puppyEnergyPreference: 'calm' | 'moderate' | 'active' | '';
 	// Deposit
-	depositTier: 'r5000' | 'r500' | 'free' | '';
+	depositTier: 'r5000' | 'r500' | '';
 	petInsurance: boolean;
 	wantsSettlingGuidance: boolean;
 	// Budget
@@ -296,8 +296,6 @@ export function ApplyPage() {
 			}
 		}
 		setSubmitting(true);
-		const depositStatus = (form.depositTier === 'r5000' || form.depositTier === 'r500') ? 'pending' : 'none';
-		const depositTier = (form.depositTier === 'r5000' || form.depositTier === 'r500') ? form.depositTier : null;
 		const preferredBreedSize = form.preferredSize
 			? `${form.preferredBreed} - ${form.preferredSize}`
 			: form.preferredBreed;
@@ -310,15 +308,14 @@ export function ApplyPage() {
 			secondChoiceBreedSize = `${form.preferredBreed} - ${form.secondChoiceSize}`;
 		}
 		try {
-	const { error: apiError } = await api.clients.apply.post({
+		const { data: applyData, error: apiError } = await api.clients.apply.post({
 			firstName: form.firstName,
 			lastName: form.lastName,
 			email: form.email,
 			phone: form.phone || undefined,
 			city: form.city || undefined,
 			country: form.country,
-			depositStatus,
-			depositTier,
+			depositTier: form.depositTier as 'r5000' | 'r500',
 			applicationData: {
 				// Existing
 				livingType: form.livingType,
@@ -376,8 +373,21 @@ export function ApplyPage() {
 			},
 		});
 		setSubmitting(false);
-		if (apiError) { setError('Submission failed. Please try again.'); return; }
-		setStep('done');
+		if (apiError) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const msg = (apiError as any)?.value?.message;
+			setError(msg ?? 'Submission failed. Please try again.');
+			// Jump back to personal step so they can see the email field
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			if ((apiError as any)?.value?.error === 'EmailExists') setStep('personal');
+			return;
+		}
+		// Redirect to Paystack checkout — always required, no free tier
+		if (applyData?.authorizationUrl) {
+			window.location.href = applyData.authorizationUrl as string;
+		} else {
+			setError('Could not start payment. Please try again.');
+		}
 	} catch {
 		setSubmitting(false);
 		setError('Submission failed. Please try again.');
@@ -392,29 +402,18 @@ export function ApplyPage() {
 	const sameBrandAltSizeOptions = sizeOptions.filter((s) => s.value !== form.preferredSize);
 
 	if (step === 'done') {
+		// This screen should rarely show — normally Paystack redirect takes over.
+		// Shown if authorizationUrl is somehow missing.
 		return (
 			<div className="max-w-lg mx-auto px-6 py-24 text-center">
 				<div className="text-5xl mb-6">🐾</div>
 				<h1 className="font-serif text-3xl font-bold text-warm-900 mb-4">Application Received!</h1>
 				<p className="text-warm-600 leading-relaxed">
-					Thank you for applying. We'll review your application and be in touch within a few days.
+					Thank you for applying. You should have been redirected to complete your deposit — if not, please log in to your portal to pay.
 				</p>
-				{form.depositTier === 'r5000' ? (
-					<div className="mt-6 p-4 bg-brand-50 border border-brand-200 rounded-lg text-sm text-brand-800">
-						<span className="font-semibold">Secured deposit (R5,000) requested —</span> Once approved, we'll reach out with payment details to place you on the priority secured list.
-					</div>
-				) : form.depositTier === 'r500' ? (
-					<div className="mt-6 p-4 bg-brand-50 border border-brand-200 rounded-lg text-sm text-brand-800">
-						<span className="font-semibold">Standard list fee (R500) requested —</span> Once approved, we'll reach out with payment details to place you on the standard waiting list.
-					</div>
-				) : (
-					<div className="mt-6 p-4 bg-warm-50 border border-warm-200 rounded-lg text-sm text-warm-600">
-						You've joined the free waiting list. You can pay a deposit at any time after your application is reviewed to move to a priority position.
-					</div>
-				)}
 				<div className="mt-8 p-4 bg-white border border-warm-200 rounded-lg text-sm text-warm-700">
 					<p className="font-semibold text-warm-900 mb-1">What's next?</p>
-					<p>Once approved, you'll receive a magic link to log in to your client portal — where you can track your application, upload documents, and stay up to date.</p>
+					<p>Once your deposit is received, you'll receive a magic link to log in to your client portal — where you can track your application, upload documents, and stay up to date.</p>
 					<a
 						href="/login"
 						className="inline-block mt-3 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -935,11 +934,11 @@ export function ApplyPage() {
 					<div className="flex flex-col gap-6">
 						<div>
 							<h2 className="font-serif text-xl font-bold text-warm-900 mb-1">Deposit & Waiting List</h2>
-							<p className="text-sm text-warm-500">Puppies are offered in three stages. Choose the list you’d like to join.</p>
+							<p className="text-sm text-warm-500">Choose your waiting list. You'll be taken to our secure payment page to complete your deposit immediately after submitting.</p>
 						</div>
 
 						<div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 leading-relaxed">
-							<span className="font-semibold">How the waiting list works:</span> Puppies are offered to the R5,000 secured list first, then the R500 standard list, and finally the free list — in that order of priority.
+							<span className="font-semibold">How the waiting list works:</span> Puppies are offered to the R5,000 secured list first, then the R500 standard list — in that order of priority.
 						</div>
 
 						<div>
@@ -963,12 +962,12 @@ export function ApplyPage() {
 									</div>
 									<div>
 										<p className="font-semibold text-warm-900 text-sm">Secured Waiting List — R5,000 deposit</p>
-										<p className="text-xs text-warm-500 mt-1">First to be notified when puppies are born. You choose first from the litter. Payment arranged after your application is approved.</p>
+										<p className="text-xs text-warm-500 mt-1">First to be notified when puppies are born. You choose first from the litter. Your deposit counts towards the final puppy price.</p>
 									</div>
 									<ul className="text-xs text-warm-600 space-y-1">
 										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Notified first when a litter is born</li>
 										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> First pick from the litter</li>
-										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Payment arranged outside the app</li>
+										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Deposit applied to final puppy price</li>
 									</ul>
 								</button>
 
@@ -989,38 +988,12 @@ export function ApplyPage() {
 									</div>
 									<div>
 										<p className="font-semibold text-warm-900 text-sm">Standard Waiting List — R500 list fee</p>
-										<p className="text-xs text-warm-500 mt-1">Offered puppies still available after the secured list. Second priority — offered before the free list. Payment arranged after approval.</p>
+										<p className="text-xs text-warm-500 mt-1">Offered puppies still available after the secured list. A further R4,500 booking deposit is required when you choose a puppy.</p>
 									</div>
 									<ul className="text-xs text-warm-600 space-y-1">
 										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Offered puppies after secured-list families</li>
-										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Priority over the free waiting list</li>
-										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Payment arranged outside the app</li>
-									</ul>
-								</button>
-
-								{/* Free list */}
-								<button
-									type="button"
-									onClick={() => set('depositTier', 'free')}
-									className={`flex flex-col gap-3 p-5 rounded-xl border-2 text-left transition-all ${form.depositTier === 'free' ? 'border-warm-400 bg-warm-50' : 'border-warm-200 bg-white hover:border-warm-300'}`}
-								>
-									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-2">
-											<span className="text-2xl">🕐</span>
-											<span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-warm-100 text-warm-500 border border-warm-200">Third priority</span>
-										</div>
-										{form.depositTier === 'free' && (
-											<span className="text-xs font-semibold text-warm-600 bg-warm-200 px-2 py-0.5 rounded-full">Selected</span>
-										)}
-									</div>
-									<div>
-										<p className="font-semibold text-warm-900 text-sm">Free Waiting List — No fee</p>
-										<p className="text-xs text-warm-500 mt-1">Offered puppies still available after the first two lists. Availability is posted and whoever enquires first gets priority — no queue position held.</p>
-									</div>
-									<ul className="text-xs text-warm-600 space-y-1">
-										<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> No upfront fee</li>
-										<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> First come, first served when available</li>
-										<li className="flex items-center gap-1.5"><span className="text-warm-400">○</span> Can upgrade to a paid list at any time</li>
+										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> R500 applied to final puppy price</li>
+										<li className="flex items-center gap-1.5"><span className="text-brand-500">✓</span> Can upgrade to secured list at any time</li>
 									</ul>
 								</button>
 

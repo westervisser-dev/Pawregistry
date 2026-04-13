@@ -129,6 +129,52 @@ export async function sendClientEmail(clientId: string, trigger: string): Promis
 	await sendEmailByTrigger(clientId, trigger);
 }
 
+// ─── Public: send template email with extra interpolation vars ───────────────
+
+export async function sendClientEmailWithVars(
+	clientId: string,
+	trigger: string,
+	extraVars: Record<string, string>,
+): Promise<void> {
+	const [client] = await db.select().from(clients).where(eq(clients.id, clientId));
+	if (!client) return;
+
+	const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.trigger, trigger));
+	if (!template?.enabled) return;
+
+	const vars: Record<string, string> = {
+		first_name: client.firstName,
+		full_name: `${client.firstName} ${client.lastName}`,
+		portal_link: `${process.env.CLIENT_URL}/portal`,
+		payments_link: `${process.env.CLIENT_URL}/portal/payments`,
+		...extraVars,
+	};
+
+	const subject = interpolate(template.subject, vars);
+	const body = interpolate(template.body, vars);
+	const html = toHtml(body);
+
+	let resendId: string | null = null;
+	let sendError: string | null = null;
+
+	try {
+		const from = process.env.RESEND_FROM_EMAIL ?? 'Paw Registry <onboarding@resend.dev>';
+		const { data, error } = await getResend().emails.send({ from, to: client.email, subject, html });
+		if (error) sendError = error.message;
+		else resendId = data?.id ?? null;
+	} catch (e) {
+		sendError = e instanceof Error ? e.message : 'Unknown send error';
+	}
+
+	await db.insert(emailLogs).values({
+		clientId: client.id,
+		trigger,
+		subject,
+		resendId,
+		metadata: { error: sendError, extraVars },
+	});
+}
+
 // ─── Public: notify a client they've been selected for a litter ──────────────
 
 export async function sendLitterNotificationEmail(clientId: string, litterId: string): Promise<void> {
