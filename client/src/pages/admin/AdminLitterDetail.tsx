@@ -127,7 +127,7 @@ export function AdminLitterDetail() {
 			(api.clients as any).admin.get({ query: { stage: 'waitlisted' } }).then(({ data: wl }: { data: Array<{ id: string; firstName: string; lastName: string; priority: number; depositStatus: string }> | null }) => {
 				if (wl) {
 					const withPositions = wl.map((c, idx) => ({ ...c, waitlistPosition: idx + 1 }));
-					setMasterListClients(withPositions.filter((c) => !matchingIds.has(c.id)));
+					setMasterListClients(withPositions);
 				}
 				setMasterListLoading(false);
 			}).catch(() => setMasterListLoading(false));
