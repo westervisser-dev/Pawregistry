@@ -148,7 +148,7 @@ export function AdminDashboard() {
 					{
 						key: 'review_documents',
 						clients: allClients.filter((c) => docsCompleteIds.has(c.id)),
-						label: (n: number) => `${n} ${n === 1 ? 'client' : 'clients'} ready to review`,
+						label: (n: number) => `${n} ${n === 1 ? 'client' : 'clients'} document review required`,
 						hash: 'documents',
 						pill: 'bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800',
 						dot: 'bg-blue-500',
