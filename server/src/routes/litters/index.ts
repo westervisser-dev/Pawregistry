@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
 import { eq, desc, asc, inArray, and, ne, notInArray, or } from 'drizzle-orm';
 import { db } from '../../db';
-import { litters, puppies, litterImages, puppyImages, clients, updates, puppyInterests, clientActivity, litterNotifications, litterInterests, payments } from '../../db/schema';
+import { litters, puppies, litterImages, puppyImages, clients, puppyInterests, clientActivity, litterNotifications, litterInterests, payments } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { sendLitterNotificationEmail, sendClientEmailWithVars, sendAdminNotification } from '../../lib/email';
@@ -1100,7 +1100,6 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					blockingRecords: blocking.map((c) => `${c.firstName} ${c.lastName}`),
 				});
 			}
-			await db.delete(updates).where(eq(updates.targetId, params.id));
 			await db.delete(litters).where(eq(litters.id, params.id));
 			return new Response(null, { status: 204 });
 		}
