@@ -12,6 +12,7 @@ interface AuthState {
 	loading: boolean;
 	init: () => Promise<void>;
 	signOut: () => Promise<void>;
+	setClientStage: (stage: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => {
@@ -67,5 +68,7 @@ export const useAuthStore = create<AuthState>((set) => {
 			localStorage.removeItem('access_token');
 			set({ user: null, session: null, isAdmin: false, hasClientRecord: false, clientStage: null });
 		},
+
+		setClientStage: (stage) => set({ clientStage: stage }),
 	};
 });

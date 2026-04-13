@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 import { LoadingPage, Card, Badge, useFocusTrap } from '@/components/ui';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Client, ClientApplication } from '@paw-registry/shared';
@@ -567,34 +568,40 @@ export function PortalDashboard() {
 	const [templates, setTemplates] = useState<TemplateItem[] | null>(null);
 	const [pendingNotifications, setPendingNotifications] = useState<PendingNotification[]>([]);
 	const [pendingBookingPayment, setPendingBookingPayment] = useState<{ amountRands: number; expiresAt: string | null; authorizationUrl: string | null } | null>(null);
+	const setClientStage = useAuthStore(s => s.setClientStage);
+	const mountedRef = useRef(true);
 
 	usePageTitle('Dashboard');
 
-	useEffect(() => {
+	const loadClient = useCallback((isInitial = false) => {
 		api.clients.me.get().then(({ data }) => {
+			if (!mountedRef.current) return;
 			if (data) {
 				const c = data as Client;
 				setClient(c);
+				setClientStage(c.stage);
 				if (c.stage === 'waitlisted') {
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(api.clients.me as any)['waitlist-position'].get().then(({ data: pos }: { data: { position: number | null; total: number | null } | null }) => {
-						if (pos) setWaitlistPosition(pos);
+						if (mountedRef.current && pos) setWaitlistPosition(pos);
 					});
+				} else {
+					setWaitlistPosition(null);
 				}
 				if (c.stage === 'approved') {
 					api.templates.my.get().then(({ data: tmpl }) => {
-						if (tmpl) setTemplates(tmpl as TemplateItem[]);
+						if (mountedRef.current && tmpl) setTemplates(tmpl as TemplateItem[]);
 					});
 				}
 				if (['waitlisted', 'match_requested'].includes(c.stage)) {
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(api.litters.portal as any)['my-pending-notifications'].get().then(({ data: notifs }: { data: PendingNotification[] | null }) => {
-						if (notifs) setPendingNotifications(notifs);
+						if (mountedRef.current && notifs) setPendingNotifications(notifs);
 					}).catch(() => {});
 				}
 				// Check for any pending booking or final payments
 				api.payments.mine.get().then(({ data: pmts }) => {
-					if (!pmts) return;
+					if (!mountedRef.current || !pmts) return;
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					const pending = (pmts as any[]).find((p: any) => p.status === 'pending' && (p.type === 'booking' || p.type === 'final'));
 					if (pending) {
@@ -606,9 +613,21 @@ export function PortalDashboard() {
 					}
 				}).catch(() => {});
 			}
-			setLoading(false);
+			if (isInitial && mountedRef.current) setLoading(false);
+		}).catch(() => {
+			if (isInitial && mountedRef.current) setLoading(false);
 		});
-	}, []);
+	}, [setClientStage]);
+
+	useEffect(() => {
+		mountedRef.current = true;
+		loadClient(true);
+		const interval = setInterval(() => loadClient(false), 30_000);
+		return () => {
+			mountedRef.current = false;
+			clearInterval(interval);
+		};
+	}, [loadClient]);
 
 	async function handleConfirmDeposit() {
 		if (!client || depositLoading) return;
