@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { api } from '@/lib/api';
@@ -135,6 +135,26 @@ function Lightbox({ urls, index, onClose, onPrev, onNext }: {
 	);
 }
 
+// ─── Toast ───────────────────────────────────────────────────────────────────
+
+function Toast({ children, onDismiss }: { children: React.ReactNode; onDismiss: () => void }) {
+	useEffect(() => {
+		const t = setTimeout(onDismiss, 9000);
+		return () => clearTimeout(t);
+	}, [onDismiss]);
+
+	return (
+		<div
+			role="status"
+			className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] bg-warm-900 text-white text-sm rounded-2xl shadow-2xl px-5 py-4 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300"
+		>
+			<span className="text-lg leading-none flex-shrink-0 mt-0.5">🎉</span>
+			<span className="leading-relaxed flex-1">{children}</span>
+			<button type="button" onClick={onDismiss} className="text-white/50 hover:text-white text-xs flex-shrink-0 mt-0.5" aria-label="Dismiss">✕</button>
+		</div>
+	);
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function PortalLitterDetail() {
@@ -152,6 +172,10 @@ export function PortalLitterDetail() {
 	const [clientStage, setClientStage] = useState<ClientStage | null>(null);
 	const [puppyImgIndexes, setPuppyImgIndexes] = useState<Record<string, number>>({});
 	const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
+	const [clientDepositStatus, setClientDepositStatus] = useState<string | null>(null);
+	const [clientDepositTier, setClientDepositTier] = useState<string | null>(null);
+	const [toast, setToast] = useState<React.ReactNode | null>(null);
+	const dismissToast = useRef(() => setToast(null));
 
 	useEffect(() => {
 		if (!id) return;
@@ -186,8 +210,12 @@ export function PortalLitterDetail() {
 		}).catch(() => {});
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(api.clients as any).me.get().then(({ data }: { data: { stage: ClientStage } | null }) => {
-			if (data) setClientStage(data.stage);
+		(api.clients as any).me.get().then(({ data }: { data: { stage: ClientStage; depositStatus: string; depositTier: string | null } | null }) => {
+			if (data) {
+				setClientStage(data.stage);
+				setClientDepositStatus(data.depositStatus);
+				setClientDepositTier(data.depositTier);
+			}
 		}).catch(() => {});
 	}, [id, user]);
 
@@ -219,15 +247,30 @@ export function PortalLitterDetail() {
 
 	usePageTitle('Litter');
 
+	const isClientR5000 = clientDepositStatus === 'paid' && clientDepositTier === 'r5000';
+
 	const expressInterest = async (puppyId: string) => {
 		setSubmittingInterest(puppyId);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const { error } = await (api.litters.puppies({ puppyId }) as any).interest.post({});
-		if (!error) {
+		const { data, error } = await (api.litters.puppies({ puppyId }) as any).interest.post({});
+		if (!error && data) {
 			setMyInterestPuppyIds((prev) => new Set([...prev, puppyId]));
-			setInterestMessage((prev) => ({ ...prev, [puppyId]: 'Interest registered! Our team will be in touch to confirm your match.' }));
+			setEligibility((prev) => prev ? { ...prev, hasActivePuppyInterest: true } : prev);
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			if ((data as any).requiresPayment === false) {
+				setToast(
+					<>Your puppy has been booked, since you have already paid the securing deposit. We will reach out soon regarding next steps. Congratulations on your puppy!</>
+				);
+			} else {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const amountRands = (data as any).amountRands as number;
+				setToast(
+					<>Your puppy has been reserved! Please pay the remaining amount of <strong>R{amountRands.toLocaleString()}</strong> within 24 hours to secure your booking.{' '}
+					<Link to="/portal/payments" className="underline font-medium">Pay now →</Link></>
+				);
+			}
 		} else {
-			const body = error.value as { message?: string };
+			const body = error?.value as { message?: string };
 			setInterestMessage((prev) => ({ ...prev, [puppyId]: body?.message ?? 'Something went wrong.' }));
 		}
 		setSubmittingInterest(null);
@@ -476,7 +519,7 @@ export function PortalLitterDetail() {
 													disabled={submittingInterest === puppy.id}
 													className="w-full px-2 py-1.5 bg-brand-500 text-white text-xs rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
 												>
-													{submittingInterest === puppy.id ? 'Reserving…' : 'Reserve'}
+													{submittingInterest === puppy.id ? (isClientR5000 ? 'Booking…' : 'Reserving…') : (isClientR5000 ? 'Book' : 'Reserve')}
 												</button>
 											)}
 										</div>
@@ -514,6 +557,9 @@ export function PortalLitterDetail() {
 					<p className="text-warm-700 text-sm leading-relaxed">{litter.notes}</p>
 				</div>
 			)}
+
+			{/* Toast */}
+			{!!toast && <Toast onDismiss={dismissToast.current}>{toast}</Toast>}
 
 			{/* Lightbox */}
 			{lightbox && (

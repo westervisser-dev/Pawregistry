@@ -51,8 +51,8 @@ export function AdminLitterDetail() {
 	const [matchingClients, setMatchingClients] = useState<MatchingClient[]>([]);
 	const [matchingLoading, setMatchingLoading] = useState(false);
 	const [puppyInterests, setPuppyInterests] = useState<Array<{
-		id: string; puppyId: string; clientId: string; status: string; createdAt: string;
-		client: { id: string; firstName: string; lastName: string; email: string; city: string | null; stage: string; depositStatus: string };
+		id: string; puppyId: string; clientId: string; status: string; createdAt: string; updatedAt: string;
+		client: { id: string; firstName: string; lastName: string; email: string; city: string | null; stage: string; depositStatus: string; depositTier: string | null };
 	}>>([]);
 	const [clientLitterInterests, setClientLitterInterests] = useState<Array<{
 		id: string; clientId: string; litterId: string; createdAt: string;
@@ -946,7 +946,7 @@ export function AdminLitterDetail() {
 					<EmptyState icon="🐶" title="No puppies recorded yet" />
 				) : (
 					<div className="divide-y divide-black/[0.05]">
-						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null; client: { id: string; firstName: string; lastName: string } | null }>).map((p) => {
+						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null; bookingExpiresAt: string | null; client: { id: string; firstName: string; lastName: string } | null }>).map((p) => {
 							const pendingInterests = puppyInterests.filter((i) => i.puppyId === p.id && i.status === 'pending');
 							const allInterests = puppyInterests.filter((i) => i.puppyId === p.id);
 							const isExpanded = expandedPuppy === p.id;
@@ -1029,6 +1029,29 @@ export function AdminLitterDetail() {
 													{p.client.firstName} {p.client.lastName}
 												</Link>
 											)}
+											{p.status === 'reserved' && (() => {
+												const interest = puppyInterests.find((i) => i.puppyId === p.id && i.status === 'pending');
+												if (!interest) return null;
+												return (
+													<span className="block text-xs text-warm-500 mt-0.5 font-normal">
+														<Link to={`/admin/clients/${interest.client.id}`} className="text-brand-600 hover:underline">{interest.client.firstName} {interest.client.lastName}</Link>
+														{' · '}<NotifyTimer since={interest.createdAt} />
+													</span>
+												);
+											})()}
+											{p.status === 'booked' && (() => {
+												const interest = puppyInterests.find((i) => i.puppyId === p.id && i.status === 'approved');
+												if (!interest) return null;
+												return (
+													<span className="block text-xs text-warm-500 mt-0.5 font-normal">
+														<Link to={`/admin/clients/${interest.client.id}`} className="text-brand-600 hover:underline">{interest.client.firstName} {interest.client.lastName}</Link>
+														{' · '}
+														<span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${interest.client.depositTier === 'r5000' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+															{interest.client.depositTier === 'r5000' ? 'R5,000 deposit' : 'R500 deposit'}
+														</span>
+													</span>
+												);
+											})()}
 										</span>
 										{/* Inline status selector */}
 										<select
@@ -1037,7 +1060,7 @@ export function AdminLitterDetail() {
 											onChange={(e) => updatePuppyStatus(p.id, e.target.value)}
 											className="px-2 py-1 text-xs border border-warm-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-300 bg-white disabled:opacity-50"
 										>
-											{['available', 'reserved', 'matched', 'retained', 'not_for_sale'].map((s) => (
+											{['available', 'reserved', 'booked', 'matched', 'retained', 'not_for_sale'].map((s) => (
 												<option key={s} value={s}>{s.replace('_', ' ')}</option>
 											))}
 										</select>
@@ -1076,31 +1099,14 @@ export function AdminLitterDetail() {
 															{interest.client.city && <span className="text-xs text-warm-400">{interest.client.city}</span>}
 															<span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
 																interest.client.depositStatus === 'paid' ? 'bg-green-100 text-green-700' :
-																interest.client.depositStatus === 'pending' ? 'bg-amber-100 text-amber-700' :
 																'bg-warm-100 text-warm-600'
 															}`}>
-																{interest.client.depositStatus === 'paid' ? 'Deposit paid' :
-																 interest.client.depositStatus === 'pending' ? 'Deposit pending' : 'No deposit'}
+																{interest.client.depositStatus === 'paid' ? 'Deposit paid' : 'No deposit'}
 															</span>
 														</div>
 													</div>
 													{interest.status === 'pending' ? (
-														<div className="flex items-center gap-1.5 flex-shrink-0">
-															<button
-																onClick={() => handleInterestAction(interest.id, 'approved')}
-																disabled={approvingInterestId === interest.id}
-																className="px-2.5 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 disabled:opacity-50 transition-colors"
-															>
-																Approve
-															</button>
-															<button
-																onClick={() => handleInterestAction(interest.id, 'rejected')}
-																disabled={approvingInterestId === interest.id}
-																className="px-2.5 py-1 bg-warm-200 text-warm-700 text-xs rounded-lg hover:bg-warm-300 disabled:opacity-50 transition-colors"
-															>
-																Reject
-															</button>
-														</div>
+														<span className="text-xs font-medium flex-shrink-0 text-amber-600">reserving…</span>
 													) : interest.status === 'approved' ? (
 														<div className="flex flex-col items-end gap-1 flex-shrink-0">
 															<span className="text-xs font-medium text-green-600">approved</span>

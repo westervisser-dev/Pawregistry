@@ -148,6 +148,7 @@ function ClientActionCenter({
 	if (client.stage === 'waitlisted') {
 		const isPaidR500 = client.depositStatus === 'paid' && client.depositTier === 'r500';
 		const isPaidR5000 = client.depositStatus === 'paid' && client.depositTier === 'r5000';
+		const hasUndismissedNotification = pendingNotifications.some((n) => !dismissed.has(n.litterId));
 		if (!isPaidR5000) {
 			actions.push({
 				type: 'dismissible-link',
@@ -159,18 +160,20 @@ function ClientActionCenter({
 				dismissKey: isPaidR500 ? 'deposit-upgrade' : 'deposit-add',
 			});
 		}
-		actions.push({
-			type: 'status',
-			label: 'You\'re on the waitlist — we\'ll notify you when a litter becomes available',
-			color: 'blue',
-		});
+		if (!hasUndismissedNotification) {
+			actions.push({
+				type: 'status',
+				label: 'You\'re on the waitlist — we\'ll notify you when a litter becomes available',
+				color: 'blue',
+			});
+		}
 	}
 
-	if (client.stage === 'match_requested') {
+	if (client.stage === 'match_requested' && !pendingBookingPayment) {
 		actions.push({
 			type: 'status',
-			label: '🐾 Hold tight — we\'re reviewing your selection towards a final match',
-			color: 'purple',
+			label: 'We will reach out soon regarding next steps. Congratulations on your puppy!',
+			color: 'green',
 		});
 	}
 
