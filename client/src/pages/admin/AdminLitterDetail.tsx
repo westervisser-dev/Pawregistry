@@ -176,6 +176,10 @@ export function AdminLitterDetail() {
 			setFormError('Reserve date must be a future date when status is Planned.');
 			return;
 		}
+		if (newForm.status === 'available' && newForm.selectionDate > today) {
+			setFormError('Reserve date must be today or earlier when status is Available.');
+			return;
+		}
 		if (newForm.goHomeDate && newForm.goHomeDate < newForm.selectionDate) {
 			setFormError('Go-home date must be on or after the reserve date.');
 			return;
@@ -572,11 +576,15 @@ export function AdminLitterDetail() {
 								type="date"
 								value={newForm.selectionDate}
 								min={newForm.status === 'planned' ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })() : undefined}
+								max={newForm.status === 'available' ? new Date().toISOString().slice(0, 10) : undefined}
 								onChange={(e) => setF('selectionDate', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							/>
 							{newForm.status === 'planned' && newForm.selectionDate && newForm.selectionDate <= new Date().toISOString().slice(0, 10) && (
 								<p className="text-[11px] text-red-500 mt-1">Must be a future date when status is Planned.</p>
+							)}
+							{newForm.status === 'available' && newForm.selectionDate && newForm.selectionDate > new Date().toISOString().slice(0, 10) && (
+								<p className="text-[11px] text-red-500 mt-1">Must be today or earlier when status is Available.</p>
 							)}
 						</div>
 						<div>
@@ -917,12 +925,14 @@ export function AdminLitterDetail() {
 									type="date"
 									defaultValue={litter.selectionDate ? new Date(litter.selectionDate as unknown as string).toISOString().slice(0, 10) : ''}
 									min={litter.status === 'planned' ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })() : undefined}
+									max={litter.status === 'available' ? new Date().toISOString().slice(0, 10) : undefined}
 									onChange={async (e) => {
 										if (!id) return;
 										const value = e.target.value;
 										if (!value) return;
 										const todayStr = new Date().toISOString().slice(0, 10);
 										if (litter.status === 'planned' && value <= todayStr) return;
+										if (litter.status === 'available' && value > todayStr) return;
 										await api.litters({ id }).patch({ selectionDate: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
 										setLitter((l) => l ? { ...l, selectionDate: value as unknown as Date } : l);
 									}}

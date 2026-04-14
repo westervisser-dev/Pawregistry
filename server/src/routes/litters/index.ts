@@ -871,7 +871,14 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 	.post(
 		'/',
-		async ({ body }) => {
+		async ({ body, error }) => {
+			// Validate: available litters cannot have a future selection date
+			if (body.status === 'available' && body.selectionDate) {
+				const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+				if (body.selectionDate > todayStr) {
+					return error(400, { error: 'InvalidDate', message: 'An available litter cannot have a future selection date. Set the date to today or earlier, or keep the status as planned.' });
+				}
+			}
 			const [litter] = await db.insert(litters).values(body).returning();
 			return litter;
 		},
@@ -896,6 +903,20 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	.patch(
 		'/:id',
 		async ({ params, body, error }) => {
+			// Validate: available litters cannot have a future selection date
+			if (body.status === 'available' || body.selectionDate) {
+				const current = await db.query.litters.findFirst({ where: eq(litters.id, params.id), columns: { status: true, selectionDate: true } });
+				const effectiveStatus = body.status ?? current?.status;
+				const effectiveDate = body.selectionDate ?? current?.selectionDate;
+				if (effectiveStatus === 'available' && effectiveDate) {
+					const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+					const dateStr = typeof effectiveDate === 'string' ? effectiveDate.slice(0, 10) : new Date(effectiveDate).toLocaleDateString('en-CA');
+					if (dateStr > todayStr) {
+						return error(400, { error: 'InvalidDate', message: 'An available litter cannot have a future selection date. Set the date to today or earlier, or keep the status as planned.' });
+					}
+				}
+			}
+
 			const [updated] = await db
 				.update(litters)
 				.set({ ...body, updatedAt: new Date() })
