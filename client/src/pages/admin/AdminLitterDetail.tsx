@@ -92,8 +92,8 @@ export function AdminLitterDetail() {
 	const [newPuppyImageFiles, setNewPuppyImageFiles] = useState<File[]>([]);
 
 	// New-litter form state
-	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; selectionDate: string; goHomeDate: string; notes: string; isPublic: boolean; shippingRands: string }>({
-		name: '', breedKey: '', sizeKey: '', status: 'planned', selectionDate: '', goHomeDate: '', notes: '', isPublic: false, shippingRands: '',
+	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; selectionDate: string; goHomeDate: string; notes: string; isPublic: boolean; shippingRands: string; dateOfBirth: string; estimatedAdultWeightKg: string; estimatedAdultHeightCm: string }>({
+		name: '', breedKey: '', sizeKey: '', status: 'planned', selectionDate: '', goHomeDate: '', notes: '', isPublic: false, shippingRands: '', dateOfBirth: '', estimatedAdultWeightKg: '', estimatedAdultHeightCm: '',
 	});
 	const [availableWarning, setAvailableWarning] = useState(false);
 	const [galleryImages, setGalleryImages] = useState<LitterImage[]>([]);
@@ -196,6 +196,9 @@ export function AdminLitterDetail() {
 				...(newForm.notes ? { notes: newForm.notes } : {}),
 				isPublic: newForm.isPublic,
 				...(newForm.shippingRands ? { shippingRands: Number(newForm.shippingRands) } : {}),
+				...(newForm.dateOfBirth ? { dateOfBirth: newForm.dateOfBirth } : {}),
+				...(newForm.estimatedAdultWeightKg ? { estimatedAdultWeightKg: Number(newForm.estimatedAdultWeightKg) } : {}),
+				...(newForm.estimatedAdultHeightCm ? { estimatedAdultHeightCm: Number(newForm.estimatedAdultHeightCm) } : {}),
 			});
 			if (error) { setFormError('Failed to save. Please try again.'); return; }
 			if (data) {
@@ -609,6 +612,39 @@ export function AdminLitterDetail() {
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 						</div>
+						<div>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Date of Birth</label>
+							<input
+								type="date"
+								value={newForm.dateOfBirth}
+								onChange={(e) => setNewForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Est. Adult Weight (kg)</label>
+							<input
+								type="number"
+								min="0"
+								step="0.5"
+								value={newForm.estimatedAdultWeightKg}
+								onChange={(e) => setNewForm((f) => ({ ...f, estimatedAdultWeightKg: e.target.value }))}
+								placeholder="e.g. 12"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Est. Adult Height (cm)</label>
+							<input
+								type="number"
+								min="0"
+								step="1"
+								value={newForm.estimatedAdultHeightCm}
+								onChange={(e) => setNewForm((f) => ({ ...f, estimatedAdultHeightCm: e.target.value }))}
+								placeholder="e.g. 35"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+						</div>
 						<div className="col-span-2">
 							<label className="block text-xs font-medium text-warm-500 mb-1">Notes</label>
 							<textarea
@@ -980,6 +1016,60 @@ export function AdminLitterDetail() {
 								}}
 								className="w-28 px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-right text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors"
 							/>
+						</div>
+						<div className="flex justify-between items-center">
+							<span className="text-warm-500">Date of birth</span>
+							<input
+								type="date"
+								defaultValue={litter.dateOfBirth ?? ''}
+								onChange={async (e) => {
+									if (!id) return;
+									const value = e.target.value || null;
+									await api.litters({ id }).patch({ dateOfBirth: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+									setLitter((l) => l ? { ...l, dateOfBirth: value } : l);
+								}}
+								className="px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors cursor-pointer"
+							/>
+						</div>
+						<div className="flex justify-between items-center">
+							<span className="text-warm-500">Est. adult weight</span>
+							<div className="flex items-center gap-1">
+								<input
+									type="number"
+									min="0"
+									step="0.5"
+									defaultValue={litter.estimatedAdultWeightKg ?? ''}
+									onBlur={async (e) => {
+										if (!id) return;
+										const value = e.target.value ? Number(e.target.value) : null;
+										await api.litters({ id }).patch({ estimatedAdultWeightKg: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+										setLitter((l) => l ? { ...l, estimatedAdultWeightKg: value } : l);
+									}}
+									placeholder="—"
+									className="w-20 px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-right text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors"
+								/>
+								<span className="text-xs text-warm-400">kg</span>
+							</div>
+						</div>
+						<div className="flex justify-between items-center">
+							<span className="text-warm-500">Est. adult height</span>
+							<div className="flex items-center gap-1">
+								<input
+									type="number"
+									min="0"
+									step="1"
+									defaultValue={litter.estimatedAdultHeightCm ?? ''}
+									onBlur={async (e) => {
+										if (!id) return;
+										const value = e.target.value ? Number(e.target.value) : null;
+										await api.litters({ id }).patch({ estimatedAdultHeightCm: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+										setLitter((l) => l ? { ...l, estimatedAdultHeightCm: value } : l);
+									}}
+									placeholder="—"
+									className="w-20 px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-right text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors"
+								/>
+								<span className="text-xs text-warm-400">cm</span>
+							</div>
 						</div>
 					</div>
 				</Card>

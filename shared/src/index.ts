@@ -17,6 +17,9 @@ export interface Litter {
 	availableCount: number | null;
 	depositAmount: number | null;
 	shippingRands: number | null;
+	dateOfBirth: string | null;
+	estimatedAdultWeightKg: number | null;
+	estimatedAdultHeightCm: number | null;
 	notes: string | null;
 	coverImageUrl: string | null;
 	isPublic: boolean;

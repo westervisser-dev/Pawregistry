@@ -388,6 +388,34 @@ export function PortalLitterDetail() {
 				)}
 			</div>
 
+			{/* Litter details — DOB (only when available+), weight, height */}
+			{(
+				(litter.status !== 'planned' && litter.dateOfBirth) ||
+				litter.estimatedAdultWeightKg != null ||
+				litter.estimatedAdultHeightCm != null
+			) && (
+				<div className="mb-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-warm-600">
+					{litter.status !== 'planned' && litter.dateOfBirth && (
+						<div>
+							<span className="text-warm-400 mr-1.5">Born</span>
+							<span className="font-medium">{new Date(litter.dateOfBirth).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+						</div>
+					)}
+					{litter.estimatedAdultWeightKg != null && (
+						<div>
+							<span className="text-warm-400 mr-1.5">Est. adult weight</span>
+							<span className="font-medium">{litter.estimatedAdultWeightKg} kg</span>
+						</div>
+					)}
+					{litter.estimatedAdultHeightCm != null && (
+						<div>
+							<span className="text-warm-400 mr-1.5">Est. adult height</span>
+							<span className="font-medium">{litter.estimatedAdultHeightCm} cm</span>
+						</div>
+					)}
+				</div>
+			)}
+
 			{/* Match card */}
 			{myMatch && (
 				<div
