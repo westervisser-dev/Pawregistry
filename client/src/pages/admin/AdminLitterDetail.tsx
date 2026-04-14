@@ -184,6 +184,10 @@ export function AdminLitterDetail() {
 			setFormError('Go-home date must be on or after the reserve date.');
 			return;
 		}
+		if (newForm.dateOfBirth && newForm.dateOfBirth > newForm.selectionDate) {
+			setFormError('Date of birth must be on or before the reserve date.');
+			return;
+		}
 		setSaving(true);
 		try {
 			const breedValue = newForm.breedKey ? buildBreedSize(newForm.breedKey, newForm.sizeKey || null) : null;
@@ -617,9 +621,13 @@ export function AdminLitterDetail() {
 							<input
 								type="date"
 								value={newForm.dateOfBirth}
+								max={newForm.selectionDate || undefined}
 								onChange={(e) => setNewForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
+							{newForm.dateOfBirth && newForm.selectionDate && newForm.dateOfBirth > newForm.selectionDate && (
+								<p className="text-[11px] text-red-500 mt-1">Must be on or before the reserve date.</p>
+							)}
 						</div>
 						<div>
 							<label className="block text-xs font-medium text-warm-500 mb-1">Est. Adult Weight (kg)</label>
@@ -1022,6 +1030,7 @@ export function AdminLitterDetail() {
 							<input
 								type="date"
 								defaultValue={litter.dateOfBirth ?? ''}
+								max={litter.selectionDate ? new Date(litter.selectionDate as unknown as string).toISOString().slice(0, 10) : undefined}
 								onChange={async (e) => {
 									if (!id) return;
 									const value = e.target.value || null;
@@ -1341,7 +1350,7 @@ export function AdminLitterDetail() {
 					) : (
 						<>
 							<p className="text-xs font-medium text-warm-500 uppercase tracking-wide mb-3">Add puppy</p>
-							<div className="flex gap-2 items-start">
+							<div className="flex flex-wrap gap-2 items-start">
 								<div className="flex flex-wrap gap-1">
 									{newPuppyImageFiles.map((f, idx) => (
 										<div key={idx} className="relative w-9 h-9 flex-shrink-0">
@@ -1359,7 +1368,7 @@ export function AdminLitterDetail() {
 								<select
 									value={newPuppy.collarColour}
 									onChange={(e) => setNewPuppy((p) => ({ ...p, collarColour: e.target.value }))}
-									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+									className="min-w-[120px] flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 								>
 									<option value="">Collar colour</option>
 									{COLLAR_COLOURS.map((c) => (
@@ -1370,7 +1379,7 @@ export function AdminLitterDetail() {
 									placeholder="Puppy description"
 									value={newPuppy.colour}
 									onChange={(e) => setNewPuppy((p) => ({ ...p, colour: e.target.value }))}
-									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+									className="min-w-[120px] flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 								/>
 								<input
 									type="number"

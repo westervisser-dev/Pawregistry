@@ -909,6 +909,10 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					return error(400, { error: 'InvalidDate', message: 'An available litter cannot have a future selection date. Set the date to today or earlier, or keep the status as planned.' });
 				}
 			}
+			// Validate: date of birth cannot be after the reserve date
+			if (body.dateOfBirth && body.selectionDate && body.dateOfBirth > body.selectionDate) {
+				return error(400, { error: 'InvalidDate', message: 'Date of birth must be on or before the reserve date.' });
+			}
 			const [litter] = await db.insert(litters).values(body).returning();
 			return litter;
 		},
@@ -946,6 +950,20 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					const dateStr = typeof effectiveDate === 'string' ? effectiveDate.slice(0, 10) : new Date(effectiveDate).toLocaleDateString('en-CA');
 					if (dateStr > todayStr) {
 						return error(400, { error: 'InvalidDate', message: 'An available litter cannot have a future selection date. Set the date to today or earlier, or keep the status as planned.' });
+					}
+				}
+			}
+
+			// Validate: date of birth cannot be after the reserve date
+			if (body.dateOfBirth || body.selectionDate) {
+				const current = await db.query.litters.findFirst({ where: eq(litters.id, params.id), columns: { dateOfBirth: true, selectionDate: true } });
+				const effectiveDob = body.dateOfBirth ?? current?.dateOfBirth;
+				const effectiveSelection = body.selectionDate ?? current?.selectionDate;
+				if (effectiveDob && effectiveSelection) {
+					const dobStr = typeof effectiveDob === 'string' ? effectiveDob.slice(0, 10) : effectiveDob;
+					const selStr = typeof effectiveSelection === 'string' ? effectiveSelection.slice(0, 10) : effectiveSelection;
+					if (dobStr > selStr) {
+						return error(400, { error: 'InvalidDate', message: 'Date of birth must be on or before the reserve date.' });
 					}
 				}
 			}
