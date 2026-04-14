@@ -263,7 +263,14 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	.get(
 		'/:id/my-interests',
 		async ({ params, user }) => {
-			const empty = { interests: [], isNotified: false, position: null as number | null, notifiedUpTo: null as number | null, hasActivePuppyInterest: false };
+			const empty = {
+				interests: [] as { puppyId: string; status: string }[],
+				isNotified: false,
+				position: null as number | null,
+				notifiedUpTo: null as number | null,
+				hasActivePuppyInterest: false,
+				lockedPricing: null as { puppyPriceRands: number; shippingRands: number } | null,
+			};
 			if (!user) return empty;
 
 			const client = await db.query.clients.findFirst({
@@ -311,12 +318,35 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				columns: { id: true },
 			});
 
+			// Check for locked pricing — if a non-cancelled final payment exists for
+			// this client, the price was snapshotted at that point and shouldn't change.
+			let lockedPricing: { puppyPriceRands: number; shippingRands: number } | null = null;
+			const finalPayment = await db.query.payments.findFirst({
+				where: and(
+					eq(payments.clientId, client.id),
+					eq(payments.type, 'final'),
+					ne(payments.status, 'cancelled'),
+				),
+				columns: { metadata: true },
+			});
+			if (finalPayment) {
+				const meta = finalPayment.metadata as Record<string, unknown>;
+				// Only lock if this payment is for a puppy in this litter
+				if (puppyIds.includes(meta.puppyId as string) && meta.puppyPriceRands != null) {
+					lockedPricing = {
+						puppyPriceRands: meta.puppyPriceRands as number,
+						shippingRands: (meta.shippingRands as number) ?? 0,
+					};
+				}
+			}
+
 			return {
 				interests,
 				isNotified,
 				position,
 				notifiedUpTo: batchRecords.length > 0 ? batchRecords.length : null,
 				hasActivePuppyInterest: !!activeInterestGlobal,
+				lockedPricing,
 			};
 		}
 	)

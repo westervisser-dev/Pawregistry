@@ -189,7 +189,7 @@ function ClientActionCenter({
 		});
 	}
 
-	if (client.stage === 'puppy_booked') {
+	if (client.stage === 'puppy_booked' && !pendingBookingPayment) {
 		actions.push({
 			type: 'status',
 			label: 'Your puppy is booked — congratulations! We\'ll be in touch regarding next steps.',

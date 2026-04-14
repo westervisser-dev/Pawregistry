@@ -493,17 +493,21 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				return error(400, { error: 'NoPuppy', message: 'Client has no matched puppy' });
 			}
 
+			// Always fetch puppy + litter for price snapshot
+			const puppyRecord = await db.query.puppies.findFirst({
+				where: eq(puppies.id, client.puppyId),
+				with: { litter: { columns: { shippingRands: true } } },
+			});
+			const snapshotPuppyPrice = puppyRecord?.priceRands ?? null;
+			const snapshotShipping = puppyRecord?.litter?.shippingRands ?? 0;
+
 			// Auto-calculate totalPriceRands if not provided
 			let totalPriceRands = body.totalPriceRands;
 			if (totalPriceRands == null) {
-				const puppy = await db.query.puppies.findFirst({
-					where: eq(puppies.id, client.puppyId),
-					with: { litter: { columns: { shippingRands: true } } },
-				});
-				if (!puppy?.priceRands) {
+				if (!snapshotPuppyPrice) {
 					return error(400, { error: 'NoPrice', message: 'Puppy has no price set. Set the price on the litter page or provide totalPriceRands.' });
 				}
-				totalPriceRands = puppy.priceRands + (puppy.litter?.shippingRands ?? 0);
+				totalPriceRands = snapshotPuppyPrice + snapshotShipping;
 			}
 
 			// Calculate total already paid
@@ -529,7 +533,6 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				));
 
 			const reference = generateReference('fin');
-			const puppyRecord = await db.query.puppies.findFirst({ where: eq(puppies.id, client.puppyId) });
 			const puppyName = puppyRecord
 				? `${puppyRecord.collarColour} collar (${puppyRecord.sex})`
 				: 'your puppy';
@@ -560,6 +563,8 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 					puppyName,
 					totalPriceRands,
 					alreadyPaid,
+					puppyPriceRands: snapshotPuppyPrice,
+					shippingRands: snapshotShipping,
 				},
 			}).returning();
 
@@ -598,17 +603,21 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				return error(400, { error: 'NoPuppy', message: 'Client has no matched puppy' });
 			}
 
+			// Always fetch puppy + litter for price snapshot
+			const puppyRecord = await db.query.puppies.findFirst({
+				where: eq(puppies.id, client.puppyId),
+				with: { litter: { columns: { shippingRands: true } } },
+			});
+			const snapshotPuppyPrice = puppyRecord?.priceRands ?? null;
+			const snapshotShipping = puppyRecord?.litter?.shippingRands ?? 0;
+
 			// Auto-calculate totalPriceRands if not provided
 			let totalPriceRands = body.totalPriceRands;
 			if (totalPriceRands == null) {
-				const puppyRecord = await db.query.puppies.findFirst({
-					where: eq(puppies.id, client.puppyId),
-					with: { litter: { columns: { shippingRands: true } } },
-				});
-				if (!puppyRecord?.priceRands) {
+				if (!snapshotPuppyPrice) {
 					return error(400, { error: 'NoPrice', message: 'Puppy has no price set. Set the price on the litter page or provide totalPriceRands.' });
 				}
-				totalPriceRands = puppyRecord.priceRands + (puppyRecord.litter?.shippingRands ?? 0);
+				totalPriceRands = snapshotPuppyPrice + snapshotShipping;
 			}
 
 			// Calculate already paid and balance due
@@ -638,9 +647,8 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 					eq(payments.status, 'pending'),
 				));
 
-			const puppy = await db.query.puppies.findFirst({ where: eq(puppies.id, client.puppyId) });
-			const puppyName = puppy
-				? `${puppy.collarColour} collar (${puppy.sex})`
+			const puppyName = puppyRecord
+				? `${puppyRecord.collarColour} collar (${puppyRecord.sex})`
 				: 'your puppy';
 
 			const instalmentTotal = body.amounts.length;
@@ -678,6 +686,8 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 						puppyName,
 						totalPriceRands,
 						alreadyPaid,
+						puppyPriceRands: snapshotPuppyPrice,
+						shippingRands: snapshotShipping,
 						isInstalment: true,
 						instalmentIndex: i,
 						instalmentTotal,
