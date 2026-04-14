@@ -649,6 +649,30 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		return results;
 	})
 
+	// ── Admin: get clients awaiting booking payment (puppy reserved, 24h window) ──
+	.get('/admin/awaiting-payment', async () => {
+		const reserved = await db.query.puppyInterests.findMany({
+			where: eq(puppyInterests.status, 'pending'),
+			with: {
+				puppy: {
+					columns: { id: true, litterId: true, status: true, bookingExpiresAt: true },
+					with: { litter: { columns: { id: true, name: true } } },
+				},
+				client: { columns: { id: true, firstName: true, lastName: true } },
+			},
+		});
+
+		return reserved
+			.filter((i) => i.puppy.status === 'reserved')
+			.map((i) => ({
+				clientId: i.client.id,
+				clientName: `${i.client.firstName} ${i.client.lastName}`,
+				litterId: i.puppy.litter.id,
+				litterName: i.puppy.litter.name,
+				bookingExpiresAt: i.puppy.bookingExpiresAt,
+			}));
+	})
+
 	// ── Admin: get litters that have pending puppy reservations ──
 	.get('/admin/pending-reservations', async () => {
 		const pending = await db.query.puppyInterests.findMany({

@@ -38,6 +38,7 @@ const dotColorMap: Record<ActivityColor, string> = {
 };
 
 type PendingReservation = { id: string; name: string; pendingCount: number };
+type AwaitingPaymentItem = { clientId: string; clientName: string; litterId: string; litterName: string; bookingExpiresAt: string | null };
 
 export function AdminDashboard() {
 	const [counts, setCounts] = useState({ litters: 0, clients: 0, enquiries: 0 });
@@ -45,6 +46,7 @@ export function AdminDashboard() {
 	const [allLitters, setAllLitters] = useState<Litter[]>([]);
 	const [docsCompleteIds, setDocsCompleteIds] = useState<Set<string>>(new Set());
 	const [pendingReservations, setPendingReservations] = useState<PendingReservation[]>([]);
+	const [awaitingPayment, setAwaitingPayment] = useState<AwaitingPaymentItem[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 	const attentionRef = useRef<HTMLDivElement>(null);
@@ -71,11 +73,14 @@ export function AdminDashboard() {
 			(api.clients.admin as any).attention.get(),
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(api.litters.admin as any)['pending-reservations'].get(),
-		]).then(([littersRes, clientsRes, attentionRes, pendingRes]) => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(api.litters.admin as any)['awaiting-payment'].get(),
+		]).then(([littersRes, clientsRes, attentionRes, pendingRes, awaitingRes]) => {
 			const litters = (littersRes.data as Litter[] | null) ?? [];
 			const clients = (clientsRes.data as Client[] | null) ?? [];
 			const attentionData = (attentionRes as { data: { docsCompleteIds: string[] } | null }).data;
 			const pendingData = (pendingRes as { data: PendingReservation[] | null }).data ?? [];
+			const awaitingData = (awaitingRes as { data: AwaitingPaymentItem[] | null }).data ?? [];
 
 			const enquired = clients.filter((c) => c.stage === 'enquired');
 
@@ -87,6 +92,7 @@ export function AdminDashboard() {
 
 			setDocsCompleteIds(new Set(attentionData?.docsCompleteIds ?? []));
 			setPendingReservations(pendingData);
+			setAwaitingPayment(awaitingData);
 			setAllClients(clients);
 			setAllLitters(litters);
 			setLoading(false);
@@ -196,6 +202,15 @@ export function AdminDashboard() {
 						dot: 'bg-pink-500',
 						dropdown: 'border-pink-200',
 						item: 'hover:bg-pink-50 text-pink-900',
+					},
+					{
+						key: 'awaiting_payment',
+						items: awaitingPayment.map((a) => ({ id: a.clientId, name: `${a.clientName} — ${a.litterName}`, link: `/admin/litters/${a.litterId}` })),
+						label: (n: number) => `${n} ${n === 1 ? 'client is' : 'clients are'} awaiting booking payment`,
+						pill: 'bg-orange-100 hover:bg-orange-200 border-orange-300 text-orange-800',
+						dot: 'bg-orange-500',
+						dropdown: 'border-orange-200',
+						item: 'hover:bg-orange-50 text-orange-900',
 					},
 					{
 						key: 'pending_reservations',
