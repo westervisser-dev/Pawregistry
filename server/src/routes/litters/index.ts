@@ -119,9 +119,13 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				return error(409, { error: 'AlreadyInterested', message: 'You already have an active interest in a puppy. You can only select one at a time.' });
 			}
 
-			// Duplicate interest check
+			// Duplicate interest check — only block if there's an active (non-rejected) interest
 			const existing = await db.query.puppyInterests.findFirst({
-				where: and(eq(puppyInterests.puppyId, params.puppyId), eq(puppyInterests.clientId, client.id)),
+				where: and(
+					eq(puppyInterests.puppyId, params.puppyId),
+					eq(puppyInterests.clientId, client.id),
+					ne(puppyInterests.status, 'rejected'),
+				),
 			});
 			if (existing) return error(409, { error: 'Conflict', message: 'You have already expressed interest in this puppy' });
 
