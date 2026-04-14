@@ -1074,17 +1074,6 @@ export function AdminLitterDetail() {
 												</div>
 											);
 										})()}
-										{/* Inline status selector */}
-										<select
-											value={p.status}
-											disabled={updatingPuppyId === p.id}
-											onChange={(e) => updatePuppyStatus(p.id, e.target.value)}
-											className="px-2 py-1 text-xs border border-warm-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-300 bg-white disabled:opacity-50"
-										>
-											{['available', 'reserved', 'booked', 'matched', 'retained', 'not_for_sale'].map((s) => (
-												<option key={s} value={s}>{s.replace('_', ' ')}</option>
-											))}
-										</select>
 										{/* Interest count badge */}
 										{allInterests.length > 0 && (
 											<button
@@ -1098,6 +1087,24 @@ export function AdminLitterDetail() {
 												{pendingInterests.length > 0 ? `${pendingInterests.length} pending` : `${allInterests.length} interested`}
 												<span className="text-[10px]">{isExpanded ? '▲' : '▼'}</span>
 											</button>
+										)}
+										{/* Inline status selector — available is read-only; reserved can only reset to available */}
+										{p.status === 'available' ? (
+											<PuppyStatusBadge status={p.status} />
+										) : (
+											<select
+												value={p.status}
+												disabled={updatingPuppyId === p.id}
+												onChange={(e) => updatePuppyStatus(p.id, e.target.value)}
+												className="px-2 py-1 text-xs border border-warm-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-300 bg-white disabled:opacity-50"
+											>
+												{(p.status === 'reserved'
+													? ['reserved', 'available']
+													: ['available', 'reserved', 'booked', 'matched', 'retained', 'not_for_sale']
+												).map((s) => (
+													<option key={s} value={s}>{s.replace('_', ' ')}</option>
+												))}
+											</select>
 										)}
 									</div>
 									{/* Expanded interests */}
