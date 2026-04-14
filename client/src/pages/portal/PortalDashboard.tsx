@@ -162,7 +162,7 @@ function ClientActionCenter({
 		actions.push({
 			type: 'status',
 			label: 'You\'re on the waitlist — we\'ll notify you when a litter becomes available',
-			color: 'amber',
+			color: 'blue',
 		});
 	}
 
