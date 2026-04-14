@@ -52,10 +52,9 @@ export function AdminClients() {
 		matched_paid: 'Matched & Paid',
 	};
 
-	// Derive per-client action badge — priority: review_documents > confirm_deposit > review_application
+	// Derive per-client action badge — priority: review_documents > review_application
 	const getAction = (c: Client): ClientAction | undefined => {
 		if (actionMap[c.id] === 'review_documents') return 'review_documents';
-		if (c.depositStatus === 'pending') return 'confirm_deposit';
 		if (c.stage === 'enquired') return 'review_application';
 		return undefined;
 	};
@@ -71,7 +70,7 @@ export function AdminClients() {
 	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'match_requested', 'matched'];
 	const queueClients = clients.filter((c) => (ACTIVE_QUEUE_STAGES as string[]).includes(c.stage));
 	const depositQueueClients = queueClients
-		.filter((c) => c.depositStatus === 'pending' || c.depositStatus === 'paid')
+		.filter((c) => c.depositStatus === 'paid')
 		.sort((a, b) => {
 			// R5000 before R500
 			if (a.depositTier !== b.depositTier) {

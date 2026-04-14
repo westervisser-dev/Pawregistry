@@ -145,19 +145,23 @@ function ClientActionCenter({
 		}
 	}
 
-	if (client.stage === 'waitlisted' && client.depositStatus === 'pending') {
+	if (client.stage === 'waitlisted') {
+		const isPaidR500 = client.depositStatus === 'paid' && client.depositTier === 'r500';
+		const isPaidR5000 = client.depositStatus === 'paid' && client.depositTier === 'r5000';
+		if (!isPaidR5000) {
+			actions.push({
+				type: 'dismissible-link',
+				label: isPaidR500
+					? 'Increase your deposit payment to increase your waitlist order'
+					: 'Add a deposit payment to increase your waitlist order',
+				to: '/portal/payments',
+				color: 'amber',
+				dismissKey: isPaidR500 ? 'deposit-upgrade' : 'deposit-add',
+			});
+		}
 		actions.push({
 			type: 'status',
-			label: 'Deposit payment received — we\'re confirming it now',
-			color: 'amber',
-		});
-	}
-
-	if (client.stage === 'waitlisted' && client.depositStatus === 'none') {
-		actions.push({
-			type: 'link',
-			label: 'Complete your deposit payment to secure your waitlist place',
-			to: '/portal/payments',
+			label: 'You\'re on the waitlist — we\'ll notify you when a litter becomes available',
 			color: 'amber',
 		});
 	}
@@ -837,11 +841,6 @@ if (loading) return <LoadingPage />;
 							{client.depositStatus === 'paid' && (
 								<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border bg-green-50 text-green-700 border-green-200">
 									<span aria-hidden="true">✓</span> Confirmed
-								</span>
-							)}
-							{client.depositStatus === 'pending' && (
-								<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
-									Processing…
 								</span>
 							)}
 							{client.depositStatus === 'none' && (
