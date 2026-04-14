@@ -10,9 +10,9 @@ const EMAIL_TRIGGER_LABELS: Record<string, string> = {
 	stage_enquired: 'Application Received',
 	stage_approved: 'Application Approved',
 	stage_waitlisted: 'Added to Waitlist',
-	stage_match_requested: 'Puppy Selection',
-	stage_matched: 'Puppy Selected',
-	stage_matched_paid: 'Payment Confirmed',
+	stage_puppy_reserved: 'Puppy Reserved',
+	stage_puppy_booked: 'Puppy Booked',
+	stage_puppy_fully_paid: 'Puppy Fully Paid',
 };
 
 // ─── Application view helpers ─────────────────────────────────────────────────
@@ -220,7 +220,7 @@ export function AdminClientDetail() {
 		});
 	};
 
-	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'match_requested', 'matched'];
+	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'puppy_reserved', 'puppy_booked'];
 
 	const load = () => {
 		if (!id) return;
@@ -356,7 +356,7 @@ export function AdminClientDetail() {
 				</div>
 			</div>
 
-			{/* Waitlist position — shown for all active queue stages until matched_paid */}
+			{/* Waitlist position — shown for all active queue stages until puppy_fully_paid */}
 			{ACTIVE_QUEUE_STAGES.includes(client.stage) && waitlistPosition?.position != null && (
 				<div className="mb-6 flex items-center gap-5 rounded-xl border border-amber-200/80 bg-amber-50 px-5 py-4">
 					<div className="flex items-baseline gap-1.5 shrink-0">
@@ -388,8 +388,8 @@ export function AdminClientDetail() {
 						['approved', 'Approved'],
 						['rejected', 'Rejected'],
 						['waitlisted', 'Waitlisted'],
-						['match_requested', 'Match Requested'],
-						['matched', 'Matched'],
+						['puppy_reserved', 'Puppy Reserved'],
+						['puppy_booked', 'Puppy Booked'],
 					] as [ClientStage, string][]).map(([s, label]) => (
 						<button
 							key={s}
@@ -579,7 +579,7 @@ export function AdminClientDetail() {
 			<Card id="payments" className="p-5 mb-6 scroll-mt-6">
 				<div className="flex items-center justify-between mb-4">
 					<h3 className="font-medium text-warm-900">Payments</h3>
-					{client.stage === 'matched' && (
+					{client.stage === 'puppy_booked' && (
 						<button
 							onClick={() => { setFinalPrice(''); setFinalError(''); setShowFinalPaymentModal(true); }}
 							className="px-3 py-1.5 bg-warm-900 hover:bg-warm-700 text-white text-xs font-medium rounded-lg transition-colors"

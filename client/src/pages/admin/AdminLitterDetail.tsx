@@ -409,7 +409,7 @@ export function AdminLitterDetail() {
 
 	const notifiedMap = Object.fromEntries(notifications.map((n) => [n.clientId, n.notifiedAt]));
 	// Clients in an active booking process (reserved awaiting payment, or booked/matched)
-	const bookingInProgressStages = new Set(['match_requested', 'matched']);
+	const bookingInProgressStages = new Set(['puppy_reserved', 'puppy_booked']);
 	const isInProgress = (stage: string) => bookingInProgressStages.has(stage);
 	// Notified clients who have since moved into a booking process
 	const notifiedInProgressMap = Object.fromEntries(
@@ -1109,7 +1109,7 @@ export function AdminLitterDetail() {
 											>
 												{(p.status === 'reserved'
 													? ['reserved', 'available']
-													: ['available', 'reserved', 'booked', 'matched', 'retained', 'not_for_sale']
+													: ['available', 'reserved', 'booked', 'puppy_fully_paid', 'retained', 'not_for_sale']
 												).map((s) => (
 													<option key={s} value={s}>{s.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}</option>
 												))}

@@ -117,7 +117,7 @@ async function runSelectionDateCheck(): Promise<void> {
 				.set({ status: 'available', updatedAt: new Date() })
 				.where(and(
 					eq(puppies.litterId, litter.id),
-					notInArray(puppies.status, ['reserved', 'matched', 'matched_paid', 'retained', 'not_for_sale']),
+					notInArray(puppies.status, ['reserved', 'booked', 'puppy_fully_paid', 'retained', 'not_for_sale']),
 				));
 
 			console.log(`Litter "${litter.name}" auto-transitioned to available (selection date reached)`);

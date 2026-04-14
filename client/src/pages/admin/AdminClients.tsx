@@ -38,7 +38,7 @@ export function AdminClients() {
 
 	const stages: Array<Client['stage'] | ''> = [
 		'', 'enquired', 'approved', 'rejected',
-		'waitlisted', 'match_requested', 'matched', 'matched_paid',
+		'waitlisted', 'puppy_reserved', 'puppy_booked', 'puppy_fully_paid',
 	];
 
 	const stageLabels: Record<string, string> = {
@@ -47,9 +47,9 @@ export function AdminClients() {
 		approved: 'Approved',
 		rejected: 'Rejected',
 		waitlisted: 'Waitlisted',
-		match_requested: 'Match Requested',
-		matched: 'Matched',
-		matched_paid: 'Matched & Paid',
+		puppy_reserved: 'Puppy Reserved',
+		puppy_booked: 'Puppy Booked',
+		puppy_fully_paid: 'Puppy Fully Paid',
 	};
 
 	// Derive per-client action badge — priority: review_documents > review_application
@@ -66,8 +66,8 @@ export function AdminClients() {
 		}),
 	) as Record<string, ClientAction>;
 
-	// Active queue: all stages from waitlisted through matched (position persists until matched_paid)
-	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'match_requested', 'matched'];
+	// Active queue: all stages from waitlisted through puppy_booked (position persists until puppy_fully_paid)
+	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'puppy_reserved', 'puppy_booked'];
 	const queueClients = clients.filter((c) => (ACTIVE_QUEUE_STAGES as string[]).includes(c.stage));
 	const depositQueueClients = queueClients
 		.filter((c) => c.depositStatus === 'paid')
@@ -84,7 +84,7 @@ export function AdminClients() {
 		});
 	const noDepositQueueClients = queueClients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
 	const notYetWaitlistedClients = clients.filter((c) => (PRE_WAITLIST_STAGES as string[]).includes(c.stage));
-	const completedClients = clients.filter((c) => c.stage === 'matched_paid');
+	const completedClients = clients.filter((c) => c.stage === 'puppy_fully_paid');
 
 	const handleDepositReorder = async (newOrder: Client[]) => {
 		const waitlistOnly = [...newOrder, ...noDepositQueueClients];

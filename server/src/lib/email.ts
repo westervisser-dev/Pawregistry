@@ -16,9 +16,9 @@ const STAGE_TRIGGER: Partial<Record<string, string>> = {
 	enquired: 'stage_enquired',
 	approved: 'stage_approved',
 	waitlisted: 'stage_waitlisted',
-	match_requested: 'stage_match_requested',
-	matched: 'stage_matched',
-	matched_paid: 'stage_matched_paid',
+	puppy_reserved: 'stage_puppy_reserved',
+	puppy_booked: 'stage_puppy_booked',
+	puppy_fully_paid: 'stage_puppy_fully_paid',
 };
 
 function interpolate(text: string, vars: Record<string, string>): string {

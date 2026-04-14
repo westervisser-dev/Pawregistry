@@ -322,7 +322,7 @@ export function PortalLitterDetail() {
 	const myBookedPuppyId = [...myInterestStatuses.entries()].find(([, s]) => s === 'approved')?.[0] ?? null;
 	const myClaimedPuppyId = myBookedPuppyId ?? myReservedPuppyId;
 
-	const isWaitlistedOrLater = !!clientStage && ['waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
+	const isWaitlistedOrLater = !!clientStage && ['waitlisted', 'puppy_reserved', 'puppy_booked', 'puppy_fully_paid'].includes(clientStage);
 	const isNotified = !!eligibility && eligibility.isNotified;
 	const canInteract = isWaitlistedOrLater && isNotified;
 	const canMarkInterest = isWaitlistedOrLater && litter?.status !== 'planned';

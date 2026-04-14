@@ -129,18 +129,29 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 			// ── CASE 1: R5000 already paid → auto-book, no payment needed ──────
 			if (client.depositStatus === 'paid' && client.depositTier === 'r5000') {
+				const now = new Date();
 				const [interest] = await db
 					.insert(puppyInterests)
 					.values({ puppyId: params.puppyId, clientId: client.id, status: 'approved' })
 					.returning();
 
 				await db.update(puppies)
-					.set({ status: 'booked', bookingExpiresAt: null, updatedAt: new Date() })
+					.set({ status: 'booked', bookingExpiresAt: null, updatedAt: now })
 					.where(eq(puppies.id, params.puppyId));
 
 				await db.update(clients)
-					.set({ stage: 'match_requested', litterId: puppy.litterId, updatedAt: new Date() })
+					.set({ stage: 'puppy_booked', litterId: puppy.litterId, puppyId: params.puppyId, matchedAt: now, updatedAt: now })
 					.where(eq(clients.id, client.id));
+
+				// Auto-reject other pending interests for this puppy
+				await db
+					.update(puppyInterests)
+					.set({ status: 'rejected', updatedAt: now })
+					.where(and(
+						eq(puppyInterests.puppyId, params.puppyId),
+						ne(puppyInterests.id, interest.id),
+						eq(puppyInterests.status, 'pending'),
+					));
 
 				await db.insert(clientActivity).values({
 					clientId: client.id,
@@ -176,10 +187,14 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.values({ puppyId: params.puppyId, clientId: client.id })
 				.returning();
 
-			// Puppy → reserved with expiry
+			// Puppy → reserved with expiry, client → puppy_reserved
 			await db.update(puppies)
 				.set({ status: 'reserved', bookingExpiresAt, updatedAt: new Date() })
 				.where(eq(puppies.id, params.puppyId));
+
+			await db.update(clients)
+				.set({ stage: 'puppy_reserved', litterId: puppy.litterId, updatedAt: new Date() })
+				.where(eq(clients.id, client.id));
 
 			// Initialise Paystack transaction
 			const reference = generateReference('book');
@@ -325,7 +340,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		});
 		if (!client) return error(403, { error: 'Forbidden', message: 'No client account found' });
 
-		const eligibleStages = ['approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'];
+		const eligibleStages = ['approved', 'waitlisted', 'puppy_reserved', 'puppy_booked', 'puppy_fully_paid'];
 		if (!eligibleStages.includes(client.stage)) {
 			return error(400, { error: 'InvalidStage', message: 'Your application must be approved before you can show interest in a litter' });
 		}
@@ -449,7 +464,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			columns: { id: true, stage: true },
 		});
 		if (!client) return [];
-		const eligible = ['approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'];
+		const eligible = ['approved', 'waitlisted', 'puppy_reserved', 'puppy_booked', 'puppy_fully_paid'];
 		if (!eligible.includes(client.stage)) return [];
 		const interests = await db.query.litterInterests.findMany({
 			where: eq(litterInterests.clientId, client.id),
@@ -466,7 +481,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			columns: { id: true, stage: true },
 		});
 		if (!client) return [];
-		if (!['waitlisted', 'match_requested'].includes(client.stage)) return [];
+		if (!['waitlisted', 'puppy_reserved'].includes(client.stage)) return [];
 
 		const notifs = await db.query.litterNotifications.findMany({
 			where: eq(litterNotifications.clientId, client.id),
@@ -735,7 +750,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 		// Attach waitlist position for each client
 		const waitlisted = await db.query.clients.findMany({
-			where: inArray(clients.stage, ['waitlisted', 'match_requested', 'matched']),
+			where: inArray(clients.stage, ['waitlisted', 'puppy_reserved', 'puppy_booked']),
 			columns: { id: true },
 			orderBy: [asc(clients.priority)],
 		});
@@ -795,10 +810,12 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		{ body: t.Object({ clientIds: t.Array(t.String()) }) }
 	)
 
-	// ── Admin: approve or reject an interest ──
+	// ── Admin: reject an interest (move puppy back to available) ──
 	.patch(
 		'/admin/interests/:interestId',
 		async ({ params, body, error }) => {
+			if (body.status !== 'rejected') return error(400, { error: 'InvalidAction', message: 'Only rejection is supported — bookings are automatic' });
+
 			const interest = await db.query.puppyInterests.findFirst({
 				where: eq(puppyInterests.id, params.interestId),
 				with: {
@@ -810,63 +827,32 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 			const [updated] = await db
 				.update(puppyInterests)
-				.set({ status: body.status, updatedAt: new Date() })
+				.set({ status: 'rejected', updatedAt: new Date() })
 				.where(eq(puppyInterests.id, params.interestId))
 				.returning();
 
-			if (body.status === 'approved') {
-				const now = new Date();
-				// Puppy → matched, client → matched
-				await db.update(puppies).set({ status: 'matched', updatedAt: now }).where(eq(puppies.id, interest.puppyId));
-				await db.update(clients)
-					.set({ stage: 'matched', puppyId: interest.puppyId, matchedAt: now, updatedAt: now })
-					.where(eq(clients.id, interest.clientId));
+			// Reject: puppy → available, client → waitlisted, clear litterId + puppyId + matchedAt
+			await db.update(puppies).set({ status: 'available', bookingExpiresAt: null, updatedAt: new Date() }).where(eq(puppies.id, interest.puppyId));
+			await db.update(clients)
+				.set({ stage: 'waitlisted', litterId: null, puppyId: null, matchedAt: null, updatedAt: new Date() })
+				.where(eq(clients.id, interest.clientId));
 
-				// Auto-reject all other pending interests for this puppy
-				await db
-					.update(puppyInterests)
-					.set({ status: 'rejected', updatedAt: now })
-					.where(and(
-						eq(puppyInterests.puppyId, interest.puppyId),
-						ne(puppyInterests.id, params.interestId),
-						eq(puppyInterests.status, 'pending'),
-					));
+			// Cancel any pending booking payment
+			await db.update(payments)
+				.set({ status: 'cancelled' })
+				.where(and(
+					eq(payments.clientId, interest.clientId),
+					eq(payments.type, 'booking'),
+					eq(payments.status, 'pending'),
+				));
 
-				await db.insert(clientActivity).values({
-					clientId: interest.clientId,
-					type: 'stage_changed',
-					description: `Puppy interest approved. Stage moved to matched.`,
-					metadata: { puppyId: interest.puppyId, interestId: interest.id },
-					actor: 'admin',
-				});
-
-				// Send payment email to client
-				const litter = await db.query.litters.findFirst({
-					where: eq(litters.id, interest.puppy.litterId),
-					columns: { id: true, name: true, depositAmount: true },
-				});
-				const depositAmountStr = litter?.depositAmount ? `R${litter.depositAmount}` : 'TBC';
-				sendClientEmailWithVars(interest.clientId, 'stage_matched', {
-					deposit_amount: depositAmountStr,
-					litter_name: litter?.name ?? 'your litter',
-					litter_link: `${CLIENT_URL}/portal/litters/${interest.puppy.litterId}`,
-					payments_link: `${CLIENT_URL}/portal/payments`,
-				}).catch(console.error);
-			} else {
-				// Reject: puppy → available, client → waitlisted, clear litterId + matchedAt
-				await db.update(puppies).set({ status: 'available', updatedAt: new Date() }).where(eq(puppies.id, interest.puppyId));
-				await db.update(clients)
-					.set({ stage: 'waitlisted', litterId: null, matchedAt: null, updatedAt: new Date() })
-					.where(eq(clients.id, interest.clientId));
-
-				await db.insert(clientActivity).values({
-					clientId: interest.clientId,
-					type: 'stage_changed',
-					description: `Puppy interest rejected. Stage reverted to waitlisted.`,
-					metadata: { puppyId: interest.puppyId, interestId: interest.id },
-					actor: 'admin',
-				});
-			}
+			await db.insert(clientActivity).values({
+				clientId: interest.clientId,
+				type: 'stage_changed',
+				description: `Puppy reservation rejected by admin. Stage reverted to waitlisted.`,
+				metadata: { puppyId: interest.puppyId, interestId: interest.id },
+				actor: 'admin',
+			});
 
 			await syncLitterBookedStatus(interest.puppy.litterId);
 
@@ -874,7 +860,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		},
 		{
 			body: t.Object({
-				status: t.Union([t.Literal('approved'), t.Literal('rejected')]),
+				status: t.Union([t.Literal('rejected')]),
 			}),
 		}
 	)
@@ -919,7 +905,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					.set({ status: 'available', updatedAt: new Date() })
 					.where(and(
 						eq(puppies.litterId, params.id),
-						notInArray(puppies.status, ['reserved', 'matched', 'matched_paid', 'retained', 'not_for_sale']),
+						notInArray(puppies.status, ['reserved', 'booked', 'puppy_fully_paid', 'retained', 'not_for_sale']),
 					));
 			}
 
@@ -1047,8 +1033,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				sex: t.Union([t.Literal('male'), t.Literal('female')]),
 				colour: t.String(),
 				status: t.Optional(t.Union([
-					t.Literal('available'), t.Literal('reserved'), t.Literal('matched'),
-					t.Literal('matched_paid'), t.Literal('retained'), t.Literal('not_for_sale'),
+					t.Literal('available'), t.Literal('reserved'), t.Literal('booked'),
+					t.Literal('puppy_fully_paid'), t.Literal('retained'), t.Literal('not_for_sale'),
 				])),
 				birthWeight: t.Optional(t.Nullable(t.Number())),
 				notes: t.Optional(t.Nullable(t.String())),
@@ -1119,7 +1105,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				colour: t.String(),
 				status: t.Union([
 					t.Literal('available'), t.Literal('reserved'), t.Literal('booked'),
-					t.Literal('matched'), t.Literal('retained'), t.Literal('not_for_sale'),
+					t.Literal('puppy_fully_paid'), t.Literal('retained'), t.Literal('not_for_sale'),
 				]),
 				birthWeight: t.Nullable(t.Number()), currentWeight: t.Nullable(t.Number()),
 				notes: t.Nullable(t.String()), profileImageUrl: t.Nullable(t.String()),

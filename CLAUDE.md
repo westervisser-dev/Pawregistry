@@ -133,9 +133,9 @@ git checkout main && git merge dev --no-edit && git push origin main && git chec
 | Approved | `approved` | Admin |
 | Rejected | `rejected` | Admin |
 | Waitlisted | `waitlisted` | System (all docs checked off) |
-| Match Requested | `match_requested` | Admin (awaiting puppy selection) |
-| Matched | `matched` | System (puppy selected) |
-| Matched & Paid | `matched_paid` | System/Admin |
+| Puppy Reserved | `puppy_reserved` | System (R500/no-deposit client reserves a puppy) |
+| Puppy Booked | `puppy_booked` | System (R5000 client reserves, or R500/no-deposit client pays booking) |
+| Puppy Fully Paid | `puppy_fully_paid` | System (final payment received) |
 
 **Deposit Status:** `none` (No Deposit) | `pending` (Pending) | `paid` (Paid)
 
@@ -143,12 +143,12 @@ git checkout main && git merge dev --no-edit && git push origin main && git chec
 
 | Table | Filter | DnD |
 |---|---|---|
-| Waitlisted — Deposit | `stage` in `['waitlisted','match_requested','matched']` AND `depositStatus` in `['pending','paid']` | ✓ |
-| Waitlisted — No Deposit | `stage` in `['waitlisted','match_requested','matched']` AND `depositStatus` in `['none', null]` | ✓ |
+| Waitlisted — Deposit | `stage` in `['waitlisted','puppy_reserved','puppy_booked']` AND `depositStatus` in `['pending','paid']` | ✓ |
+| Waitlisted — No Deposit | `stage` in `['waitlisted','puppy_reserved','puppy_booked']` AND `depositStatus` in `['none', null]` | ✓ |
 | Not Yet Waitlisted | `stage` in `['enquired','approved','rejected']` | ✗ |
-| Completed | `stage='matched_paid'` | ✗ |
+| Completed | `stage='puppy_fully_paid'` | ✗ |
 
-Active queue (`ACTIVE_QUEUE_STAGES`) = `['waitlisted', 'match_requested', 'matched']` — clients stay in the DnD queue until `matched_paid`. Stages `match_requested`, `matched`, `matched_paid` managed in litter/matching flow.
+Active queue (`ACTIVE_QUEUE_STAGES`) = `['waitlisted', 'puppy_reserved', 'puppy_booked']` — clients stay in the DnD queue until `puppy_fully_paid`. Booking is fully automatic (no admin approval needed). Admins can only move a reserved/booked puppy back to available.
 
 ## Auth Model
 

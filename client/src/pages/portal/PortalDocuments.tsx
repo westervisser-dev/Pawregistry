@@ -4,7 +4,7 @@ import { LoadingPage, Card } from '@/components/ui';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Client, DocumentTemplateWithChecklist } from '@paw-registry/shared';
 
-const PAST_REVIEW_STAGES = new Set(['waitlisted', 'placed', 'match_requested', 'matched', 'matched_paid']);
+const PAST_REVIEW_STAGES = new Set(['waitlisted', 'placed', 'puppy_reserved', 'puppy_booked', 'puppy_fully_paid']);
 const POPUP_SHOWN_KEY = 'docs_complete_popup_shown';
 
 function DocsCompletePopup({ onClose }: { onClose: () => void }) {
