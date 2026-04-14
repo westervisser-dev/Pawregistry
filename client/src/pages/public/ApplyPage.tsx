@@ -383,6 +383,11 @@ export function ApplyPage() {
 			return;
 		}
 		if (applyData?.authorizationUrl) {
+			// Replace current history entry so closing/cancelling Paystack
+			// lands on the success page instead of the blank apply form
+			const ref = (applyData as Record<string, unknown>).reference as string | undefined;
+			const successPath = ref ? `/apply/success?ref=${ref}` : '/apply/success';
+			window.history.replaceState(null, '', successPath);
 			// Redirect to Paystack checkout
 			window.location.href = applyData.authorizationUrl as string;
 		} else if (applyData?.id) {
