@@ -168,6 +168,7 @@ export function PortalPayments() {
 	// Suppress the manual pay-now section if there is already a pending deposit record
 	// (shown in ACTION REQUIRED above) or if we just returned from Paystack (race condition).
 	const hasPendingDeposit = pending.some((p) => p.type === 'deposit');
+	const hasPendingBooking = pending.some((p) => p.type === 'booking');
 	const depositNotPaid = !successRef && !hasPendingDeposit && client?.depositStatus !== 'paid';
 
 	return (
@@ -246,7 +247,7 @@ export function PortalPayments() {
 			)}
 
 			{/* ── Upgrade from R500 → R5000 ── */}
-			{!depositNotPaid && client?.depositTier === 'r500' && (
+			{!depositNotPaid && client?.depositTier === 'r500' && !hasPendingBooking && (
 				<section className="mb-8">
 					<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Upgrade</h2>
 					<DepositUpgradeCard currentTier="r500" onPay={handlePay} />

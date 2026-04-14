@@ -149,23 +149,25 @@ function ClientActionCenter({
 		const isPaidR500 = client.depositStatus === 'paid' && client.depositTier === 'r500';
 		const isPaidR5000 = client.depositStatus === 'paid' && client.depositTier === 'r5000';
 		const hasUndismissedNotification = pendingNotifications.some((n) => !dismissed.has(n.litterId));
-		if (!isPaidR5000) {
-			actions.push({
-				type: 'dismissible-link',
-				label: isPaidR500
-					? 'Increase your deposit payment to increase your waitlist order'
-					: 'Add a deposit payment to increase your waitlist order',
-				to: '/portal/payments',
-				color: 'amber',
-				dismissKey: isPaidR500 ? 'deposit-upgrade' : 'deposit-add',
-			});
-		}
-		if (!hasUndismissedNotification) {
-			actions.push({
-				type: 'status',
-				label: 'You\'re on the waitlist — we\'ll notify you when a litter becomes available',
-				color: 'blue',
-			});
+		if (!pendingBookingPayment) {
+			if (!isPaidR5000) {
+				actions.push({
+					type: 'dismissible-link',
+					label: isPaidR500
+						? 'Increase your deposit payment to increase your waitlist order'
+						: 'Add a deposit payment to increase your waitlist order',
+					to: '/portal/payments',
+					color: 'amber',
+					dismissKey: isPaidR500 ? 'deposit-upgrade' : 'deposit-add',
+				});
+			}
+			if (!hasUndismissedNotification) {
+				actions.push({
+					type: 'status',
+					label: 'You\'re on the waitlist — we\'ll notify you when a litter becomes available',
+					color: 'blue',
+				});
+			}
 		}
 	}
 

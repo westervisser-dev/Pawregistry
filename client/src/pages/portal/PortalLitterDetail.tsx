@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { api } from '@/lib/api';
@@ -135,22 +135,48 @@ function Lightbox({ urls, index, onClose, onPrev, onNext }: {
 	);
 }
 
-// ─── Toast ───────────────────────────────────────────────────────────────────
+// ─── Confirmation Modal ───────────────────────────────────────────────────────
 
-function Toast({ children, onDismiss }: { children: React.ReactNode; onDismiss: () => void }) {
+function ConfirmationModal({ title, children, onClose, requiresPayment }: {
+	title: string;
+	children: React.ReactNode;
+	onClose: () => void;
+	requiresPayment: boolean;
+}) {
 	useEffect(() => {
-		const t = setTimeout(onDismiss, 9000);
-		return () => clearTimeout(t);
-	}, [onDismiss]);
+		const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	}, [onClose]);
 
 	return (
 		<div
-			role="status"
-			className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)] bg-warm-900 text-white text-sm rounded-2xl shadow-2xl px-5 py-4 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300"
+			className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="confirm-modal-title"
 		>
-			<span className="text-lg leading-none flex-shrink-0 mt-0.5">🎉</span>
-			<span className="leading-relaxed flex-1">{children}</span>
-			<button type="button" onClick={onDismiss} className="text-white/50 hover:text-white text-xs flex-shrink-0 mt-0.5" aria-label="Dismiss">✕</button>
+			<div className="bg-white rounded-2xl shadow-2xl max-w-sm w-[calc(100%-2rem)] mx-4 p-6 flex flex-col items-center text-center">
+				<div className="text-4xl mb-4">🎉</div>
+				<h2 id="confirm-modal-title" className="font-serif text-xl font-bold text-warm-900 mb-2">{title}</h2>
+				<div className="text-sm text-warm-600 leading-relaxed mb-5">{children}</div>
+				{requiresPayment && (
+					<Link
+						to="/portal/payments"
+						onClick={onClose}
+						className="w-full mb-3 px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors text-center block"
+					>
+						Pay now →
+					</Link>
+				)}
+				<button
+					type="button"
+					onClick={onClose}
+					className="w-full px-4 py-2.5 bg-warm-100 text-warm-700 rounded-xl text-sm font-medium hover:bg-warm-200 transition-colors"
+				>
+					{requiresPayment ? 'Pay later' : 'Close'}
+				</button>
+			</div>
 		</div>
 	);
 }
@@ -174,8 +200,8 @@ export function PortalLitterDetail() {
 	const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
 	const [clientDepositStatus, setClientDepositStatus] = useState<string | null>(null);
 	const [clientDepositTier, setClientDepositTier] = useState<string | null>(null);
-	const [toast, setToast] = useState<React.ReactNode | null>(null);
-	const dismissToast = useRef(() => setToast(null));
+	const [myInterestStatuses, setMyInterestStatuses] = useState<Map<string, string>>(new Map());
+	const [confirmModal, setConfirmModal] = useState<{ title: string; body: React.ReactNode; requiresPayment: boolean } | null>(null);
 
 	useEffect(() => {
 		if (!id) return;
@@ -192,6 +218,7 @@ export function PortalLitterDetail() {
 		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: { interests: Array<{ puppyId: string; status: string }>; isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null }) => {
 			if (data) {
 				setMyInterestPuppyIds(new Set(data.interests.map((i) => i.puppyId)));
+				setMyInterestStatuses(new Map(data.interests.map((i) => [i.puppyId, i.status])));
 				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo, hasActivePuppyInterest: data.hasActivePuppyInterest ?? false });
 			}
 		}).catch(() => {});
@@ -254,20 +281,26 @@ export function PortalLitterDetail() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const { data, error } = await (api.litters.puppies({ puppyId }) as any).interest.post({});
 		if (!error && data) {
-			setMyInterestPuppyIds((prev) => new Set([...prev, puppyId]));
-			setEligibility((prev) => prev ? { ...prev, hasActivePuppyInterest: true } : prev);
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			if ((data as any).requiresPayment === false) {
-				setToast(
-					<>Your puppy has been booked, since you have already paid the securing deposit. We will reach out soon regarding next steps. Congratulations on your puppy!</>
-				);
+			const requiresPayment = (data as any).requiresPayment !== false;
+			const interestStatus = requiresPayment ? 'pending' : 'approved';
+			setMyInterestPuppyIds((prev) => new Set([...prev, puppyId]));
+			setMyInterestStatuses((prev) => new Map([...prev, [puppyId, interestStatus]]));
+			setEligibility((prev) => prev ? { ...prev, hasActivePuppyInterest: true } : prev);
+			if (!requiresPayment) {
+				setConfirmModal({
+					title: 'Puppy Booked!',
+					body: 'Since you have already paid the securing deposit, your puppy is confirmed. We will reach out soon regarding next steps.',
+					requiresPayment: false,
+				});
 			} else {
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const amountRands = (data as any).amountRands as number;
-				setToast(
-					<>Your puppy has been reserved! Please pay the remaining amount of <strong>R{amountRands.toLocaleString()}</strong> within 24 hours to secure your booking.{' '}
-					<Link to="/portal/payments" className="underline font-medium">Pay now →</Link></>
-				);
+				setConfirmModal({
+					title: 'Puppy Reserved!',
+					body: <>You have <strong>24 hours</strong> to complete payment of <strong>R{amountRands.toLocaleString()}</strong> to secure your booking. Your reservation will expire after that.</>,
+					requiresPayment: true,
+				});
 			}
 		} else {
 			const body = error?.value as { message?: string };
@@ -284,6 +317,10 @@ export function PortalLitterDetail() {
 		if (data) setMyLitterInterest((data as { interested: boolean }).interested);
 		setLitterInterestLoading(false);
 	};
+
+	const myReservedPuppyId = [...myInterestStatuses.entries()].find(([, s]) => s === 'pending')?.[0] ?? null;
+	const myBookedPuppyId = [...myInterestStatuses.entries()].find(([, s]) => s === 'approved')?.[0] ?? null;
+	const myClaimedPuppyId = myBookedPuppyId ?? myReservedPuppyId;
 
 	const isWaitlistedOrLater = !!clientStage && ['waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
 	const isNotified = !!eligibility && eligibility.isNotified;
@@ -384,6 +421,28 @@ export function PortalLitterDetail() {
 						Puppies ({litter.puppies.length})
 					</h2>
 
+					{/* Client's own puppy banner */}
+					{myClaimedPuppyId && (
+						<div className={`mb-4 p-4 rounded-xl border flex items-center gap-3 ${myBookedPuppyId ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+							<span className="text-xl flex-shrink-0">{myBookedPuppyId ? '🎉' : '⏳'}</span>
+							<div>
+								<p className={`text-sm font-semibold ${myBookedPuppyId ? 'text-green-800' : 'text-amber-800'}`}>
+									{myBookedPuppyId ? 'Your puppy is booked in this litter' : 'You have a puppy reserved in this litter'}
+								</p>
+								<p className={`text-xs mt-0.5 ${myBookedPuppyId ? 'text-green-700' : 'text-amber-700'}`}>
+									{myBookedPuppyId
+										? 'Your booking is confirmed — we\'ll be in touch soon with next steps.'
+										: 'Complete your payment within 24 hours to secure this puppy.'}
+								</p>
+							</div>
+							{myReservedPuppyId && !myBookedPuppyId && (
+								<Link to="/portal/payments" className="ml-auto flex-shrink-0 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors">
+									Pay now →
+								</Link>
+							)}
+						</div>
+					)}
+
 					{/* Waitlist eligibility notice */}
 					{user && eligibility && !eligibility.isNotified && eligibility.position !== null && (
 						<div className="mb-4 p-4 rounded-xl border border-amber-200 bg-amber-50">
@@ -404,8 +463,17 @@ export function PortalLitterDetail() {
 							const imgs = (puppy as PuppyWithImages).images ?? [];
 							const imgIdx = puppyImgIndexes[puppy.id] ?? 0;
 
+							const isMyPuppy = puppy.id === myClaimedPuppyId;
+							const isMyBooked = puppy.id === myBookedPuppyId;
+							const isMyReserved = puppy.id === myReservedPuppyId;
+
 							return (
-							<div key={puppy.id} className="bg-white rounded-xl border border-warm-200 overflow-hidden flex flex-col">
+							<div key={puppy.id} className={`rounded-xl border overflow-hidden flex flex-col relative ${isMyBooked ? 'bg-green-50 border-green-300 ring-2 ring-green-300' : isMyReserved ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-300' : 'bg-white border-warm-200'}`}>
+							{isMyPuppy && (
+								<div className={`absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shadow ${isMyBooked ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
+									{isMyBooked ? '✓ Your booking' : '⏳ Your reservation'}
+								</div>
+							)}
 								{/* Puppy image carousel */}
 								{imgs.length > 0 && (
 									<div className="relative w-full aspect-square overflow-hidden bg-warm-100 flex-shrink-0">
@@ -474,7 +542,9 @@ export function PortalLitterDetail() {
 									{puppy.status === 'available' && user && clientStage && (
 										<div className="mt-auto">
 											{myInterestPuppyIds.has(puppy.id) ? (
-												<span className="text-xs text-green-600 font-medium">Interest registered ✓</span>
+												<span className={`text-xs font-medium ${isMyBooked ? 'text-green-600' : isMyReserved ? 'text-amber-700' : 'text-green-600'}`}>
+													{isMyBooked ? 'Booked ✓' : isMyReserved ? 'Reserved — payment pending' : 'Interest registered ✓'}
+												</span>
 											) : interestMessage[puppy.id] ? (
 												<span className="text-xs text-warm-500">{interestMessage[puppy.id]}</span>
 											) : !isWaitlistedOrLater ? (
@@ -558,8 +628,16 @@ export function PortalLitterDetail() {
 				</div>
 			)}
 
-			{/* Toast */}
-			{!!toast && <Toast onDismiss={dismissToast.current}>{toast}</Toast>}
+			{/* Confirmation modal */}
+			{!!confirmModal && (
+				<ConfirmationModal
+					title={confirmModal.title}
+					requiresPayment={confirmModal.requiresPayment}
+					onClose={() => setConfirmModal(null)}
+				>
+					{confirmModal.body}
+				</ConfirmationModal>
+			)}
 
 			{/* Lightbox */}
 			{lightbox && (
