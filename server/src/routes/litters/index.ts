@@ -729,7 +729,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			where: eq(litterNotifications.litterId, params.litterId),
 			with: {
 				client: {
-					columns: { id: true, firstName: true, lastName: true, email: true, city: true, priority: true, depositStatus: true },
+					columns: { id: true, firstName: true, lastName: true, email: true, city: true, priority: true, depositStatus: true, stage: true },
 				},
 			},
 			orderBy: [asc(litterNotifications.notifiedAt)],

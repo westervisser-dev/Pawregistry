@@ -75,7 +75,7 @@ export function AdminLitterDetail() {
 	const [approvingInterestId, setApprovingInterestId] = useState<string | null>(null);
 	const [notifications, setNotifications] = useState<Array<{
 		id: string; litterId: string; clientId: string; notifiedAt: string; createdAt: string;
-		client: { id: string; firstName: string; lastName: string; email: string; city: string | null; priority: number; depositStatus: string };
+		client: { id: string; firstName: string; lastName: string; email: string; city: string | null; priority: number; depositStatus: string; stage: string };
 	}>>([]);
 	const [notifyOpen, setNotifyOpen] = useState(false);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -408,10 +408,19 @@ export function AdminLitterDetail() {
 	};
 
 	const notifiedMap = Object.fromEntries(notifications.map((n) => [n.clientId, n.notifiedAt]));
+	// Clients in an active booking process (reserved awaiting payment, or booked/matched)
+	const bookingInProgressStages = new Set(['match_requested', 'matched']);
+	const isInProgress = (stage: string) => bookingInProgressStages.has(stage);
+	// Notified clients who have since moved into a booking process
+	const notifiedInProgressMap = Object.fromEntries(
+		notifications
+			.filter((n) => isInProgress(n.client.stage))
+			.map((n) => [n.clientId, n.client.stage]),
+	);
 
-	// Litter-interested clients filtered to waitlisted stage only
-	const interestedWaitlisted = clientLitterInterests.filter((li) => li.client.stage === 'waitlisted');
-	const interestedClientIdSet = new Set(interestedWaitlisted.map((li) => li.clientId));
+	// All litter-interested clients (show all, mark in-progress ones as blocked)
+	const litterInterested = clientLitterInterests;
+	const interestedClientIdSet = new Set(litterInterested.map((li) => li.clientId));
 	// Map of clientId -> MatchingClient for score/reasons carry-over
 	const matchingClientMap = Object.fromEntries(matchingClients.map((mc) => [mc.id, mc]));
 	// Exclude interested clients from litter-matched section to avoid duplication
@@ -448,7 +457,7 @@ export function AdminLitterDetail() {
 	const selectAllWaitlist = () => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
-			dedupedMatchingClients.filter((mc) => !notifiedMap[mc.id]).forEach((mc) => next.add(mc.id));
+			dedupedMatchingClients.filter((mc) => !notifiedMap[mc.id] && !notifiedInProgressMap[mc.id]).forEach((mc) => next.add(mc.id));
 			return next;
 		});
 	};
@@ -456,7 +465,7 @@ export function AdminLitterDetail() {
 	const selectAllPlatform = () => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
-			dedupedMasterListClients.filter((c) => !notifiedMap[c.id]).forEach((c) => next.add(c.id));
+			dedupedMasterListClients.filter((c) => !notifiedMap[c.id] && !notifiedInProgressMap[c.id]).forEach((c) => next.add(c.id));
 			return next;
 		});
 	};
@@ -464,7 +473,7 @@ export function AdminLitterDetail() {
 	const selectAllInterested = () => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
-			interestedWaitlisted.filter((li) => !notifiedMap[li.clientId]).forEach((li) => next.add(li.clientId));
+			litterInterested.filter((li) => !notifiedMap[li.clientId] && !isInProgress(li.client.stage)).forEach((li) => next.add(li.clientId));
 			return next;
 		});
 	};
@@ -1232,8 +1241,8 @@ export function AdminLitterDetail() {
 			<Card className="p-6 mb-6">
 				<div className="flex items-center justify-between mb-3">
 					<h3 className="text-base font-bold text-warm-900">Potential Clients</h3>
-					{(interestedWaitlisted.length > 0 || matchingClients.length > 0 || masterListClients.length > 0) && (
-						<span className="text-xs font-medium text-warm-500">{interestedWaitlisted.length + dedupedMatchingClients.length + dedupedMasterListClients.length} match{interestedWaitlisted.length + dedupedMatchingClients.length + dedupedMasterListClients.length !== 1 ? 'es' : ''}</span>
+					{(litterInterested.length > 0 || matchingClients.length > 0 || masterListClients.length > 0) && (
+						<span className="text-xs font-medium text-warm-500">{litterInterested.length + dedupedMatchingClients.length + dedupedMasterListClients.length} match{litterInterested.length + dedupedMatchingClients.length + dedupedMasterListClients.length !== 1 ? 'es' : ''}</span>
 					)}
 				</div>
 
@@ -1287,26 +1296,26 @@ export function AdminLitterDetail() {
 
 				{matchingLoading ? (
 					<p className="text-sm text-warm-400">Loading matches…</p>
-				) : interestedWaitlisted.length === 0 && !litter.breed ? (
+				) : litterInterested.length === 0 && !litter.breed ? (
 					<p className="text-sm text-warm-400">Set a breed on this litter to see matching clients.</p>
 				) : (
 					<div>
-						{interestedWaitlisted.length === 0 && dedupedMatchingClients.length === 0 && (
+						{litterInterested.length === 0 && dedupedMatchingClients.length === 0 && (
 							<p className="text-sm text-warm-400 mb-4">No clients have indicated interest or matched preferences for this litter.</p>
 						)}
 						{/* Litter Interested */}
-						{interestedWaitlisted.length > 0 && (
+						{litterInterested.length > 0 && (
 							<>
 								<div className="flex items-center gap-3 mb-3">
 									<span className="text-xs font-semibold uppercase tracking-wider text-warm-600 flex-shrink-0">Litter Interested</span>
 									<div className="h-px flex-1 bg-warm-300" />
 									{notifyOpen && (
 										<div className="flex items-center gap-2">
-											{interestedWaitlisted.some((li) => selectedIds.has(li.clientId)) && (
+											{litterInterested.some((li) => selectedIds.has(li.clientId)) && (
 												<button
 													onClick={() => setSelectedIds((prev) => {
 														const next = new Set(prev);
-														interestedWaitlisted.forEach((li) => next.delete(li.clientId));
+														litterInterested.forEach((li) => next.delete(li.clientId));
 														return next;
 													})}
 													className="text-[11px] text-warm-400 font-medium hover:text-warm-600"
@@ -1321,22 +1330,24 @@ export function AdminLitterDetail() {
 									)}
 								</div>
 								<div className="space-y-2 mb-4">
-									{interestedWaitlisted.map((li) => {
+									{litterInterested.map((li) => {
 										const mc = matchingClientMap[li.clientId];
 										const notifAt = notifiedMap[li.clientId];
 										const isNotified = !!notifAt;
 										const isSelected = selectedIds.has(li.clientId);
+										const clientInProgress = isInProgress(li.client.stage);
+										const isBlocked = clientInProgress || (isNotified && !!notifiedInProgressMap[li.clientId]);
 
 										const cardInner = (
 											<div className="flex items-start gap-3">
 												{notifyOpen && (
 													<div className="flex-shrink-0 pt-0.5">
 														<div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-															isNotified ? 'bg-warm-100 border-warm-200' :
+															isBlocked || isNotified ? 'bg-warm-100 border-warm-200' :
 															isSelected ? 'bg-brand-500 border-brand-500' :
 															'border-warm-300 bg-white'
 														}`}>
-															{isSelected && (
+															{isSelected && !isBlocked && (
 																<svg width="9" height="7" viewBox="0 0 9 7" fill="none">
 																	<path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 																</svg>
@@ -1355,6 +1366,9 @@ export function AdminLitterDetail() {
 													<div className="flex items-center gap-1.5 flex-wrap">
 														<span className="font-medium text-sm text-warm-900">{li.client.firstName} {li.client.lastName}</span>
 														<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">Interested</span>
+														{clientInProgress && (
+															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700">Booking in progress</span>
+														)}
 														{li.client.depositStatus === 'paid' ? (
 															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Deposit · Paid</span>
 														) : li.client.depositStatus === 'pending' ? (
@@ -1362,11 +1376,12 @@ export function AdminLitterDetail() {
 														) : (
 															<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500">No Deposit</span>
 														)}
-														{notifAt && <NotifyTimer since={notifAt} />}
-														{isNotified && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
+														{notifAt && !clientInProgress && <NotifyTimer since={notifAt} />}
+														{isNotified && !clientInProgress && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
 													</div>
 													{li.client.city && <p className="text-[11px] text-warm-400 mt-0.5">{li.client.city}</p>}
-													{isNotified && <p className="text-[11px] text-warm-400 italic mt-1">Already notified — awaiting response</p>}
+													{clientInProgress && <p className="text-[11px] text-orange-500 italic mt-1">Already in a booking process — cannot be notified about another litter</p>}
+													{!clientInProgress && isNotified && <p className="text-[11px] text-warm-400 italic mt-1">Already notified — awaiting response</p>}
 													{mc && mc.matchReasons.filter((r) => !r.startsWith('Deposit')).length > 0 && (
 														<div className="flex flex-wrap gap-1 mt-1.5">
 															{mc.matchReasons.filter((r) => !r.startsWith('Deposit')).slice(0, 3).map((reason) => (
@@ -1396,6 +1411,7 @@ export function AdminLitterDetail() {
 										);
 
 										const cardClass = `block p-3.5 rounded-lg border transition-all ${
+											clientInProgress ? 'opacity-60 cursor-default border-orange-200 bg-orange-50/30' :
 											isNotified && notifyOpen ? 'opacity-50 cursor-default border-warm-200' :
 											notifyOpen ? `cursor-pointer ${isSelected ? 'border-brand-400 bg-brand-50/50' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}` :
 											notifAt ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' :
@@ -1404,7 +1420,7 @@ export function AdminLitterDetail() {
 
 										if (notifyOpen) {
 											return (
-												<div key={li.clientId} className={cardClass} onClick={() => { if (!isNotified) toggleSelection(li.clientId); }}>
+												<div key={li.clientId} className={cardClass} onClick={() => { if (!isNotified && !clientInProgress) toggleSelection(li.clientId); }}>
 													{cardInner}
 												</div>
 											);
@@ -1450,17 +1466,19 @@ export function AdminLitterDetail() {
 								const notifAt = notifiedMap[mc.id];
 								const isNotified = !!notifAt;
 								const isSelected = selectedIds.has(mc.id);
+								const notifiedInProgress = !!notifiedInProgressMap[mc.id];
+								const isBlocked = notifiedInProgress;
 
 								const cardInner = (
 									<div className="flex items-start gap-3">
 										{notifyOpen && (
 											<div className="flex-shrink-0 pt-0.5">
 												<div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-													isNotified ? 'bg-warm-100 border-warm-200' :
+													isBlocked || isNotified ? 'bg-warm-100 border-warm-200' :
 													isSelected ? 'bg-brand-500 border-brand-500' :
 													'border-warm-300 bg-white'
 												}`}>
-													{isSelected && (
+													{isSelected && !isBlocked && (
 														<svg width="9" height="7" viewBox="0 0 9 7" fill="none">
 															<path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 														</svg>
@@ -1476,6 +1494,9 @@ export function AdminLitterDetail() {
 										<div className="min-w-0 flex-1">
 											<div className="flex items-center gap-1.5 flex-wrap">
 												<span className="font-medium text-sm text-warm-900">{mc.firstName} {mc.lastName}</span>
+												{notifiedInProgress && (
+													<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700">Booking in progress</span>
+												)}
 												{mc.depositStatus === 'paid' ? (
 													<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Deposit · Paid</span>
 												) : mc.depositStatus === 'pending' ? (
@@ -1483,11 +1504,12 @@ export function AdminLitterDetail() {
 												) : (
 													<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500">No Deposit</span>
 												)}
-												{notifAt && <NotifyTimer since={notifAt} />}
-												{isNotified && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
+												{notifAt && !notifiedInProgress && <NotifyTimer since={notifAt} />}
+												{isNotified && !notifiedInProgress && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
 											</div>
 											{mc.city && <p className="text-[11px] text-warm-400 mt-0.5">{mc.city}</p>}
-											{isNotified && <p className="text-[11px] text-warm-400 italic mt-1">Already notified — awaiting response</p>}
+											{notifiedInProgress && <p className="text-[11px] text-orange-500 italic mt-1">Already in a booking process — cannot be notified about another litter</p>}
+											{!notifiedInProgress && isNotified && <p className="text-[11px] text-warm-400 italic mt-1">Already notified — awaiting response</p>}
 											{mc.matchReasons.length > 0 && (
 												<div className="flex flex-wrap gap-1 mt-1.5">
 													{mc.matchReasons.filter((r) => !r.startsWith('Deposit')).slice(0, 3).map((reason) => (
@@ -1515,6 +1537,7 @@ export function AdminLitterDetail() {
 								);
 
 								const cardClass = `block p-3.5 rounded-lg border transition-all ${
+									notifiedInProgress ? 'opacity-60 cursor-default border-orange-200 bg-orange-50/30' :
 									isNotified && notifyOpen ? 'opacity-50 cursor-default border-warm-200' :
 									notifyOpen ? `cursor-pointer ${isSelected ? 'border-brand-400 bg-brand-50/50' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}` :
 									notifAt ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' :
@@ -1523,7 +1546,7 @@ export function AdminLitterDetail() {
 
 								if (notifyOpen) {
 									return (
-										<div key={mc.id} className={cardClass} onClick={() => { if (!isNotified) toggleSelection(mc.id); }}>
+										<div key={mc.id} className={cardClass} onClick={() => { if (!isNotified && !isBlocked) toggleSelection(mc.id); }}>
 											{cardInner}
 										</div>
 									);
@@ -1572,17 +1595,19 @@ export function AdminLitterDetail() {
 											const notifAt = notifiedMap[c.id];
 											const isNotified = !!notifAt;
 											const isSelected = selectedIds.has(c.id);
+											const notifiedInProgress = !!notifiedInProgressMap[c.id];
+											const isBlocked = notifiedInProgress;
 
 											const cardInner = (
 												<div className="flex items-start gap-3">
 													{notifyOpen && (
 														<div className="flex-shrink-0 pt-0.5">
 															<div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
-																isNotified ? 'bg-warm-100 border-warm-200' :
+																isBlocked || isNotified ? 'bg-warm-100 border-warm-200' :
 																isSelected ? 'bg-brand-500 border-brand-500' :
 																'border-warm-300 bg-white'
 															}`}>
-																{isSelected && (
+																{isSelected && !isBlocked && (
 																	<svg width="9" height="7" viewBox="0 0 9 7" fill="none">
 																		<path d="M1 3L3.5 5.5L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
 																	</svg>
@@ -1598,6 +1623,9 @@ export function AdminLitterDetail() {
 													<div className="min-w-0 flex-1">
 														<div className="flex items-center gap-1.5 flex-wrap">
 															<span className="font-medium text-sm text-warm-900">{c.firstName} {c.lastName}</span>
+															{notifiedInProgress && (
+																<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-orange-100 text-orange-700">Booking in progress</span>
+															)}
 															{c.depositStatus === 'paid' ? (
 																<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">Deposit · Paid</span>
 															) : c.depositStatus === 'pending' ? (
@@ -1605,15 +1633,17 @@ export function AdminLitterDetail() {
 															) : (
 																<span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500">No Deposit</span>
 															)}
-															{notifAt && <NotifyTimer since={notifAt} />}
-															{isNotified && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
+															{notifAt && !notifiedInProgress && <NotifyTimer since={notifAt} />}
+															{isNotified && !notifiedInProgress && <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600">Notified</span>}
 														</div>
-														{isNotified && <p className="text-[11px] text-warm-400 italic mt-1">Already notified — awaiting response</p>}
+														{notifiedInProgress && <p className="text-[11px] text-orange-500 italic mt-1">Already in a booking process — cannot be notified about another litter</p>}
+														{!notifiedInProgress && isNotified && <p className="text-[11px] text-warm-400 italic mt-1">Already notified — awaiting response</p>}
 													</div>
 												</div>
 											);
 
 											const cardClass = `block p-3.5 rounded-lg border transition-all ${
+												notifiedInProgress ? 'opacity-60 cursor-default border-orange-200 bg-orange-50/30' :
 												isNotified && notifyOpen ? 'opacity-50 cursor-default border-warm-200' :
 												notifyOpen ? `cursor-pointer ${isSelected ? 'border-brand-400 bg-brand-50/50' : 'border-warm-200 hover:border-brand-300 hover:bg-brand-50/30'}` :
 												notifAt ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' :
@@ -1622,7 +1652,7 @@ export function AdminLitterDetail() {
 
 											if (notifyOpen) {
 												return (
-													<div key={c.id} className={cardClass} onClick={() => { if (!isNotified) toggleSelection(c.id); }}>
+													<div key={c.id} className={cardClass} onClick={() => { if (!isNotified && !isBlocked) toggleSelection(c.id); }}>
 														{cardInner}
 													</div>
 												);
