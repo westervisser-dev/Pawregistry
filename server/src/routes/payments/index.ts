@@ -141,34 +141,69 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 
 	if (payment.type === 'final') {
 		const puppyId = meta.puppyId as string | undefined;
+		const totalPriceRands = (meta.totalPriceRands as number) ?? 0;
 
-		await db.update(clients)
-			.set({ stage: 'puppy_fully_paid', updatedAt: new Date() })
-			.where(eq(clients.id, payment.clientId));
+		// Check if ALL payments sum up to the total price
+		const paidResult = await db
+			.select({ total: sum(payments.amountRands) })
+			.from(payments)
+			.where(and(eq(payments.clientId, payment.clientId), eq(payments.status, 'complete')));
+		const totalPaid = Number(paidResult[0]?.total ?? 0);
+		const fullyPaid = totalPriceRands > 0 && totalPaid >= totalPriceRands;
 
-		if (puppyId) {
-			await db.update(puppies)
-				.set({ status: 'puppy_fully_paid', updatedAt: new Date() })
-				.where(eq(puppies.id, puppyId));
+		if (fullyPaid) {
+			await db.update(clients)
+				.set({ stage: 'puppy_fully_paid', updatedAt: new Date() })
+				.where(eq(clients.id, payment.clientId));
+
+			if (puppyId) {
+				await db.update(puppies)
+					.set({ status: 'puppy_fully_paid', updatedAt: new Date() })
+					.where(eq(puppies.id, puppyId));
+			}
+
+			logActivity(
+				payment.clientId,
+				'final_payment_received',
+				`Final payment of R${payment.amountRands.toLocaleString()} received. Client is ready to collect.`,
+				'system',
+				{ paymentId, puppyId, amountRands: payment.amountRands, totalPaid },
+			);
+
+			await sendClientEmailWithVars(payment.clientId, 'payment_confirmed', {
+				amount: `R${payment.amountRands.toLocaleString()}`,
+				payment_type: 'final',
+			});
+
+			await sendAdminNotification(
+				`Final payment received — ${payment.client.firstName} ${payment.client.lastName}`,
+				`${payment.client.firstName} ${payment.client.lastName} has made their final payment of R${payment.amountRands.toLocaleString()}.\n\nThey are ready to collect their puppy!\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
+			);
+		} else {
+			// Partial / instalment payment — do NOT transition to fully paid yet
+			const isInstalment = !!meta.isInstalment;
+			const instalmentLabel = isInstalment
+				? `Instalment ${Number(meta.instalmentIndex) + 1} of ${meta.instalmentTotal}`
+				: 'Partial final payment';
+
+			logActivity(
+				payment.clientId,
+				'instalment_payment_received',
+				`${instalmentLabel} of R${payment.amountRands.toLocaleString()} received. Total paid so far: R${totalPaid.toLocaleString()}.`,
+				'system',
+				{ paymentId, puppyId, amountRands: payment.amountRands, totalPaid, instalmentIndex: meta.instalmentIndex, instalmentTotal: meta.instalmentTotal },
+			);
+
+			await sendClientEmailWithVars(payment.clientId, 'payment_confirmed', {
+				amount: `R${payment.amountRands.toLocaleString()}`,
+				payment_type: 'instalment',
+			});
+
+			await sendAdminNotification(
+				`${instalmentLabel} received — ${payment.client.firstName} ${payment.client.lastName}`,
+				`${payment.client.firstName} ${payment.client.lastName} has paid R${payment.amountRands.toLocaleString()} (${instalmentLabel}).\n\nTotal paid: R${totalPaid.toLocaleString()} of R${totalPriceRands.toLocaleString()}.\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
+			);
 		}
-
-		logActivity(
-			payment.clientId,
-			'final_payment_received',
-			`Final payment of R${payment.amountRands.toLocaleString()} received. Client is ready to collect.`,
-			'system',
-			{ paymentId, puppyId, amountRands: payment.amountRands },
-		);
-
-		await sendClientEmailWithVars(payment.clientId, 'payment_confirmed', {
-			amount: `R${payment.amountRands.toLocaleString()}`,
-			payment_type: 'final',
-		});
-
-		await sendAdminNotification(
-			`Final payment received — ${payment.client.firstName} ${payment.client.lastName}`,
-			`${payment.client.firstName} ${payment.client.lastName} has made their final payment of R${payment.amountRands.toLocaleString()}.\n\nThey are ready to collect their puppy!\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
-		);
 	}
 }
 
@@ -392,6 +427,60 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 		{ params: t.Object({ id: t.String() }) },
 	)
 
+	// ── Admin: payment summary for a client ──────────────────────────────────
+	.get(
+		'/summary/:clientId',
+		async ({ params, error }) => {
+			const client = await db.query.clients.findFirst({
+				where: eq(clients.id, params.clientId),
+			});
+			if (!client) return error(404, { error: 'NotFound', message: 'Client not found' });
+
+			let puppyPriceRands: number | null = null;
+			let shippingRands: number | null = null;
+
+			if (client.puppyId) {
+				const puppy = await db.query.puppies.findFirst({
+					where: eq(puppies.id, client.puppyId),
+					with: { litter: { columns: { shippingRands: true } } },
+				});
+				if (puppy) {
+					puppyPriceRands = puppy.priceRands;
+					shippingRands = puppy.litter?.shippingRands ?? null;
+				}
+			}
+
+			const totalPriceRands = puppyPriceRands != null
+				? puppyPriceRands + (shippingRands ?? 0)
+				: null;
+
+			const paidResult = await db
+				.select({ total: sum(payments.amountRands) })
+				.from(payments)
+				.where(and(eq(payments.clientId, client.id), eq(payments.status, 'complete')));
+			const alreadyPaid = Number(paidResult[0]?.total ?? 0);
+
+			const balanceDue = totalPriceRands != null
+				? Math.max(0, totalPriceRands - alreadyPaid)
+				: null;
+
+			const clientPayments = await db.query.payments.findMany({
+				where: eq(payments.clientId, client.id),
+				orderBy: [desc(payments.createdAt)],
+			});
+
+			return {
+				puppyPriceRands,
+				shippingRands,
+				totalPriceRands,
+				alreadyPaid,
+				balanceDue,
+				payments: clientPayments,
+			};
+		},
+		{ params: t.Object({ clientId: t.String() }) },
+	)
+
 	// ── Admin: trigger final payment ──────────────────────────────────────────
 	.post(
 		'/final/:clientId',
@@ -404,6 +493,19 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				return error(400, { error: 'NoPuppy', message: 'Client has no matched puppy' });
 			}
 
+			// Auto-calculate totalPriceRands if not provided
+			let totalPriceRands = body.totalPriceRands;
+			if (totalPriceRands == null) {
+				const puppy = await db.query.puppies.findFirst({
+					where: eq(puppies.id, client.puppyId),
+					with: { litter: { columns: { shippingRands: true } } },
+				});
+				if (!puppy?.priceRands) {
+					return error(400, { error: 'NoPrice', message: 'Puppy has no price set. Set the price on the litter page or provide totalPriceRands.' });
+				}
+				totalPriceRands = puppy.priceRands + (puppy.litter?.shippingRands ?? 0);
+			}
+
 			// Calculate total already paid
 			const paidResult = await db
 				.select({ total: sum(payments.amountRands) })
@@ -411,7 +513,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				.where(and(eq(payments.clientId, client.id), eq(payments.status, 'complete')));
 
 			const alreadyPaid = Number(paidResult[0]?.total ?? 0);
-			const finalDue = Math.max(0, body.totalPriceRands - alreadyPaid);
+			const finalDue = Math.max(0, totalPriceRands - alreadyPaid);
 
 			if (finalDue <= 0) {
 				return error(400, { error: 'AlreadyPaid', message: 'Client has already paid the full amount' });
@@ -427,9 +529,9 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				));
 
 			const reference = generateReference('fin');
-			const puppy = await db.query.puppies.findFirst({ where: eq(puppies.id, client.puppyId) });
-			const puppyName = puppy
-				? `${puppy.collarColour} collar (${puppy.sex})`
+			const puppyRecord = await db.query.puppies.findFirst({ where: eq(puppies.id, client.puppyId) });
+			const puppyName = puppyRecord
+				? `${puppyRecord.collarColour} collar (${puppyRecord.sex})`
 				: 'your puppy';
 
 			const { authorizationUrl } = await initializeTransaction({
@@ -440,7 +542,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				metadata: {
 					clientId: client.id,
 					puppyId: client.puppyId,
-					totalPriceRands: body.totalPriceRands,
+					totalPriceRands,
 					alreadyPaid,
 					finalDue,
 				},
@@ -456,7 +558,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				metadata: {
 					puppyId: client.puppyId,
 					puppyName,
-					totalPriceRands: body.totalPriceRands,
+					totalPriceRands,
 					alreadyPaid,
 				},
 			}).returning();
@@ -464,7 +566,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			// Notify client
 			await sendClientEmailWithVars(client.id, 'final_payment_requested', {
 				amount: `R${finalDue.toLocaleString()}`,
-				total_price: `R${body.totalPriceRands.toLocaleString()}`,
+				total_price: `R${totalPriceRands.toLocaleString()}`,
 				already_paid: `R${alreadyPaid.toLocaleString()}`,
 				puppy_name: puppyName,
 				payment_url: authorizationUrl,
@@ -473,13 +575,141 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 
 			await sendAdminNotification(
 				`Final payment requested — ${client.firstName} ${client.lastName}`,
-				`Final payment of R${finalDue.toLocaleString()} has been requested from ${client.firstName} ${client.lastName}.\n\nTotal price: R${body.totalPriceRands.toLocaleString()} | Already paid: R${alreadyPaid.toLocaleString()}`,
+				`Final payment of R${finalDue.toLocaleString()} has been requested from ${client.firstName} ${client.lastName}.\n\nTotal price: R${totalPriceRands.toLocaleString()} | Already paid: R${alreadyPaid.toLocaleString()}`,
 			);
 
 			return { paymentId: payment.id, finalDue, authorizationUrl };
 		},
 		{
 			params: t.Object({ clientId: t.String() }),
-			body: t.Object({ totalPriceRands: t.Number() }),
+			body: t.Object({ totalPriceRands: t.Optional(t.Number()) }),
+		},
+	)
+
+	// ── Admin: create instalment plan ─────────────────────────────────────────
+	.post(
+		'/final/:clientId/instalments',
+		async ({ params, body, error }) => {
+			const client = await db.query.clients.findFirst({
+				where: eq(clients.id, params.clientId),
+			});
+			if (!client) return error(404, { error: 'NotFound', message: 'Client not found' });
+			if (!client.puppyId) {
+				return error(400, { error: 'NoPuppy', message: 'Client has no matched puppy' });
+			}
+
+			// Auto-calculate totalPriceRands if not provided
+			let totalPriceRands = body.totalPriceRands;
+			if (totalPriceRands == null) {
+				const puppyRecord = await db.query.puppies.findFirst({
+					where: eq(puppies.id, client.puppyId),
+					with: { litter: { columns: { shippingRands: true } } },
+				});
+				if (!puppyRecord?.priceRands) {
+					return error(400, { error: 'NoPrice', message: 'Puppy has no price set. Set the price on the litter page or provide totalPriceRands.' });
+				}
+				totalPriceRands = puppyRecord.priceRands + (puppyRecord.litter?.shippingRands ?? 0);
+			}
+
+			// Calculate already paid and balance due
+			const paidResult = await db
+				.select({ total: sum(payments.amountRands) })
+				.from(payments)
+				.where(and(eq(payments.clientId, client.id), eq(payments.status, 'complete')));
+			const alreadyPaid = Number(paidResult[0]?.total ?? 0);
+			const balanceDue = Math.max(0, totalPriceRands - alreadyPaid);
+
+			if (balanceDue <= 0) {
+				return error(400, { error: 'AlreadyPaid', message: 'Client has already paid the full amount' });
+			}
+
+			// Validate amounts sum to balance due (R1 tolerance for rounding)
+			const amountsSum = body.amounts.reduce((a, b) => a + b, 0);
+			if (Math.abs(amountsSum - balanceDue) > 1) {
+				return error(400, { error: 'AmountMismatch', message: `Instalment amounts (R${amountsSum.toLocaleString()}) do not match balance due (R${balanceDue.toLocaleString()})` });
+			}
+
+			// Cancel any existing pending final payments
+			await db.update(payments)
+				.set({ status: 'cancelled' })
+				.where(and(
+					eq(payments.clientId, client.id),
+					eq(payments.type, 'final'),
+					eq(payments.status, 'pending'),
+				));
+
+			const puppy = await db.query.puppies.findFirst({ where: eq(puppies.id, client.puppyId) });
+			const puppyName = puppy
+				? `${puppy.collarColour} collar (${puppy.sex})`
+				: 'your puppy';
+
+			const instalmentTotal = body.amounts.length;
+			const createdPayments = [];
+
+			for (let i = 0; i < body.amounts.length; i++) {
+				const amount = body.amounts[i];
+				const reference = generateReference('fin');
+
+				const { authorizationUrl } = await initializeTransaction({
+					email: client.email,
+					amountRands: amount,
+					reference,
+					callbackUrl: `${CLIENT_URL}/portal/payments?ref=${reference}`,
+					metadata: {
+						clientId: client.id,
+						puppyId: client.puppyId,
+						totalPriceRands,
+						alreadyPaid,
+						isInstalment: true,
+						instalmentIndex: i,
+						instalmentTotal,
+					},
+				});
+
+				const [payment] = await db.insert(payments).values({
+					clientId: client.id,
+					type: 'final',
+					amountRands: amount,
+					reference,
+					authorizationUrl,
+					status: 'pending',
+					metadata: {
+						puppyId: client.puppyId,
+						puppyName,
+						totalPriceRands,
+						alreadyPaid,
+						isInstalment: true,
+						instalmentIndex: i,
+						instalmentTotal,
+					},
+				}).returning();
+
+				createdPayments.push(payment);
+			}
+
+			// Notify client with instalment schedule
+			const scheduleLines = body.amounts.map((a, i) => `  ${i + 1}. R${a.toLocaleString()}`).join('\n');
+			await sendClientEmailWithVars(client.id, 'final_payment_requested', {
+				amount: `R${balanceDue.toLocaleString()} (${instalmentTotal} instalments)`,
+				total_price: `R${totalPriceRands.toLocaleString()}`,
+				already_paid: `R${alreadyPaid.toLocaleString()}`,
+				puppy_name: puppyName,
+				payment_url: createdPayments[0].authorizationUrl ?? '',
+				payments_link: `${CLIENT_URL}/portal/payments`,
+			});
+
+			await sendAdminNotification(
+				`Instalment plan created — ${client.firstName} ${client.lastName}`,
+				`${instalmentTotal}-instalment plan created for ${client.firstName} ${client.lastName}.\n\nBalance due: R${balanceDue.toLocaleString()}\n${scheduleLines}\n\nView client: ${CLIENT_URL}/admin/clients/${client.id}`,
+			);
+
+			return { payments: createdPayments, balanceDue, instalmentTotal };
+		},
+		{
+			params: t.Object({ clientId: t.String() }),
+			body: t.Object({
+				totalPriceRands: t.Optional(t.Number()),
+				amounts: t.Array(t.Number(), { minItems: 2, maxItems: 12 }),
+			}),
 		},
 	);

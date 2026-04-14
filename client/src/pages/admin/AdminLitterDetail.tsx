@@ -56,7 +56,7 @@ export function AdminLitterDetail() {
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [formError, setFormError] = useState('');
-	const [newPuppy, setNewPuppy] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
+	const [newPuppy, setNewPuppy] = useState({ collarColour: '', sex: 'male' as const, colour: '', priceRands: '' });
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	const [deleteBlocking, setDeleteBlocking] = useState<string[] | null>(null);
@@ -92,8 +92,8 @@ export function AdminLitterDetail() {
 	const [newPuppyImageFiles, setNewPuppyImageFiles] = useState<File[]>([]);
 
 	// New-litter form state
-	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; selectionDate: string; goHomeDate: string; notes: string; isPublic: boolean }>({
-		name: '', breedKey: '', sizeKey: '', status: 'planned', selectionDate: '', goHomeDate: '', notes: '', isPublic: false,
+	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; selectionDate: string; goHomeDate: string; notes: string; isPublic: boolean; shippingRands: string }>({
+		name: '', breedKey: '', sizeKey: '', status: 'planned', selectionDate: '', goHomeDate: '', notes: '', isPublic: false, shippingRands: '',
 	});
 	const [availableWarning, setAvailableWarning] = useState(false);
 	const [galleryImages, setGalleryImages] = useState<LitterImage[]>([]);
@@ -101,8 +101,8 @@ export function AdminLitterDetail() {
 	const [galleryUploading, setGalleryUploading] = useState(false);
 	const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
 	const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
-	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string; imageFiles?: File[] }>>([]);
-	const [newPuppyDraft, setNewPuppyDraft] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
+	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string; priceRands: string; imageFiles?: File[] }>>([]);
+	const [newPuppyDraft, setNewPuppyDraft] = useState({ collarColour: '', sex: 'male' as const, colour: '', priceRands: '' });
 
 	useEffect(() => {
 		if (!id) return;
@@ -191,6 +191,7 @@ export function AdminLitterDetail() {
 				...(newForm.goHomeDate ? { goHomeDate: newForm.goHomeDate } : {}),
 				...(newForm.notes ? { notes: newForm.notes } : {}),
 				isPublic: newForm.isPublic,
+				...(newForm.shippingRands ? { shippingRands: Number(newForm.shippingRands) } : {}),
 			});
 			if (error) { setFormError('Failed to save. Please try again.'); return; }
 			if (data) {
@@ -210,6 +211,7 @@ export function AdminLitterDetail() {
 						collarColour: puppy.collarColour,
 						sex: puppy.sex,
 						colour: puppy.colour,
+						...(puppy.priceRands ? { priceRands: Number(puppy.priceRands) } : {}),
 					});
 					if (puppyData && puppy.imageFiles && puppy.imageFiles.length > 0) {
 						const created = puppyData as { id: string };
@@ -268,7 +270,12 @@ export function AdminLitterDetail() {
 		if (!id || !newPuppy.collarColour || !newPuppy.colour) return;
 		setAddingPuppy(true);
 		setAddPuppyError('');
-		const { data, error: puppyErr } = await api.litters({ id }).puppies.post(newPuppy);
+		const { data, error: puppyErr } = await api.litters({ id }).puppies.post({
+			collarColour: newPuppy.collarColour,
+			sex: newPuppy.sex,
+			colour: newPuppy.colour,
+			...(newPuppy.priceRands ? { priceRands: Number(newPuppy.priceRands) } : {}),
+		});
 		if (puppyErr || !data) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const msg = (puppyErr as any)?.value?.message;
@@ -293,7 +300,7 @@ export function AdminLitterDetail() {
 					[created.id]: [...(prev[created.id] ?? []), ...uploadedImages],
 				}));
 			}
-			setNewPuppy({ collarColour: '', sex: 'male', colour: '' });
+			setNewPuppy({ collarColour: '', sex: 'male', colour: '', priceRands: '' });
 		}
 		setAddingPuppy(false);
 	};
@@ -582,6 +589,18 @@ export function AdminLitterDetail() {
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							/>
 						</div>
+						<div>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Shipping Cost (R)</label>
+							<input
+								type="number"
+								min="0"
+								step="100"
+								value={newForm.shippingRands}
+								onChange={(e) => setNewForm((f) => ({ ...f, shippingRands: e.target.value }))}
+								placeholder="0"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+						</div>
 						<div className="col-span-2">
 							<label className="block text-xs font-medium text-warm-500 mb-1">Notes</label>
 							<textarea
@@ -662,6 +681,7 @@ export function AdminLitterDetail() {
 												)}
 												<span className="w-3 h-3 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
 												<span className="text-warm-700">{p.colour} {p.sex}</span>
+												{p.priceRands && <span className="text-warm-500 text-xs">R{Number(p.priceRands).toLocaleString()}</span>}
 												<button
 													type="button"
 													onClick={() => setPendingPuppies((list) => list.filter((_, j) => j !== i))}
@@ -719,6 +739,15 @@ export function AdminLitterDetail() {
 										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, colour: e.target.value }))}
 										className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 									/>
+									<input
+										type="number"
+										min="0"
+										step="500"
+										placeholder="Price (R)"
+										value={newPuppyDraft.priceRands}
+										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, priceRands: e.target.value }))}
+										className="w-28 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+									/>
 									<select
 										value={newPuppyDraft.sex}
 										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, sex: e.target.value as 'male' | 'female' }))}
@@ -732,7 +761,7 @@ export function AdminLitterDetail() {
 										onClick={() => {
 											if (!newPuppyDraft.collarColour || !newPuppyDraft.colour) return;
 											setPendingPuppies((p) => [...p, { ...newPuppyDraft, imageFiles: newPuppyDraftImageFiles.length > 0 ? [...newPuppyDraftImageFiles] : undefined }]);
-											setNewPuppyDraft({ collarColour: '', sex: 'male', colour: '' });
+											setNewPuppyDraft({ collarColour: '', sex: 'male', colour: '', priceRands: '' });
 											setNewPuppyDraftImageFiles([]);
 										}}
 										className="px-4 py-2 bg-warm-100 text-warm-700 text-sm rounded-lg hover:bg-warm-200 transition-colors"
@@ -924,7 +953,23 @@ export function AdminLitterDetail() {
 						</div>
 						<div className="flex justify-between">
 							<span className="text-warm-500">Deposit</span>
-							<span>{litter.depositAmount ? `R${litter.depositAmount}` : '—'}</span>
+							<span>{litter.depositAmount ? `R${litter.depositAmount.toLocaleString()}` : '—'}</span>
+						</div>
+						<div className="flex justify-between items-center">
+							<span className="text-warm-500">Shipping</span>
+							<input
+								type="number"
+								min="0"
+								step="100"
+								defaultValue={litter.shippingRands ?? 0}
+								onBlur={async (e) => {
+									if (!id) return;
+									const value = e.target.value ? Number(e.target.value) : 0;
+									await api.litters({ id }).patch({ shippingRands: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+									setLitter((l) => l ? { ...l, shippingRands: value } : l);
+								}}
+								className="w-28 px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-right text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors"
+							/>
 						</div>
 					</div>
 				</Card>
@@ -967,7 +1012,7 @@ export function AdminLitterDetail() {
 					<EmptyState icon="🐶" title="No puppies recorded yet" />
 				) : (
 					<div className="divide-y divide-black/[0.05]">
-						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null; bookingExpiresAt: string | null; client: { id: string; firstName: string; lastName: string } | null }>).map((p) => {
+						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; priceRands: number | null; currentWeight: number | null; bookingExpiresAt: string | null; client: { id: string; firstName: string; lastName: string } | null }>).map((p) => {
 							const pendingInterests = puppyInterests.filter((i) => i.puppyId === p.id && i.status === 'pending');
 							const allInterests = puppyInterests.filter((i) => i.puppyId === p.id);
 							const isExpanded = expandedPuppy === p.id;
@@ -1043,6 +1088,21 @@ export function AdminLitterDetail() {
 											)}
 										</div>
 										<span className="w-4 h-4 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
+										<input
+											type="number"
+											min="0"
+											step="500"
+											defaultValue={p.priceRands ?? ''}
+											placeholder="R"
+											onBlur={async (e) => {
+												const value = e.target.value ? Number(e.target.value) : null;
+												if (value === p.priceRands) return;
+												await api.litters.puppies({ puppyId: p.id }).patch({ priceRands: value } as Parameters<ReturnType<typeof api.litters.puppies>['patch']>[0]);
+												setLitter((l) => l ? { ...l, puppies: l.puppies.map((pp: Record<string, unknown>) => pp.id === p.id ? { ...pp, priceRands: value } : pp) } : l);
+											}}
+											className="w-24 px-2 py-0.5 text-xs border border-warm-200 rounded-md text-warm-600 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors flex-shrink-0"
+											title="Puppy price (R)"
+										/>
 										<span className="text-sm font-medium text-warm-800 flex-1">
 											{p.colour} · {p.sex}
 											{!!p.client && (
@@ -1211,6 +1271,15 @@ export function AdminLitterDetail() {
 									value={newPuppy.colour}
 									onChange={(e) => setNewPuppy((p) => ({ ...p, colour: e.target.value }))}
 									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+								/>
+								<input
+									type="number"
+									min="0"
+									step="500"
+									placeholder="Price (R)"
+									value={newPuppy.priceRands}
+									onChange={(e) => setNewPuppy((p) => ({ ...p, priceRands: e.target.value }))}
+									className="w-28 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 								/>
 								<select
 									value={newPuppy.sex}

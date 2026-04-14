@@ -26,9 +26,11 @@ function timeRemaining(expiresAt: string): string {
 	return `${minutes}m remaining`;
 }
 
-function paymentTypeLabel(type: Payment['type']): string {
-	if (type === 'deposit') return 'Deposit';
-	if (type === 'booking') return 'Booking Deposit';
+function paymentTypeLabel(p: Payment): string {
+	if (p.type === 'deposit') return 'Deposit';
+	if (p.type === 'booking') return 'Booking Deposit';
+	const meta = p.metadata as Record<string, unknown>;
+	if (meta.isInstalment) return `Final Payment (${Number(meta.instalmentIndex) + 1} of ${meta.instalmentTotal})`;
 	return 'Final Payment';
 }
 
@@ -137,7 +139,13 @@ export function PortalPayments() {
 	const [searchParams] = useSearchParams();
 	const [payments, setPayments] = useState<Payment[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [client, setClient] = useState<{ depositStatus: string; depositTier: string | null } | null>(null);
+	const [client, setClient] = useState<{
+		depositStatus: string;
+		depositTier: string | null;
+		stage: string;
+		puppy: { priceRands: number | null; collarColour: string; sex: string } | null;
+		litter: { shippingRands: number | null } | null;
+	} | null>(null);
 	const [successRef] = useState(searchParams.get('ref'));
 
 	const load = async () => {
@@ -192,7 +200,7 @@ export function PortalPayments() {
 							<div key={p.id} className="bg-white border-2 border-amber-200 rounded-xl p-5 flex flex-col gap-4">
 								<div className="flex items-start justify-between gap-4">
 									<div>
-										<p className="font-semibold text-warm-900">{paymentTypeLabel(p.type)}</p>
+										<p className="font-semibold text-warm-900">{paymentTypeLabel(p)}</p>
 										<p className="text-2xl font-bold text-warm-900 mt-1">{formatRands(p.amountRands)}</p>
 										{p.expiresAt && (
 											<p className="text-xs text-amber-700 font-medium mt-1">
@@ -215,6 +223,47 @@ export function PortalPayments() {
 					</div>
 				</section>
 			)}
+
+			{/* ── Payment breakdown for booked clients ── */}
+			{client?.stage === 'puppy_booked' && client.puppy?.priceRands != null && (() => {
+				const puppyPrice = client.puppy!.priceRands!;
+				const shipping = client.litter?.shippingRands ?? 0;
+				const total = puppyPrice + shipping;
+				const paid = payments.filter((p) => p.status === 'complete').reduce((s, p) => s + p.amountRands, 0);
+				const remaining = Math.max(0, total - paid);
+
+				return (
+					<section className="mb-8">
+						<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Payment Breakdown</h2>
+						<div className="bg-white border border-warm-200 rounded-xl p-5">
+							<div className="space-y-2 text-sm">
+								<div className="flex justify-between">
+									<span className="text-warm-600">Puppy price</span>
+									<span className="font-medium text-warm-900">{formatRands(puppyPrice)}</span>
+								</div>
+								{shipping > 0 && (
+									<div className="flex justify-between">
+										<span className="text-warm-600">Shipping</span>
+										<span className="font-medium text-warm-900">{formatRands(shipping)}</span>
+									</div>
+								)}
+								<div className="flex justify-between border-t border-warm-100 pt-2">
+									<span className="font-medium text-warm-700">Total</span>
+									<span className="font-bold text-warm-900">{formatRands(total)}</span>
+								</div>
+								<div className="flex justify-between text-warm-500">
+									<span>Paid so far</span>
+									<span>-{formatRands(paid)}</span>
+								</div>
+								<div className="flex justify-between border-t border-warm-100 pt-2">
+									<span className="font-semibold text-warm-700">Remaining</span>
+									<span className={`font-bold ${remaining === 0 ? 'text-green-700' : 'text-warm-900'}`}>{formatRands(remaining)}</span>
+								</div>
+							</div>
+						</div>
+					</section>
+				);
+			})()}
 
 			{/* ── Deposit management ── */}
 			{depositNotPaid && (
@@ -262,7 +311,7 @@ export function PortalPayments() {
 						{history.map((p, i) => (
 							<div key={p.id} className={`flex items-center justify-between px-5 py-4 gap-4 ${i > 0 ? 'border-t border-warm-100' : ''}`}>
 								<div>
-									<p className="text-sm font-medium text-warm-900">{paymentTypeLabel(p.type)}</p>
+									<p className="text-sm font-medium text-warm-900">{paymentTypeLabel(p)}</p>
 									<p className="text-xs text-warm-400 mt-0.5">
 										{p.paidAt ? formatDate(p.paidAt) : formatDate(p.createdAt)}
 									</p>

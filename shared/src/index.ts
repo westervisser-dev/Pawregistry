@@ -16,6 +16,7 @@ export interface Litter {
 	puppyCount: number | null;
 	availableCount: number | null;
 	depositAmount: number | null;
+	shippingRands: number | null;
 	notes: string | null;
 	coverImageUrl: string | null;
 	isPublic: boolean;
@@ -63,6 +64,7 @@ export interface Puppy {
 	status: PuppyStatus;
 	birthWeight: number | null; // grams
 	currentWeight: number | null; // grams
+	priceRands: number | null;
 	notes: string | null;
 	profileImageUrl: string | null;
 	bookingExpiresAt: string | null;
@@ -253,6 +255,7 @@ export type ClientActivityType =
 	| 'booking_payment_received'
 	| 'booking_expired'
 	| 'final_payment_received'
+	| 'instalment_payment_received'
 	| 'payment_marked_paid';
 
 export type ClientActivityActor = 'client' | 'admin' | 'system';

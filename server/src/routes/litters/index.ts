@@ -886,6 +886,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				selectionDate: t.String(),
 				goHomeDate: t.Optional(t.Nullable(t.String())),
 				depositAmount: t.Optional(t.Nullable(t.Number())),
+				shippingRands: t.Optional(t.Nullable(t.Number())),
 				notes: t.Optional(t.Nullable(t.String())),
 				isPublic: t.Optional(t.Boolean()),
 			}),
@@ -926,6 +927,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			goHomeDate: t.Nullable(t.String()),
 			puppyCount: t.Nullable(t.Number()),
 			availableCount: t.Nullable(t.Number()), depositAmount: t.Nullable(t.Number()),
+			shippingRands: t.Nullable(t.Number()),
 			notes: t.Nullable(t.String()), isPublic: t.Boolean(),
 		})) }
 	)
@@ -1041,6 +1043,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					t.Literal('puppy_fully_paid'), t.Literal('retained'), t.Literal('not_for_sale'),
 				])),
 				birthWeight: t.Optional(t.Nullable(t.Number())),
+				priceRands: t.Optional(t.Nullable(t.Number())),
 				notes: t.Optional(t.Nullable(t.String())),
 			}),
 		}
@@ -1112,6 +1115,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					t.Literal('puppy_fully_paid'), t.Literal('retained'), t.Literal('not_for_sale'),
 				]),
 				birthWeight: t.Nullable(t.Number()), currentWeight: t.Nullable(t.Number()),
+				priceRands: t.Nullable(t.Number()),
 				notes: t.Nullable(t.String()), profileImageUrl: t.Nullable(t.String()),
 			})),
 		}
