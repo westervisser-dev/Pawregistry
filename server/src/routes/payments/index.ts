@@ -1,5 +1,5 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc, and, sum, or } from 'drizzle-orm';
+import { eq, desc, and, sum, or, ne } from 'drizzle-orm';
 import { db } from '../../db';
 import { payments, clients, puppies, litters, puppyInterests } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
@@ -62,29 +62,42 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 		const puppyId = meta.puppyId as string;
 		const puppyName = (meta.puppyName as string) ?? 'your puppy';
 		const tier = (meta.tier as 'r5000' | 'r500') ?? 'r5000';
+		const now = new Date();
 
-		// Update deposit status if this was a new/upgraded deposit
+		// Update deposit status, stage → puppy_booked, set puppyId + matchedAt
 		await db.update(clients)
 			.set({
 				depositStatus: 'paid',
 				depositTier: tier,
-				stage: 'match_requested',
-				updatedAt: new Date(),
+				stage: 'puppy_booked',
+				puppyId: puppyId ?? null,
+				matchedAt: now,
+				updatedAt: now,
 			})
 			.where(eq(clients.id, payment.clientId));
 
 		// Puppy → booked, clear expiry; mark the interest as approved
 		if (puppyId) {
 			await db.update(puppies)
-				.set({ status: 'booked', bookingExpiresAt: null, updatedAt: new Date() })
+				.set({ status: 'booked', bookingExpiresAt: null, updatedAt: now })
 				.where(eq(puppies.id, puppyId));
 
 			await db.update(puppyInterests)
-				.set({ status: 'approved', updatedAt: new Date() })
+				.set({ status: 'approved', updatedAt: now })
 				.where(and(
 					eq(puppyInterests.puppyId, puppyId),
 					eq(puppyInterests.clientId, payment.clientId),
 					or(eq(puppyInterests.status, 'pending'), eq(puppyInterests.status, 'approved')),
+				));
+
+			// Auto-reject all other pending interests for this puppy
+			await db
+				.update(puppyInterests)
+				.set({ status: 'rejected', updatedAt: now })
+				.where(and(
+					eq(puppyInterests.puppyId, puppyId),
+					ne(puppyInterests.clientId, payment.clientId),
+					eq(puppyInterests.status, 'pending'),
 				));
 
 			// Auto-transition litter to 'booked' if all puppies are now non-available
@@ -99,7 +112,7 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 					const allTaken = litter.puppies.every((p) => p.status !== 'available');
 					if (allTaken) {
 						await db.update(litters)
-							.set({ status: 'booked', updatedAt: new Date() })
+							.set({ status: 'booked', updatedAt: now })
 							.where(eq(litters.id, puppy.litterId));
 					}
 				}
@@ -122,7 +135,7 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 
 		await sendAdminNotification(
 			`Puppy booked — ${payment.client.firstName} ${payment.client.lastName}`,
-			`${payment.client.firstName} ${payment.client.lastName} has paid their booking deposit (R${payment.amountRands.toLocaleString()}).\n\n${puppyName} is now booked and awaiting your approval.\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
+			`${payment.client.firstName} ${payment.client.lastName} has paid their booking deposit (R${payment.amountRands.toLocaleString()}).\n\n${puppyName} is now booked.\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
 		);
 	}
 
@@ -130,12 +143,12 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 		const puppyId = meta.puppyId as string | undefined;
 
 		await db.update(clients)
-			.set({ stage: 'matched_paid', updatedAt: new Date() })
+			.set({ stage: 'puppy_fully_paid', updatedAt: new Date() })
 			.where(eq(clients.id, payment.clientId));
 
 		if (puppyId) {
 			await db.update(puppies)
-				.set({ status: 'matched_paid', updatedAt: new Date() })
+				.set({ status: 'puppy_fully_paid', updatedAt: new Date() })
 				.where(eq(puppies.id, puppyId));
 		}
 

@@ -10,18 +10,18 @@ const TRIGGER_LABELS: Record<string, string> = {
 	stage_enquired: 'Application Received',
 	stage_approved: 'Application Approved',
 	stage_waitlisted: 'Added to Waitlist',
-	stage_match_requested: 'Puppy Selection',
-	stage_matched: 'Puppy Selected',
-	stage_matched_paid: 'Payment Confirmed',
+	stage_puppy_reserved: 'Puppy Reserved',
+	stage_puppy_booked: 'Puppy Booked',
+	stage_puppy_fully_paid: 'Puppy Fully Paid',
 };
 
 const TRIGGER_VARIABLES: Record<string, string[]> = {
 	stage_enquired: ['{{first_name}}', '{{full_name}}'],
 	stage_approved: ['{{first_name}}', '{{full_name}}', '{{documents_link}}', '{{portal_link}}'],
 	stage_waitlisted: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
-	stage_match_requested: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
-	stage_matched: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
-	stage_matched_paid: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
+	stage_puppy_reserved: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
+	stage_puppy_booked: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
+	stage_puppy_fully_paid: ['{{first_name}}', '{{full_name}}', '{{portal_link}}'],
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────

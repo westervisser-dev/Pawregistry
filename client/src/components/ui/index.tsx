@@ -327,9 +327,9 @@ const stageVariant: Record<string, BadgeVariant> = {
 	rejected:       'red',
 	waitlisted:     'amber',
 	placed:         'green',
-	match_requested:'purple',
-	matched:        'purple',
-	matched_paid:   'green',
+	puppy_reserved: 'purple',
+	puppy_booked:   'purple',
+	puppy_fully_paid: 'green',
 };
 
 const puppyStatusVariant: Record<string, BadgeVariant> = {

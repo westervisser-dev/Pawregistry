@@ -100,8 +100,8 @@ function ClientActionCenter({
 
 	const actions: Action[] = [];
 
-	// Pending booking / final payment — highest priority, shown first
-	if (pendingBookingPayment) {
+	// Pending booking / final payment — highest priority, shown first (only when client is in a booking stage)
+	if (pendingBookingPayment && ['puppy_reserved', 'puppy_booked'].includes(client.stage)) {
 		const hoursLeft = pendingBookingPayment.expiresAt
 			? Math.max(0, Math.floor((new Date(pendingBookingPayment.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
 			: null;
@@ -171,18 +171,18 @@ function ClientActionCenter({
 		}
 	}
 
-	if (client.stage === 'match_requested' && !pendingBookingPayment) {
+	if (client.stage === 'puppy_reserved' && !pendingBookingPayment) {
 		actions.push({
 			type: 'status',
-			label: 'We will reach out soon regarding next steps. Congratulations on your puppy!',
-			color: 'green',
+			label: 'Your puppy is reserved — complete your booking payment to secure it!',
+			color: 'amber',
 		});
 	}
 
-	if (client.stage === 'matched') {
+	if (client.stage === 'puppy_booked') {
 		actions.push({
 			type: 'status',
-			label: 'Your match is confirmed — check your email for payment instructions',
+			label: 'Your puppy is booked — congratulations! We\'ll be in touch regarding next steps.',
 			color: 'green',
 		});
 	}
@@ -307,24 +307,24 @@ const STAGES = [
 		trigger: 'Happens automatically once all required documents are submitted.',
 	},
 	{
-		key: 'match_requested',
-		label: 'Match Requested',
+		key: 'puppy_reserved',
+		label: 'Puppy Reserved',
 		variant: 'purple' as const,
 		icon: '🔍',
-		description: 'The puppies are born and it\'s nearly time to choose! Our team has flagged you to select your puppy — we\'ll be in touch soon.',
-		trigger: 'Set by our team once the litter is born and ready for matching.',
+		description: 'You\'ve reserved a puppy! Complete your booking payment within 24 hours to secure your selection.',
+		trigger: 'Happens when you select a puppy from an available litter.',
 	},
 	{
-		key: 'matched',
-		label: 'Matched',
+		key: 'puppy_booked',
+		label: 'Puppy Booked',
 		variant: 'purple' as const,
 		icon: '💜',
-		description: 'You\'ve been matched with your puppy — congratulations! Final payment and go-home arrangements will be confirmed shortly.',
-		trigger: 'Happens once your puppy selection is confirmed.',
+		description: 'Your puppy is booked — congratulations! Final payment and go-home arrangements will be confirmed shortly.',
+		trigger: 'Happens once your booking payment is confirmed.',
 	},
 	{
-		key: 'matched_paid',
-		label: 'Matched & Paid',
+		key: 'puppy_fully_paid',
+		label: 'Puppy Fully Paid',
 		variant: 'green' as const,
 		icon: '🎉',
 		description: 'Everything is in order — your puppy is ready to come home! Our team will coordinate the final handover details with you.',
@@ -336,14 +336,14 @@ const STAGE_STEPS = [
 	{ key: 'enquired', label: 'Applied' },
 	{ key: 'approved', label: 'Approved' },
 	{ key: 'waitlisted', label: 'Waitlisted' },
-	{ key: 'matched', label: 'Matched' },
-	{ key: 'matched_paid', label: 'Complete' },
+	{ key: 'puppy_booked', label: 'Booked' },
+	{ key: 'puppy_fully_paid', label: 'Complete' },
 ];
 
 function getStageIndex(stage: string): number {
 	const idx = STAGE_STEPS.findIndex(s => s.key === stage);
 	if (idx >= 0) return idx;
-	if (stage === 'match_requested') return 3;
+	if (stage === 'puppy_reserved') return 3;
 	return 0;
 }
 
@@ -541,7 +541,7 @@ function StageProgress({ currentStage }: { currentStage: string }) {
 
 function WelcomeBanner({ firstName, stage }: { firstName: string; stage: string }) {
 	const stageLabel = STAGES.find(s => s.key === stage)?.label ?? stage;
-	const isPositiveStage = ['approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(stage);
+	const isPositiveStage = ['approved', 'waitlisted', 'puppy_reserved', 'puppy_booked', 'puppy_fully_paid'].includes(stage);
 
 	return (
 		<div className="bg-gradient-to-br from-warm-50 to-brand-50 rounded-2xl px-7 py-7 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden border border-brand-100/60">
@@ -617,7 +617,7 @@ export function PortalDashboard() {
 						if (mountedRef.current && tmpl) setTemplates(tmpl as TemplateItem[]);
 					});
 				}
-				if (['waitlisted', 'match_requested'].includes(c.stage)) {
+				if (['waitlisted', 'puppy_reserved'].includes(c.stage)) {
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(api.litters.portal as any)['my-pending-notifications'].get().then(({ data: notifs }: { data: PendingNotification[] | null }) => {
 						if (mountedRef.current && notifs) setPendingNotifications(notifs);

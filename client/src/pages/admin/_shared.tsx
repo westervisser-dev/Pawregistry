@@ -237,7 +237,7 @@ export function SortableClientRow({ client, index, action }: {
 				<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
 				<p className="text-xs text-warm-400">{client.email}</p>
 				{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
-				{client.stage === 'matched' && !!client.matchedAt && (
+				{client.stage === 'puppy_booked' && !!client.matchedAt && (
 					<div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-700 border border-green-200">
 						<span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
 						Payment email sent · <MatchedElapsed since={client.matchedAt} /> ago

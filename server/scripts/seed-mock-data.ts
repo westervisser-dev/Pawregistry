@@ -391,27 +391,27 @@ const LITTERS = [
 ];
 
 // ─── Puppy data ───────────────────────────────────────────────────────────────
-// Statuses: available | reserved | matched | matched_paid | retained | not_for_sale
-// reserved  → client expressed interest, admin approval pending (match_requested)
-// matched   → admin approved interest, payment pending
-// matched_paid → payment confirmed, puppy going home
+// Statuses: available | reserved | booked | puppy_fully_paid | retained | not_for_sale
+// reserved  → client expressed interest, awaiting booking payment (puppy_reserved)
+// booked    → booking payment confirmed (puppy_booked)
+// puppy_fully_paid → full payment confirmed, puppy going home
 
 const PUPPIES = [
-	// litter-f1gd-001 (completed, 6 pups — all matched_paid)
-	{ id: 'puppy-001', litterId: 'litter-f1gd-001', collarColour: 'Red', sex: 'female', colour: 'Cream', status: 'matched_paid', birthWeight: 320, currentWeight: 12500, notes: 'Matched & paid — went home to Emma van der Berg, Cape Town.' },
-	{ id: 'puppy-002', litterId: 'litter-f1gd-001', collarColour: 'Blue', sex: 'female', colour: 'Golden', status: 'matched_paid', birthWeight: 340, currentWeight: 13200, notes: 'Matched & paid — went home to Emily Lourens, Pretoria East.' },
-	{ id: 'puppy-003', litterId: 'litter-f1gd-001', collarColour: 'Green', sex: 'male', colour: 'Cream', status: 'matched_paid', birthWeight: 360, currentWeight: 14100, notes: 'Matched & paid — went home to Sebastian Engelbrecht, Hermanus.' },
-	{ id: 'puppy-004', litterId: 'litter-f1gd-001', collarColour: 'Yellow', sex: 'female', colour: 'Light Golden', status: 'matched_paid', birthWeight: 310, currentWeight: 12800, notes: 'Matched & paid — went home to James Pretorius, Johannesburg.' },
-	{ id: 'puppy-005', litterId: 'litter-f1gd-001', collarColour: 'Purple', sex: 'female', colour: 'Cream', status: 'matched_paid', birthWeight: 330, currentWeight: 12300, notes: 'Matched & paid — private client.' },
-	{ id: 'puppy-006', litterId: 'litter-f1gd-001', collarColour: 'Orange', sex: 'male', colour: 'Golden', status: 'matched_paid', birthWeight: 370, currentWeight: 14500, notes: 'Matched & paid — private client.' },
+	// litter-f1gd-001 (completed, 6 pups — all puppy_fully_paid)
+	{ id: 'puppy-001', litterId: 'litter-f1gd-001', collarColour: 'Red', sex: 'female', colour: 'Cream', status: 'puppy_fully_paid', birthWeight: 320, currentWeight: 12500, notes: 'Matched & paid — went home to Emma van der Berg, Cape Town.' },
+	{ id: 'puppy-002', litterId: 'litter-f1gd-001', collarColour: 'Blue', sex: 'female', colour: 'Golden', status: 'puppy_fully_paid', birthWeight: 340, currentWeight: 13200, notes: 'Matched & paid — went home to Emily Lourens, Pretoria East.' },
+	{ id: 'puppy-003', litterId: 'litter-f1gd-001', collarColour: 'Green', sex: 'male', colour: 'Cream', status: 'puppy_fully_paid', birthWeight: 360, currentWeight: 14100, notes: 'Matched & paid — went home to Sebastian Engelbrecht, Hermanus.' },
+	{ id: 'puppy-004', litterId: 'litter-f1gd-001', collarColour: 'Yellow', sex: 'female', colour: 'Light Golden', status: 'puppy_fully_paid', birthWeight: 310, currentWeight: 12800, notes: 'Matched & paid — went home to James Pretorius, Johannesburg.' },
+	{ id: 'puppy-005', litterId: 'litter-f1gd-001', collarColour: 'Purple', sex: 'female', colour: 'Cream', status: 'puppy_fully_paid', birthWeight: 330, currentWeight: 12300, notes: 'Matched & paid — private client.' },
+	{ id: 'puppy-006', litterId: 'litter-f1gd-001', collarColour: 'Orange', sex: 'male', colour: 'Golden', status: 'puppy_fully_paid', birthWeight: 370, currentWeight: 14500, notes: 'Matched & paid — private client.' },
 
 	// litter-f1gd-002 (available, 7 pups)
 	// puppy-007: matched (approved interest, Sophia)
-	// puppy-008: reserved (pending interest, Elijah — match_requested)
+	// puppy-008: reserved (pending interest, Elijah — puppy_reserved)
 	// puppy-009, 010, 013: available
-	// puppy-011: reserved (pending interest, Clara — match_requested)
+	// puppy-011: reserved (pending interest, Clara — puppy_reserved)
 	// puppy-012: retained
-	{ id: 'puppy-007', litterId: 'litter-f1gd-002', collarColour: 'Red', sex: 'female', colour: 'Apricot', status: 'matched', birthWeight: 310, currentWeight: 5200, notes: 'Matched to Sophia Nkosi. Payment confirmation pending.' },
+	{ id: 'puppy-007', litterId: 'litter-f1gd-002', collarColour: 'Red', sex: 'female', colour: 'Apricot', status: 'booked', birthWeight: 310, currentWeight: 5200, notes: 'Matched to Sophia Nkosi. Payment confirmation pending.' },
 	{ id: 'puppy-008', litterId: 'litter-f1gd-002', collarColour: 'Blue', sex: 'male', colour: 'Cream', status: 'reserved', birthWeight: 350, currentWeight: 5800, notes: 'Reserved — Elijah van Rensburg has expressed interest. Awaiting admin approval.' },
 	{ id: 'puppy-009', litterId: 'litter-f1gd-002', collarColour: 'Green', sex: 'female', colour: 'Golden', status: 'available', birthWeight: 325, currentWeight: 5400, notes: null },
 	{ id: 'puppy-010', litterId: 'litter-f1gd-002', collarColour: 'Yellow', sex: 'male', colour: 'Apricot', status: 'available', birthWeight: 340, currentWeight: 5600, notes: null },
@@ -429,19 +429,19 @@ const PUPPIES = [
 	// litter-f1bgd-001 (weaning, 6 pups)
 	// puppy-019: matched (approved interest, Liam)
 	// puppy-020 to 024: available
-	{ id: 'puppy-019', litterId: 'litter-f1bgd-001', collarColour: 'Red', sex: 'female', colour: 'Cream', status: 'matched', birthWeight: 280, currentWeight: 2200, notes: 'Matched to Liam Botha. Payment confirmation pending.' },
+	{ id: 'puppy-019', litterId: 'litter-f1bgd-001', collarColour: 'Red', sex: 'female', colour: 'Cream', status: 'booked', birthWeight: 280, currentWeight: 2200, notes: 'Matched to Liam Botha. Payment confirmation pending.' },
 	{ id: 'puppy-020', litterId: 'litter-f1bgd-001', collarColour: 'Blue', sex: 'male', colour: 'Apricot', status: 'available', birthWeight: 300, currentWeight: 2500, notes: null },
 	{ id: 'puppy-021', litterId: 'litter-f1bgd-001', collarColour: 'Green', sex: 'female', colour: 'Cream', status: 'available', birthWeight: 275, currentWeight: 2100, notes: null },
 	{ id: 'puppy-022', litterId: 'litter-f1bgd-001', collarColour: 'Yellow', sex: 'male', colour: 'Cream', status: 'available', birthWeight: 295, currentWeight: 2400, notes: null },
 	{ id: 'puppy-023', litterId: 'litter-f1bgd-001', collarColour: 'Purple', sex: 'female', colour: 'Apricot', status: 'available', birthWeight: 270, currentWeight: 2050, notes: null },
 	{ id: 'puppy-024', litterId: 'litter-f1bgd-001', collarColour: 'Orange', sex: 'male', colour: 'Cream', status: 'available', birthWeight: 310, currentWeight: 2600, notes: null },
 
-	// litter-f1gd-004 (completed, 5 pups — all matched_paid)
-	{ id: 'puppy-025', litterId: 'litter-f1gd-004', collarColour: 'Red', sex: 'male', colour: 'Golden', status: 'matched_paid', birthWeight: 250, currentWeight: 8500, notes: 'Matched & paid — private client.' },
-	{ id: 'puppy-026', litterId: 'litter-f1gd-004', collarColour: 'Blue', sex: 'female', colour: 'Cream', status: 'matched_paid', birthWeight: 235, currentWeight: 7800, notes: 'Matched & paid — private client.' },
-	{ id: 'puppy-027', litterId: 'litter-f1gd-004', collarColour: 'Green', sex: 'female', colour: 'Light Golden', status: 'matched_paid', birthWeight: 240, currentWeight: 8100, notes: 'Matched & paid — private client.' },
-	{ id: 'puppy-028', litterId: 'litter-f1gd-004', collarColour: 'Yellow', sex: 'male', colour: 'Cream', status: 'matched_paid', birthWeight: 260, currentWeight: 8900, notes: 'Matched & paid — private client.' },
-	{ id: 'puppy-029', litterId: 'litter-f1gd-004', collarColour: 'Purple', sex: 'female', colour: 'Golden', status: 'matched_paid', birthWeight: 245, currentWeight: 8200, notes: 'Matched & paid — private client.' },
+	// litter-f1gd-004 (completed, 5 pups — all puppy_fully_paid)
+	{ id: 'puppy-025', litterId: 'litter-f1gd-004', collarColour: 'Red', sex: 'male', colour: 'Golden', status: 'puppy_fully_paid', birthWeight: 250, currentWeight: 8500, notes: 'Matched & paid — private client.' },
+	{ id: 'puppy-026', litterId: 'litter-f1gd-004', collarColour: 'Blue', sex: 'female', colour: 'Cream', status: 'puppy_fully_paid', birthWeight: 235, currentWeight: 7800, notes: 'Matched & paid — private client.' },
+	{ id: 'puppy-027', litterId: 'litter-f1gd-004', collarColour: 'Green', sex: 'female', colour: 'Light Golden', status: 'puppy_fully_paid', birthWeight: 240, currentWeight: 8100, notes: 'Matched & paid — private client.' },
+	{ id: 'puppy-028', litterId: 'litter-f1gd-004', collarColour: 'Yellow', sex: 'male', colour: 'Cream', status: 'puppy_fully_paid', birthWeight: 260, currentWeight: 8900, notes: 'Matched & paid — private client.' },
+	{ id: 'puppy-029', litterId: 'litter-f1gd-004', collarColour: 'Purple', sex: 'female', colour: 'Golden', status: 'puppy_fully_paid', birthWeight: 245, currentWeight: 8200, notes: 'Matched & paid — private client.' },
 
 	// litter-bd-001 (born, 4 pups — all available)
 	{ id: 'puppy-030', litterId: 'litter-bd-001', collarColour: 'Red', sex: 'male', colour: 'Black & White', status: 'available', birthWeight: 220, currentWeight: 480, notes: null },
@@ -503,7 +503,7 @@ function mockAppData(overrides: Partial<Record<string, unknown>> = {}): Record<s
 }
 
 // 30 clients covering the full lifecycle
-// Stages: matched_paid (4) | matched (2) | match_requested (2) | waitlisted (9) | approved (5) | enquired (6) | rejected (2)
+// Stages: puppy_fully_paid (4) | matched (2) | puppy_reserved (2) | waitlisted (9) | approved (5) | enquired (6) | rejected (2)
 
 const CLIENTS = [
 	// ── Matched & Paid (4) — completed litters, puppy already at home ─────────
@@ -511,7 +511,7 @@ const CLIENTS = [
 		id: 'client-001',
 		firstName: 'Emma', lastName: 'van der Berg',
 		email: 'emma.vanderberg@gmail.com', phone: '+27821234001', city: 'Cape Town', country: 'ZA',
-		stage: 'matched_paid', depositStatus: 'paid', depositTier: 'r5000', priority: 5,
+		stage: 'puppy_fully_paid', depositStatus: 'paid', depositTier: 'r5000', priority: 5,
 		puppyId: 'puppy-001', litterId: 'litter-f1gd-001',
 		adminNotes: 'Wonderful family, very responsive. Collected Red Collar (Cream female) in June 2024.',
 		appOverrides: { livingType: 'house', hasChildren: true, childrenAges: [7, 11], readyTimeframe: 'asap', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -520,7 +520,7 @@ const CLIENTS = [
 		id: 'client-002',
 		firstName: 'James', lastName: 'Pretorius',
 		email: 'james.pretorius@outlook.com', phone: '+27831234002', city: 'Johannesburg', country: 'ZA',
-		stage: 'matched_paid', depositStatus: 'paid', depositTier: 'r500', priority: 8,
+		stage: 'puppy_fully_paid', depositStatus: 'paid', depositTier: 'r500', priority: 8,
 		puppyId: 'puppy-004', litterId: 'litter-f1gd-001',
 		adminNotes: 'Single professional, works from home full time. Excellent match. Yellow Collar female collected.',
 		appOverrides: { hasChildren: false, childrenAges: [], someoneHomeDuringDay: true, livingType: 'apartment', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -529,7 +529,7 @@ const CLIENTS = [
 		id: 'client-023',
 		firstName: 'Emily', lastName: 'Lourens',
 		email: 'emily.lourens@icloud.com', phone: '+27851234023', city: 'Pretoria East', country: 'ZA',
-		stage: 'matched_paid', depositStatus: 'paid', depositTier: 'r5000', priority: 6,
+		stage: 'puppy_fully_paid', depositStatus: 'paid', depositTier: 'r5000', priority: 6,
 		puppyId: 'puppy-002', litterId: 'litter-f1gd-001',
 		adminNotes: 'Blue Collar golden female from Spring 2024 litter. Sent lovely photos at 6 months.',
 		appOverrides: { readyTimeframe: 'asap', livingType: 'house', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -538,7 +538,7 @@ const CLIENTS = [
 		id: 'client-024',
 		firstName: 'Sebastian', lastName: 'Engelbrecht',
 		email: 'seb.engelbrecht@gmail.com', phone: '+27861234024', city: 'Hermanus', country: 'ZA',
-		stage: 'matched_paid', depositStatus: 'paid', depositTier: 'r500', priority: 7,
+		stage: 'puppy_fully_paid', depositStatus: 'paid', depositTier: 'r500', priority: 7,
 		puppyId: 'puppy-003', litterId: 'litter-f1gd-001',
 		adminNotes: 'Green Collar cream male from Spring 2024. Active lifestyle, dog does agility now!',
 		appOverrides: { activityLevel: 'Very active — hiking, running daily', livingType: 'house', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -549,7 +549,7 @@ const CLIENTS = [
 		id: 'client-003',
 		firstName: 'Sophia', lastName: 'Nkosi',
 		email: 'sophia.nkosi@yahoo.com', phone: '+27711234003', city: 'Pretoria', country: 'ZA',
-		stage: 'matched', depositStatus: 'paid', depositTier: 'r5000', priority: 12,
+		stage: 'puppy_booked', depositStatus: 'paid', depositTier: 'r5000', priority: 12,
 		puppyId: 'puppy-007', litterId: 'litter-f1gd-002',
 		adminNotes: 'Matched to Red Collar apricot female (litter-f1gd-002). Final payment outstanding.',
 		appOverrides: { preferredSex: 'female', preferredColour: 'Apricot', readyTimeframe: 'asap', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -558,7 +558,7 @@ const CLIENTS = [
 		id: 'client-004',
 		firstName: 'Liam', lastName: 'Botha',
 		email: 'liam.botha@gmail.com', phone: '+27841234004', city: 'Stellenbosch', country: 'ZA',
-		stage: 'matched', depositStatus: 'paid', depositTier: 'r5000', priority: 15,
+		stage: 'puppy_booked', depositStatus: 'paid', depositTier: 'r5000', priority: 15,
 		puppyId: 'puppy-019', litterId: 'litter-f1bgd-001',
 		adminNotes: 'Matched to Red Collar cream female (litter-f1bgd-001). Wine farmer — large property.',
 		appOverrides: { livingType: 'farm', yardSize: 'Large farm property', hasGarden: true, preferredBreedSize: 'f1b_goldendoodle - standard' },
@@ -569,7 +569,7 @@ const CLIENTS = [
 		id: 'client-032',
 		firstName: 'Clara', lastName: 'Bosman',
 		email: 'clara.bosman@gmail.com', phone: '+27731234032', city: 'Durbanville', country: 'ZA',
-		stage: 'match_requested', depositStatus: 'paid', depositTier: 'r5000', priority: 10,
+		stage: 'puppy_reserved', depositStatus: 'paid', depositTier: 'r5000', priority: 10,
 		puppyId: null, litterId: 'litter-f1gd-002',
 		adminNotes: 'Expressed interest in Purple Collar cream female (puppy-011). Notified for litter-f1gd-002. Approval pending.',
 		appOverrides: { preferredSex: 'female', preferredColour: 'Cream', readyTimeframe: 'asap', preferredBreedSize: 'f1_goldendoodle - standard', considerOtherColour: false },
@@ -578,7 +578,7 @@ const CLIENTS = [
 		id: 'client-016',
 		firstName: 'Elijah', lastName: 'van Rensburg',
 		email: 'elijah.vanrensburg@gmail.com', phone: '+27871234016', city: 'Midrand', country: 'ZA',
-		stage: 'match_requested', depositStatus: 'none', priority: 50,
+		stage: 'puppy_reserved', depositStatus: 'none', priority: 50,
 		puppyId: null, litterId: 'litter-f1gd-002',
 		adminNotes: 'Expressed interest in Blue Collar cream male (puppy-008). Notified for litter-f1gd-002. Approval pending.',
 		appOverrides: { readyTimeframe: '6_months', preferredBreedSize: 'f1_goldendoodle - standard' },
@@ -799,8 +799,8 @@ const CLIENTS = [
 const LITTER_NOTIFICATIONS = [
 	// litter-f1gd-002 (available) — top 5 waitlisted clients were invited
 	{ id: 'lnotif-001', litterId: 'litter-f1gd-002', clientId: 'client-003' }, // Sophia (matched)
-	{ id: 'lnotif-002', litterId: 'litter-f1gd-002', clientId: 'client-032' }, // Clara (match_requested)
-	{ id: 'lnotif-003', litterId: 'litter-f1gd-002', clientId: 'client-016' }, // Elijah (match_requested)
+	{ id: 'lnotif-002', litterId: 'litter-f1gd-002', clientId: 'client-032' }, // Clara (puppy_reserved)
+	{ id: 'lnotif-003', litterId: 'litter-f1gd-002', clientId: 'client-016' }, // Elijah (puppy_reserved)
 	{ id: 'lnotif-004', litterId: 'litter-f1gd-002', clientId: 'client-005' }, // Olivia (waitlisted, invited but hasn't acted)
 	{ id: 'lnotif-005', litterId: 'litter-f1gd-002', clientId: 'client-006' }, // Noah (waitlisted, invited but hasn't acted)
 	// litter-f1bgd-001 (weaning) — top 3 invited
@@ -811,13 +811,13 @@ const LITTER_NOTIFICATIONS = [
 
 // ─── Puppy interests ──────────────────────────────────────────────────────────
 // Tracks which client expressed interest in which puppy
-// status: approved (→ client=matched, puppy=matched) | pending (→ client=match_requested, puppy=reserved)
+// status: approved (→ client=matched, puppy=matched) | pending (→ client=puppy_reserved, puppy=reserved)
 
 const PUPPY_INTERESTS = [
 	// Approved — puppy matched, client matched
 	{ id: 'pint-001', puppyId: 'puppy-007', clientId: 'client-003', status: 'approved', notes: 'Sophia selected the Apricot female. Approved by admin 28 Mar 2026.' },
 	{ id: 'pint-002', puppyId: 'puppy-019', clientId: 'client-004', status: 'approved', notes: 'Liam selected the Cream female. Approved by admin 01 Apr 2026.' },
-	// Pending — puppy reserved, client match_requested
+	// Pending — puppy reserved, client puppy_reserved
 	{ id: 'pint-003', puppyId: 'puppy-011', clientId: 'client-032', status: 'pending', notes: 'Clara expressed interest in Purple Collar Cream female. Awaiting admin review.' },
 	{ id: 'pint-004', puppyId: 'puppy-008', clientId: 'client-016', status: 'pending', notes: 'Elijah expressed interest in Blue Collar Cream male. Awaiting admin review.' },
 ];
@@ -856,7 +856,7 @@ function activityEventsForClient(client: typeof CLIENTS[0]) {
 	});
 
 	// Stage progression — no placed stage
-	const stageOrder = ['enquired', 'approved', 'waitlisted', 'match_requested', 'matched', 'matched_paid'];
+	const stageOrder = ['enquired', 'approved', 'waitlisted', 'puppy_reserved', 'puppy_booked', 'puppy_fully_paid'];
 	const currentIndex = stageOrder.indexOf(client.stage);
 
 	if (currentIndex >= 1) {
@@ -866,13 +866,13 @@ function activityEventsForClient(client: typeof CLIENTS[0]) {
 		events.push({ type: 'stage_changed', description: 'All required documents verified. Client moved to waitlist.', actor: 'system', metadata: { from: 'approved', to: 'waitlisted' } });
 	}
 	if (currentIndex >= 3) {
-		events.push({ type: 'stage_changed', description: 'Client notified for a litter and expressed interest in a puppy.', actor: 'client', metadata: { from: 'waitlisted', to: 'match_requested', litterId: client.litterId } });
+		events.push({ type: 'stage_changed', description: 'Client notified for a litter and expressed interest in a puppy.', actor: 'client', metadata: { from: 'waitlisted', to: 'puppy_reserved', litterId: client.litterId } });
 	}
 	if (currentIndex >= 4) {
-		events.push({ type: 'stage_changed', description: 'Puppy interest approved by admin.', actor: 'admin', metadata: { from: 'match_requested', to: 'matched', puppyId: client.puppyId } });
+		events.push({ type: 'stage_changed', description: 'Puppy interest approved by admin.', actor: 'admin', metadata: { from: 'puppy_reserved', to: 'puppy_booked', puppyId: client.puppyId } });
 	}
 	if (currentIndex >= 5) {
-		events.push({ type: 'stage_changed', description: 'Full payment received. Puppy confirmed and ready to go home.', actor: 'admin', metadata: { from: 'matched', to: 'matched_paid' } });
+		events.push({ type: 'stage_changed', description: 'Full payment received. Puppy confirmed and ready to go home.', actor: 'admin', metadata: { from: 'puppy_booked', to: 'puppy_fully_paid' } });
 	}
 
 	if (client.stage === 'rejected') {
@@ -1169,9 +1169,9 @@ async function main() {
 	console.log(`   Litters:             ${LITTERS.length}`);
 	console.log(`   Puppies:             ${PUPPIES.length}`);
 	console.log(`   Clients:             ${CLIENTS.length}`);
-	console.log(`     matched_paid:      ${CLIENTS.filter(c => c.stage === 'matched_paid').length}`);
-	console.log(`     matched:           ${CLIENTS.filter(c => c.stage === 'matched').length}`);
-	console.log(`     match_requested:   ${CLIENTS.filter(c => c.stage === 'match_requested').length}`);
+	console.log(`     puppy_fully_paid:      ${CLIENTS.filter(c => c.stage === 'puppy_fully_paid').length}`);
+	console.log(`     matched:           ${CLIENTS.filter(c => c.stage === 'puppy_booked').length}`);
+	console.log(`     puppy_reserved:   ${CLIENTS.filter(c => c.stage === 'puppy_reserved').length}`);
 	console.log(`     waitlisted:        ${CLIENTS.filter(c => c.stage === 'waitlisted').length}`);
 	console.log(`     approved:          ${CLIENTS.filter(c => c.stage === 'approved').length}`);
 	console.log(`     enquired:          ${CLIENTS.filter(c => c.stage === 'enquired').length}`);

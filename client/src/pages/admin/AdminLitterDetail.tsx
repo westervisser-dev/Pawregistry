@@ -409,7 +409,7 @@ export function AdminLitterDetail() {
 
 	const notifiedMap = Object.fromEntries(notifications.map((n) => [n.clientId, n.notifiedAt]));
 	// Clients in an active booking process (reserved awaiting payment, or booked/matched)
-	const bookingInProgressStages = new Set(['match_requested', 'matched']);
+	const bookingInProgressStages = new Set(['puppy_reserved', 'puppy_booked']);
 	const isInProgress = (stage: string) => bookingInProgressStages.has(stage);
 	// Notified clients who have since moved into a booking process
 	const notifiedInProgressMap = Object.fromEntries(
@@ -1097,8 +1097,8 @@ export function AdminLitterDetail() {
 												<span className="text-[10px]">{isExpanded ? '▲' : '▼'}</span>
 											</button>
 										)}
-										{/* Inline status selector — available is read-only; reserved can only reset to available */}
-										{p.status === 'available' ? (
+										{/* Inline status selector — available/booked/puppy_fully_paid are read-only; reserved can only reset to available */}
+										{['available', 'booked', 'puppy_fully_paid'].includes(p.status) ? (
 											<PuppyStatusBadge status={p.status} />
 										) : (
 											<select
@@ -1109,7 +1109,7 @@ export function AdminLitterDetail() {
 											>
 												{(p.status === 'reserved'
 													? ['reserved', 'available']
-													: ['available', 'reserved', 'booked', 'matched', 'retained', 'not_for_sale']
+													: ['available', 'reserved', 'retained', 'not_for_sale']
 												).map((s) => (
 													<option key={s} value={s}>{s.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}</option>
 												))}
@@ -1155,11 +1155,10 @@ export function AdminLitterDetail() {
 														</div>
 													) : interest.status === 'approved' ? (
 														<div className="flex flex-col items-end gap-1 flex-shrink-0">
-															<span className="text-xs font-medium text-green-600">approved</span>
-															<div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-700 border border-green-200">
-																<span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
-																Email sent · <NotifyTimer since={interest.updatedAt} />
-															</div>
+															<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+																<span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+																Booked
+															</span>
 														</div>
 													) : (
 														<span className="text-xs font-medium flex-shrink-0 text-warm-400">

@@ -22,9 +22,8 @@ export const litterStatusEnum = pgEnum('litter_status', [
 export const puppyStatusEnum = pgEnum('puppy_status', [
 	'available',
 	'reserved',      // interest expressed, awaiting payment, 24h window active
-	'booked',        // payment confirmed, pending admin match approval
-	'matched',
-	'matched_paid',
+	'booked',        // payment confirmed — puppy secured
+	'puppy_fully_paid',
 	'retained',
 	'not_for_sale',
 ]);
@@ -33,9 +32,9 @@ export const clientStageEnum = pgEnum('client_stage', [
 	'approved',
 	'rejected',
 	'waitlisted',
-	'match_requested',
-	'matched',
-	'matched_paid',
+	'puppy_reserved',
+	'puppy_booked',
+	'puppy_fully_paid',
 ]);
 export const depositStatusEnum = pgEnum('deposit_status', ['none', 'pending', 'paid']);
 export const depositTierEnum = pgEnum('deposit_tier', ['r5000', 'r500']);

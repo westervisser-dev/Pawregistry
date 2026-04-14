@@ -248,8 +248,8 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			query: t.Object({
 				stage: t.Optional(t.Union([
 					t.Literal('enquired'), t.Literal('approved'), t.Literal('rejected'),
-					t.Literal('waitlisted'), t.Literal('match_requested'),
-					t.Literal('matched'), t.Literal('matched_paid'),
+					t.Literal('waitlisted'), t.Literal('puppy_reserved'),
+					t.Literal('puppy_booked'), t.Literal('puppy_fully_paid'),
 				])),
 			}),
 		}
@@ -316,7 +316,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 	})
 
 	.get('/admin/:id/waitlist-position', async ({ params, error }) => {
-		const ACTIVE_QUEUE_STAGES = ['waitlisted', 'match_requested', 'matched'] as const;
+		const ACTIVE_QUEUE_STAGES = ['waitlisted', 'puppy_reserved', 'puppy_booked'] as const;
 		type ActiveStage = typeof ACTIVE_QUEUE_STAGES[number];
 
 		const client = await db.query.clients.findFirst({
@@ -382,8 +382,8 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 					...body,
 					...(newPriority !== undefined ? { priority: newPriority } : {}),
 					...(tierChanged ? { depositChosenAt: new Date() } : {}),
-					...(body.stage === 'matched' && current?.stage !== 'matched' ? { matchedAt: new Date() } : {}),
-					...(body.stage && body.stage !== 'matched' && current?.stage === 'matched' ? { matchedAt: null } : {}),
+					...(body.stage === 'puppy_booked' && current?.stage !== 'puppy_booked' ? { matchedAt: new Date() } : {}),
+					...(body.stage && body.stage !== 'puppy_booked' && current?.stage === 'puppy_booked' ? { matchedAt: null } : {}),
 					updatedAt: new Date(),
 				})
 				.where(eq(clients.id, params.id))
@@ -394,11 +394,11 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			if (body.stage && current && body.stage !== current.stage) {
 				sendStageEmail(params.id, body.stage).catch(console.error);
 				logActivity(params.id, 'stage_changed', `Stage changed from ${current.stage} to ${body.stage}`, 'admin', { from: current.stage, to: body.stage });
-				// Notify admin when a client has been matched (puppy selected — confirm payment)
-				if (body.stage === 'matched') {
+				// Notify admin when a client has booked a puppy
+				if (body.stage === 'puppy_booked') {
 					sendAdminNotification(
-						`Puppy selected — ${updated.firstName} ${updated.lastName}`,
-						`${updated.firstName} ${updated.lastName} (${updated.email}) has been matched with a puppy.\n\nConfirm payment here: ${process.env.CLIENT_URL}/admin/clients/${params.id}`,
+						`Puppy booked — ${updated.firstName} ${updated.lastName}`,
+						`${updated.firstName} ${updated.lastName} (${updated.email}) has booked a puppy.\n\nView client: ${process.env.CLIENT_URL}/admin/clients/${params.id}`,
 					).catch(console.error);
 				}
 			}
@@ -412,8 +412,8 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			body: t.Partial(t.Object({
 				stage: t.Union([
 					t.Literal('enquired'), t.Literal('approved'), t.Literal('rejected'),
-					t.Literal('waitlisted'), t.Literal('match_requested'),
-					t.Literal('matched'),
+					t.Literal('waitlisted'), t.Literal('puppy_reserved'),
+					t.Literal('puppy_booked'),
 				]),
 				priority: t.Number(),
 				puppyId: t.Nullable(t.String()),

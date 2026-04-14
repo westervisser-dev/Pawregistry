@@ -71,6 +71,13 @@
       "when": 1776106001443,
       "tag": "0009_overjoyed_energizer",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776164051107,
+      "tag": "0010_typical_molecule_man",
+      "breakpoints": true
     }
   ]
 }

@@ -52,7 +52,7 @@ export interface LitterWithDogs extends Litter {
 
 // ─── Puppy ───────────────────────────────────────────────────────────────────
 
-export type PuppyStatus = 'available' | 'reserved' | 'booked' | 'matched' | 'matched_paid' | 'retained' | 'not_for_sale';
+export type PuppyStatus = 'available' | 'reserved' | 'booked' | 'puppy_fully_paid' | 'retained' | 'not_for_sale';
 
 export interface Puppy {
 	id: string;
@@ -73,13 +73,13 @@ export interface Puppy {
 // ─── Client ──────────────────────────────────────────────────────────────────
 
 export type ClientStage =
-	| 'enquired'        // Client completed onboarding flow
-	| 'approved'        // Admin reviewed and approved
-	| 'rejected'        // Admin reviewed and rejected
-	| 'waitlisted'      // Client completed all required docs
-	| 'match_requested' // Client expressed interest in a puppy — awaiting admin approval
-	| 'matched'         // Admin approved the puppy interest
-	| 'matched_paid';   // Client paid in full
+	| 'enquired'          // Client completed onboarding flow
+	| 'approved'          // Admin reviewed and approved
+	| 'rejected'          // Admin reviewed and rejected
+	| 'waitlisted'        // Client completed all required docs
+	| 'puppy_reserved'    // R500/no-deposit client reserved a puppy (awaiting booking payment)
+	| 'puppy_booked'      // R5000 client reserved, or R500/no-deposit client paid booking deposit
+	| 'puppy_fully_paid'; // Client paid in full
 
 // DB values: 'none' | 'pending' (Deposit — Selected) | 'paid' (Deposit — Paid)
 export type DepositStatus = 'none' | 'pending' | 'paid';

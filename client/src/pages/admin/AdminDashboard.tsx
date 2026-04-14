@@ -116,12 +116,12 @@ export function AdminDashboard() {
 			} else {
 				events.push({ text: `${name} added to waitlist`, ts: new Date(c.updatedAt).getTime(), color: 'green', link });
 			}
-		} else if (c.stage === 'match_requested') {
-			events.push({ text: `${name} requested a match`, ts: new Date(c.updatedAt).getTime(), color: 'blue', link });
-		} else if (c.stage === 'matched') {
-			events.push({ text: `${name} matched to litter`, ts: new Date(c.updatedAt).getTime(), color: 'blue', link });
-		} else if (c.stage === 'matched_paid') {
-			events.push({ text: `${name} — placement complete`, ts: new Date(c.updatedAt).getTime(), color: 'green', link });
+		} else if (c.stage === 'puppy_reserved') {
+			events.push({ text: `${name} reserved a puppy`, ts: new Date(c.updatedAt).getTime(), color: 'blue', link });
+		} else if (c.stage === 'puppy_booked') {
+			events.push({ text: `${name} booked a puppy`, ts: new Date(c.updatedAt).getTime(), color: 'blue', link });
+		} else if (c.stage === 'puppy_fully_paid') {
+			events.push({ text: `${name} — fully paid`, ts: new Date(c.updatedAt).getTime(), color: 'green', link });
 		}
 	}
 
@@ -195,9 +195,9 @@ export function AdminDashboard() {
 						item: 'hover:bg-blue-50 text-blue-900',
 					},
 					{
-						key: 'confirm_match',
-						items: allClients.filter((c) => c.stage === 'match_requested').map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, link: `/admin/clients/${c.id}#stage` })),
-						label: (n: number) => `${n} ${n === 1 ? 'client has' : 'clients have'} requested a match`,
+						key: 'puppy_reserved',
+						items: allClients.filter((c) => c.stage === 'puppy_reserved').map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, link: `/admin/clients/${c.id}#stage` })),
+						label: (n: number) => `${n} ${n === 1 ? 'client has' : 'clients have'} a puppy reserved`,
 						pill: 'bg-pink-100 hover:bg-pink-200 border-pink-300 text-pink-800',
 						dot: 'bg-pink-500',
 						dropdown: 'border-pink-200',
