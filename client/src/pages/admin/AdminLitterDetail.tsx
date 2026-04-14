@@ -11,7 +11,7 @@ const COLLAR_COLOURS = [
 	'olive', 'orange', 'pink', 'purple', 'red', 'silver', 'white', 'yellow',
 ];
 
-function NotifyTimer({ since }: { since: string }) {
+function NotifyTimer({ since, variant = 'blue', label }: { since: string; variant?: 'blue' | 'amber'; label?: string }) {
 	const [elapsed, setElapsed] = useState(() => Date.now() - new Date(since).getTime());
 	const rafRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -27,12 +27,24 @@ function NotifyTimer({ since }: { since: string }) {
 	const hh = Math.floor(totalSecs / 3600);
 	const mm = Math.floor((totalSecs % 3600) / 60);
 	const display = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+	const isUrgent = hh >= 20;
 	const isRecent = hh === 0 && mm < 60;
 
+	if (variant === 'amber') {
+		return (
+			<span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium border ${isUrgent ? 'bg-red-50 text-red-600 border-red-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+				<span className={`w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${isUrgent ? 'bg-red-400' : 'bg-amber-400'}`} />
+				<span className="font-mono tracking-tight">{display}</span>
+				{label && <span className="font-normal opacity-70">{label}</span>}
+			</span>
+		);
+	}
+
 	return (
-		<span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
-			<span className={`w-1 h-1 rounded-full ${isRecent ? 'bg-blue-400 animate-pulse' : 'bg-blue-300'}`} />
+		<span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-200">
+			<span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isRecent ? 'bg-blue-400 animate-pulse' : 'bg-blue-300'}`} />
 			<span className="font-mono tracking-tight">{display}</span>
+			{label && <span className="font-normal text-blue-400">{label}</span>}
 		</span>
 	);
 }
@@ -1035,7 +1047,6 @@ export function AdminLitterDetail() {
 												return (
 													<span className="block text-xs text-warm-500 mt-0.5 font-normal">
 														<Link to={`/admin/clients/${interest.client.id}`} className="text-brand-600 hover:underline">{interest.client.firstName} {interest.client.lastName}</Link>
-														{' · '}<NotifyTimer since={interest.createdAt} />
 													</span>
 												);
 											})()}
@@ -1053,6 +1064,16 @@ export function AdminLitterDetail() {
 												);
 											})()}
 										</span>
+										{/* Reservation timer — right-aligned, only for reserved puppies */}
+										{p.status === 'reserved' && (() => {
+											const interest = puppyInterests.find((i) => i.puppyId === p.id && i.status === 'pending');
+											if (!interest) return null;
+											return (
+												<div className="flex-shrink-0">
+													<NotifyTimer since={interest.createdAt} label="— Elapsed time for payment" />
+												</div>
+											);
+										})()}
 										{/* Inline status selector */}
 										<select
 											value={p.status}
@@ -1106,7 +1127,16 @@ export function AdminLitterDetail() {
 														</div>
 													</div>
 													{interest.status === 'pending' ? (
-														<span className="text-xs font-medium flex-shrink-0 text-amber-600">reserving…</span>
+														<div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+															<span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+																<span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+																Reserved
+															</span>
+															<span className="text-sm font-semibold text-amber-800 tabular-nums">
+																R{(5000 - (interest.client.depositStatus === 'paid' && interest.client.depositTier === 'r500' ? 500 : 0)).toLocaleString()}
+																<span className="text-xs font-normal text-amber-600 ml-1">awaiting payment</span>
+															</span>
+														</div>
 													) : interest.status === 'approved' ? (
 														<div className="flex flex-col items-end gap-1 flex-shrink-0">
 															<span className="text-xs font-medium text-green-600">approved</span>
