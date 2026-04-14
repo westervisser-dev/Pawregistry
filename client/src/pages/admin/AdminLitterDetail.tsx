@@ -852,7 +852,7 @@ export function AdminLitterDetail() {
 										: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
 								}`}
 							>
-								{s}
+								{s.charAt(0).toUpperCase() + s.slice(1)}
 							</button>
 						))}
 					</div>

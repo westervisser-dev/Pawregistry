@@ -533,10 +533,39 @@ export function PortalLitterDetail() {
 									{/* Colour */}
 									<p className="text-sm font-semibold text-warm-900 mb-1 leading-tight">{puppy.colour ?? '—'}</p>
 
-									{/* Status badge */}
-									<div className="mb-3">
-										<PuppyStatusBadge status={puppy.status} />
-									</div>
+									{/* Status badge — hidden for own puppy (overlay badge covers it) */}
+									{!isMyPuppy && (
+										<div className="mb-3">
+											<PuppyStatusBadge status={puppy.status} />
+										</div>
+									)}
+
+									{/* Own-puppy reserved state */}
+									{isMyReserved && (
+										<div className="mt-auto pt-1 space-y-2">
+											<div className="flex items-center gap-1.5">
+												<span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+												<span className="text-xs font-semibold text-amber-700">Reserved — payment pending</span>
+											</div>
+											<Link
+												to="/portal/payments"
+												className="block w-full text-center px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors"
+											>
+												Pay now to confirm →
+											</Link>
+										</div>
+									)}
+
+									{/* Own-puppy booked state */}
+									{isMyBooked && (
+										<div className="mt-auto pt-1">
+											<div className="flex items-center gap-1.5 mb-1">
+												<span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+												<span className="text-xs font-semibold text-green-700">Booking confirmed</span>
+											</div>
+											<p className="text-[10px] text-green-600 leading-snug">We'll be in touch soon with next steps.</p>
+										</div>
+									)}
 
 									{/* CTA */}
 									{puppy.status === 'available' && user && clientStage && (
