@@ -282,6 +282,34 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 		{ type: 'text' }, // raw body so HMAC can be verified against original bytes
 	)
 
+	// ── Public: check payment status by reference (for post-Paystack redirect) ──
+	.get(
+		'/status/:reference',
+		async ({ params, error }) => {
+			const payment = await db.query.payments.findFirst({
+				where: eq(payments.reference, params.reference),
+				columns: { status: true, type: true, amountRands: true },
+			});
+			if (!payment) return error(404, { error: 'NotFound', message: 'Payment not found' });
+
+			// Try to verify with Paystack if still pending
+			if (payment.status === 'pending') {
+				try {
+					const verified = await verifyTransaction(params.reference);
+					if (verified.status === 'success') {
+						// Webhook will handle the full success flow; just report the current DB status
+						return { status: 'complete', type: payment.type, amountRands: payment.amountRands };
+					}
+				} catch {
+					// Paystack API unavailable or not yet paid — leave as pending
+				}
+			}
+
+			return { status: payment.status, type: payment.type, amountRands: payment.amountRands };
+		},
+		{ params: t.Object({ reference: t.String() }) },
+	)
+
 	// ── Client: initiate a deposit payment from portal ────────────────────────
 	.use(authPlugin)
 	.post(
