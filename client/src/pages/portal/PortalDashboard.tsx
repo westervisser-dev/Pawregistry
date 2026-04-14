@@ -78,7 +78,7 @@ function ClientActionCenter({
 	client: Client;
 	templates: TemplateItem[] | null;
 	pendingNotifications: PendingNotification[];
-	pendingBookingPayment: { amountRands: number; expiresAt: string | null; authorizationUrl: string | null } | null;
+	pendingBookingPayment: { amountRands: number; expiresAt: string | null; authorizationUrl: string | null; paymentType: 'booking' | 'final'; isInstalment: boolean; instalmentIndex: number | null; instalmentTotal: number | null } | null;
 }) {
 	const [dismissed, setDismissed] = useState<Set<string>>(() => {
 		try {
@@ -108,9 +108,19 @@ function ClientActionCenter({
 		const urgencyLabel = hoursLeft !== null
 			? ` — ${hoursLeft}h left`
 			: '';
+
+		let paymentLabel: string;
+		if (pendingBookingPayment.paymentType === 'booking') {
+			paymentLabel = 'Booking deposit';
+		} else if (pendingBookingPayment.isInstalment && pendingBookingPayment.instalmentIndex !== null && pendingBookingPayment.instalmentTotal !== null) {
+			paymentLabel = `Instalment ${pendingBookingPayment.instalmentIndex + 1} of ${pendingBookingPayment.instalmentTotal}`;
+		} else {
+			paymentLabel = 'Final payment';
+		}
+
 		actions.push({
 			type: 'link',
-			label: `💳 Payment required: R${pendingBookingPayment.amountRands.toLocaleString()}${urgencyLabel}`,
+			label: `💳 ${paymentLabel}: R${pendingBookingPayment.amountRands.toLocaleString()}${urgencyLabel}`,
 			to: '/portal/payments',
 			color: 'amber',
 		});
@@ -591,7 +601,7 @@ export function PortalDashboard() {
 	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
 	const [templates, setTemplates] = useState<TemplateItem[] | null>(null);
 	const [pendingNotifications, setPendingNotifications] = useState<PendingNotification[]>([]);
-	const [pendingBookingPayment, setPendingBookingPayment] = useState<{ amountRands: number; expiresAt: string | null; authorizationUrl: string | null } | null>(null);
+	const [pendingBookingPayment, setPendingBookingPayment] = useState<{ amountRands: number; expiresAt: string | null; authorizationUrl: string | null; paymentType: 'booking' | 'final'; isInstalment: boolean; instalmentIndex: number | null; instalmentTotal: number | null } | null>(null);
 	const setClientStage = useAuthStore(s => s.setClientStage);
 	const mountedRef = useRef(true);
 
@@ -629,10 +639,16 @@ export function PortalDashboard() {
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					const pending = (pmts as any[]).find((p: any) => p.status === 'pending' && (p.type === 'booking' || p.type === 'final'));
 					if (pending) {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						const meta = (pending.metadata ?? {}) as any;
 						setPendingBookingPayment({
 							amountRands: pending.amountRands,
 							expiresAt: pending.expiresAt ?? null,
 							authorizationUrl: pending.authorizationUrl ?? null,
+							paymentType: pending.type,
+							isInstalment: !!meta.isInstalment,
+							instalmentIndex: meta.instalmentIndex ?? null,
+							instalmentTotal: meta.instalmentTotal ?? null,
 						});
 					}
 				}).catch(() => {});
