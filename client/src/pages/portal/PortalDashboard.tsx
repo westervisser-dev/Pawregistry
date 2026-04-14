@@ -145,28 +145,37 @@ function ClientActionCenter({
 		}
 	}
 
-	if (client.stage === 'waitlisted' && client.depositStatus === 'pending') {
-		actions.push({
-			type: 'status',
-			label: 'Deposit payment received — we\'re confirming it now',
-			color: 'amber',
-		});
+	if (client.stage === 'waitlisted') {
+		const isPaidR500 = client.depositStatus === 'paid' && client.depositTier === 'r500';
+		const isPaidR5000 = client.depositStatus === 'paid' && client.depositTier === 'r5000';
+		const hasUndismissedNotification = pendingNotifications.some((n) => !dismissed.has(n.litterId));
+		if (!pendingBookingPayment) {
+			if (!isPaidR5000) {
+				actions.push({
+					type: 'dismissible-link',
+					label: isPaidR500
+						? 'Increase your deposit payment to increase your waitlist order'
+						: 'Add a deposit payment to increase your waitlist order',
+					to: '/portal/payments',
+					color: 'amber',
+					dismissKey: isPaidR500 ? 'deposit-upgrade' : 'deposit-add',
+				});
+			}
+			if (!hasUndismissedNotification) {
+				actions.push({
+					type: 'status',
+					label: 'You\'re on the waitlist — we\'ll notify you when a litter becomes available',
+					color: 'blue',
+				});
+			}
+		}
 	}
 
-	if (client.stage === 'waitlisted' && client.depositStatus === 'none') {
-		actions.push({
-			type: 'link',
-			label: 'Complete your deposit payment to secure your waitlist place',
-			to: '/portal/payments',
-			color: 'amber',
-		});
-	}
-
-	if (client.stage === 'match_requested') {
+	if (client.stage === 'match_requested' && !pendingBookingPayment) {
 		actions.push({
 			type: 'status',
-			label: '🐾 Hold tight — we\'re reviewing your selection towards a final match',
-			color: 'purple',
+			label: 'We will reach out soon regarding next steps. Congratulations on your puppy!',
+			color: 'green',
 		});
 	}
 
@@ -837,11 +846,6 @@ if (loading) return <LoadingPage />;
 							{client.depositStatus === 'paid' && (
 								<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border bg-green-50 text-green-700 border-green-200">
 									<span aria-hidden="true">✓</span> Confirmed
-								</span>
-							)}
-							{client.depositStatus === 'pending' && (
-								<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
-									Processing…
 								</span>
 							)}
 							{client.depositStatus === 'none' && (

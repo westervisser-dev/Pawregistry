@@ -98,7 +98,7 @@ export interface Client {
 	country: string;
 	stage: ClientStage;
 	priority: number; // lower = higher priority on waitlist
-	depositStatus: DepositStatus; // 'none' | 'pending' (expressed intent) | 'paid' (confirmed by admin)
+	depositStatus: DepositStatus; // 'none' | 'paid' — set automatically on payment confirmation
 	depositTier: DepositTier;    // 'r5000' | 'r500' | null — set at application, null for free list
 	depositChosenAt: string | null; // when the deposit tier was selected (or last changed)
 	puppyId: string | null;

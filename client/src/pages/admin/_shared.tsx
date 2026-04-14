@@ -130,12 +130,11 @@ export function formatBreedSize(raw: string | null | undefined): { breed: string
 
 // ─── Action badge ─────────────────────────────────────────────────────────────
 
-export type ClientAction = 'review_application' | 'review_documents' | 'confirm_deposit';
+export type ClientAction = 'review_application' | 'review_documents';
 
 const ACTION_CONFIG: Record<ClientAction, { label: string; bg: string; text: string; border: string }> = {
 	review_application: { label: 'Review application', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
 	review_documents:   { label: 'Review documents',   bg: 'bg-blue-50',  text: 'text-blue-700',  border: 'border-blue-200'  },
-	confirm_deposit:    { label: 'Confirm deposit',     bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
 };
 
 function MatchedElapsed({ since }: { since: string }) {
@@ -175,12 +174,9 @@ export function DepositStatusBadge({ client }: { client: Client }) {
 	const cls =
 		client.depositStatus === 'paid'
 			? 'bg-green-50 text-green-700 border-green-200'
-			: client.depositStatus === 'pending'
-			? 'bg-amber-50 text-amber-700 border-amber-200'
 			: 'bg-warm-50 text-warm-500 border-warm-200';
 
-	const label =
-		client.depositStatus === 'paid' ? 'Paid' : client.depositStatus === 'pending' ? 'Pending' : 'None';
+	const label = client.depositStatus === 'paid' ? 'Paid' : 'None';
 
 	const tier = client.depositTier ? DEPOSIT_TIER_LABELS[client.depositTier] : null;
 
@@ -374,8 +370,6 @@ export function ClientReadTable({ title, clients, actionMap = {} }: {
 									<div className="hidden md:block">
 										{client.depositStatus === 'paid' ? (
 											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Deposit — Paid</span>
-										) : client.depositStatus === 'pending' ? (
-											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Deposit — Selected</span>
 										) : (
 											<span className="text-warm-400 text-xs">No Deposit</span>
 										)}

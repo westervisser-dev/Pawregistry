@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc, and, sum } from 'drizzle-orm';
+import { eq, desc, and, sum, or } from 'drizzle-orm';
 import { db } from '../../db';
-import { payments, clients, puppies, litters } from '../../db/schema';
+import { payments, clients, puppies, litters, puppyInterests } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { logActivity } from '../../lib/activity';
 import { sendClientEmailWithVars, sendAdminNotification } from '../../lib/email';
@@ -73,11 +73,19 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 			})
 			.where(eq(clients.id, payment.clientId));
 
-		// Puppy → booked, clear expiry
+		// Puppy → booked, clear expiry; mark the interest as approved
 		if (puppyId) {
 			await db.update(puppies)
 				.set({ status: 'booked', bookingExpiresAt: null, updatedAt: new Date() })
 				.where(eq(puppies.id, puppyId));
+
+			await db.update(puppyInterests)
+				.set({ status: 'approved', updatedAt: new Date() })
+				.where(and(
+					eq(puppyInterests.puppyId, puppyId),
+					eq(puppyInterests.clientId, payment.clientId),
+					or(eq(puppyInterests.status, 'pending'), eq(puppyInterests.status, 'approved')),
+				));
 
 			// Auto-transition litter to 'booked' if all puppies are now non-available
 			const puppy = await db.query.puppies.findFirst({ where: eq(puppies.id, puppyId), columns: { litterId: true } });

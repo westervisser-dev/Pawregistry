@@ -131,7 +131,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			if (client.depositStatus === 'paid' && client.depositTier === 'r5000') {
 				const [interest] = await db
 					.insert(puppyInterests)
-					.values({ puppyId: params.puppyId, clientId: client.id })
+					.values({ puppyId: params.puppyId, clientId: client.id, status: 'approved' })
 					.returning();
 
 				await db.update(puppies)
@@ -649,6 +649,30 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 		return results;
 	})
 
+	// ── Admin: get clients awaiting booking payment (puppy reserved, 24h window) ──
+	.get('/admin/awaiting-payment', async () => {
+		const reserved = await db.query.puppyInterests.findMany({
+			where: eq(puppyInterests.status, 'pending'),
+			with: {
+				puppy: {
+					columns: { id: true, litterId: true, status: true, bookingExpiresAt: true },
+					with: { litter: { columns: { id: true, name: true } } },
+				},
+				client: { columns: { id: true, firstName: true, lastName: true } },
+			},
+		});
+
+		return reserved
+			.filter((i) => i.puppy.status === 'reserved')
+			.map((i) => ({
+				clientId: i.client.id,
+				clientName: `${i.client.firstName} ${i.client.lastName}`,
+				litterId: i.puppy.litter.id,
+				litterName: i.puppy.litter.name,
+				bookingExpiresAt: i.puppy.bookingExpiresAt,
+			}));
+	})
+
 	// ── Admin: get litters that have pending puppy reservations ──
 	.get('/admin/pending-reservations', async () => {
 		const pending = await db.query.puppyInterests.findMany({
@@ -688,7 +712,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			where: inArray(puppyInterests.puppyId, puppyIds),
 			with: {
 				client: {
-					columns: { id: true, firstName: true, lastName: true, email: true, city: true, stage: true, depositStatus: true },
+					columns: { id: true, firstName: true, lastName: true, email: true, city: true, stage: true, depositStatus: true, depositTier: true },
 				},
 			},
 			orderBy: [asc(puppyInterests.createdAt)],
@@ -729,7 +753,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			where: eq(litterNotifications.litterId, params.litterId),
 			with: {
 				client: {
-					columns: { id: true, firstName: true, lastName: true, email: true, city: true, priority: true, depositStatus: true },
+					columns: { id: true, firstName: true, lastName: true, email: true, city: true, priority: true, depositStatus: true, stage: true },
 				},
 			},
 			orderBy: [asc(litterNotifications.notifiedAt)],
@@ -1044,6 +1068,11 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 			// If admin manually resets puppy to available, revert any linked client
 			if (body.status === 'available') {
+				// Clear the booking expiry on the puppy
+				await db.update(puppies)
+					.set({ bookingExpiresAt: null, updatedAt: new Date() })
+					.where(eq(puppies.id, params.puppyId));
+
 				const activeInterest = await db.query.puppyInterests.findFirst({
 					where: and(
 						eq(puppyInterests.puppyId, params.puppyId),
@@ -1057,6 +1086,14 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					await db.update(clients)
 						.set({ stage: 'waitlisted', litterId: null, puppyId: null, matchedAt: null, updatedAt: new Date() })
 						.where(eq(clients.id, activeInterest.clientId));
+					// Cancel any pending booking payment
+					await db.update(payments)
+						.set({ status: 'cancelled' })
+						.where(and(
+							eq(payments.clientId, activeInterest.clientId),
+							eq(payments.type, 'booking'),
+							eq(payments.status, 'pending'),
+						));
 					await db.insert(clientActivity).values({
 						clientId: activeInterest.clientId,
 						type: 'stage_changed',
@@ -1064,6 +1101,10 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 						metadata: { puppyId: params.puppyId },
 						actor: 'admin',
 					});
+					// Notify client their reservation was cancelled
+					sendClientEmailWithVars(activeInterest.clientId, 'reservation_cancelled', {
+						puppy_name: `${updated.collarColour} collar (${updated.sex})`,
+					}).catch(console.error);
 				}
 			}
 
@@ -1077,8 +1118,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				sex: t.Union([t.Literal('male'), t.Literal('female')]),
 				colour: t.String(),
 				status: t.Union([
-					t.Literal('available'), t.Literal('reserved'), t.Literal('matched'),
-					t.Literal('retained'), t.Literal('not_for_sale'),
+					t.Literal('available'), t.Literal('reserved'), t.Literal('booked'),
+					t.Literal('matched'), t.Literal('retained'), t.Literal('not_for_sale'),
 				]),
 				birthWeight: t.Nullable(t.Number()), currentWeight: t.Nullable(t.Number()),
 				notes: t.Nullable(t.String()), profileImageUrl: t.Nullable(t.String()),

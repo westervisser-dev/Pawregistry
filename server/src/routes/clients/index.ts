@@ -86,7 +86,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				city: body.city ?? null,
 				country: body.country ?? 'ZA',
 				applicationData: body.applicationData,
-				depositStatus: tier ? 'pending' : 'none',
+				depositStatus: 'none',
 				depositTier: tier ?? null,
 				...(tier ? { depositChosenAt: new Date() } : {}),
 				stage: 'enquired',
@@ -231,32 +231,6 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		}
 	)
 
-	// ── Client portal: opt in to deposit (pending only — admin confirms to paid) ──
-	.patch(
-		'/me/deposit',
-		async ({ user, error }) => {
-			const client = await db.query.clients.findFirst({
-				where: eq(clients.userId, user.id),
-			});
-			if (!client) return error(404, { error: 'Not found', message: 'Client record not found' });
-			if (client.depositStatus !== 'none') {
-				return error(400, { error: 'Bad request', message: 'Deposit status can only be set from none to pending' });
-			}
-			const [updated] = await db
-				.update(clients)
-				.set({ depositStatus: 'pending', updatedAt: new Date() })
-				.where(eq(clients.id, client.id))
-				.returning();
-			logActivity(client.id, 'deposit_changed', 'Deposit status changed from none to pending', 'client', { from: 'none', to: 'pending' });
-			sendAdminNotification(
-				`Deposit request — ${updated.firstName} ${updated.lastName}`,
-				`${updated.firstName} ${updated.lastName} (${updated.email}) has requested a deposit.\n\nConfirm the deposit here: ${process.env.CLIENT_URL}/admin/clients/${updated.id}`,
-			).catch(console.error);
-			sendClientEmail(updated.id, 'deposit_request_received').catch(console.error);
-			return updated;
-		}
-	)
-
 	// ── Admin routes ──
 	.use(adminPlugin)
 
@@ -383,10 +357,10 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 		'/admin/:id',
 		async ({ params, body, error }) => {
 			// Fetch current values for change detection
-			const current = (body.stage || body.depositStatus !== undefined || body.adminNotes !== undefined || body.depositTier !== undefined)
+			const current = (body.stage || body.adminNotes !== undefined || body.depositTier !== undefined)
 				? await db.query.clients.findFirst({
 					where: eq(clients.id, params.id),
-					columns: { stage: true, depositStatus: true, adminNotes: true, depositTier: true },
+					columns: { stage: true, adminNotes: true, depositTier: true },
 				})
 				: null;
 
@@ -428,13 +402,6 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 					).catch(console.error);
 				}
 			}
-			if (body.depositStatus && current && body.depositStatus !== current.depositStatus) {
-				logActivity(params.id, 'deposit_changed', `Deposit status changed from ${current.depositStatus} to ${body.depositStatus}`, 'admin', { from: current.depositStatus, to: body.depositStatus });
-				// Notify client when admin confirms their deposit
-				if (body.depositStatus === 'paid') {
-					sendClientEmail(params.id, 'deposit_confirmed').catch(console.error);
-				}
-			}
 			if (body.adminNotes !== undefined && current && body.adminNotes !== current.adminNotes) {
 				logActivity(params.id, 'notes_updated', 'Admin notes updated', 'admin');
 			}
@@ -453,7 +420,6 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				litterId: t.Nullable(t.String()),
 				adminNotes: t.Nullable(t.String()),
 				userId: t.Nullable(t.String()),
-				depositStatus: t.Union([t.Literal('none'), t.Literal('pending'), t.Literal('paid')]),
 				depositTier: t.Nullable(t.Union([t.Literal('r5000'), t.Literal('r500')])),
 			})),
 		}

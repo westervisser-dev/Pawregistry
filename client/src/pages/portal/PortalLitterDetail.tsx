@@ -135,6 +135,52 @@ function Lightbox({ urls, index, onClose, onPrev, onNext }: {
 	);
 }
 
+// ─── Confirmation Modal ───────────────────────────────────────────────────────
+
+function ConfirmationModal({ title, children, onClose, requiresPayment }: {
+	title: string;
+	children: React.ReactNode;
+	onClose: () => void;
+	requiresPayment: boolean;
+}) {
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	}, [onClose]);
+
+	return (
+		<div
+			className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="confirm-modal-title"
+		>
+			<div className="bg-white rounded-2xl shadow-2xl max-w-sm w-[calc(100%-2rem)] mx-4 p-6 flex flex-col items-center text-center">
+				<div className="text-4xl mb-4">🎉</div>
+				<h2 id="confirm-modal-title" className="font-serif text-xl font-bold text-warm-900 mb-2">{title}</h2>
+				<div className="text-sm text-warm-600 leading-relaxed mb-5">{children}</div>
+				{requiresPayment && (
+					<Link
+						to="/portal/payments"
+						onClick={onClose}
+						className="w-full mb-3 px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors text-center block"
+					>
+						Pay now →
+					</Link>
+				)}
+				<button
+					type="button"
+					onClick={onClose}
+					className="w-full px-4 py-2.5 bg-warm-100 text-warm-700 rounded-xl text-sm font-medium hover:bg-warm-200 transition-colors"
+				>
+					{requiresPayment ? 'Pay later' : 'Close'}
+				</button>
+			</div>
+		</div>
+	);
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function PortalLitterDetail() {
@@ -152,6 +198,10 @@ export function PortalLitterDetail() {
 	const [clientStage, setClientStage] = useState<ClientStage | null>(null);
 	const [puppyImgIndexes, setPuppyImgIndexes] = useState<Record<string, number>>({});
 	const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
+	const [clientDepositStatus, setClientDepositStatus] = useState<string | null>(null);
+	const [clientDepositTier, setClientDepositTier] = useState<string | null>(null);
+	const [myInterestStatuses, setMyInterestStatuses] = useState<Map<string, string>>(new Map());
+	const [confirmModal, setConfirmModal] = useState<{ title: string; body: React.ReactNode; requiresPayment: boolean } | null>(null);
 
 	useEffect(() => {
 		if (!id) return;
@@ -168,6 +218,7 @@ export function PortalLitterDetail() {
 		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: { interests: Array<{ puppyId: string; status: string }>; isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null }) => {
 			if (data) {
 				setMyInterestPuppyIds(new Set(data.interests.map((i) => i.puppyId)));
+				setMyInterestStatuses(new Map(data.interests.map((i) => [i.puppyId, i.status])));
 				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo, hasActivePuppyInterest: data.hasActivePuppyInterest ?? false });
 			}
 		}).catch(() => {});
@@ -186,8 +237,12 @@ export function PortalLitterDetail() {
 		}).catch(() => {});
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(api.clients as any).me.get().then(({ data }: { data: { stage: ClientStage } | null }) => {
-			if (data) setClientStage(data.stage);
+		(api.clients as any).me.get().then(({ data }: { data: { stage: ClientStage; depositStatus: string; depositTier: string | null } | null }) => {
+			if (data) {
+				setClientStage(data.stage);
+				setClientDepositStatus(data.depositStatus);
+				setClientDepositTier(data.depositTier);
+			}
 		}).catch(() => {});
 	}, [id, user]);
 
@@ -219,15 +274,36 @@ export function PortalLitterDetail() {
 
 	usePageTitle('Litter');
 
+	const isClientR5000 = clientDepositStatus === 'paid' && clientDepositTier === 'r5000';
+
 	const expressInterest = async (puppyId: string) => {
 		setSubmittingInterest(puppyId);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const { error } = await (api.litters.puppies({ puppyId }) as any).interest.post({});
-		if (!error) {
+		const { data, error } = await (api.litters.puppies({ puppyId }) as any).interest.post({});
+		if (!error && data) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const requiresPayment = (data as any).requiresPayment !== false;
+			const interestStatus = requiresPayment ? 'pending' : 'approved';
 			setMyInterestPuppyIds((prev) => new Set([...prev, puppyId]));
-			setInterestMessage((prev) => ({ ...prev, [puppyId]: 'Interest registered! Our team will be in touch to confirm your match.' }));
+			setMyInterestStatuses((prev) => new Map([...prev, [puppyId, interestStatus]]));
+			setEligibility((prev) => prev ? { ...prev, hasActivePuppyInterest: true } : prev);
+			if (!requiresPayment) {
+				setConfirmModal({
+					title: 'Puppy Booked!',
+					body: 'Since you have already paid the securing deposit, your puppy is confirmed. We will reach out soon regarding next steps.',
+					requiresPayment: false,
+				});
+			} else {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const amountRands = (data as any).amountRands as number;
+				setConfirmModal({
+					title: 'Puppy Reserved!',
+					body: <>You have <strong>24 hours</strong> to complete payment of <strong>R{amountRands.toLocaleString()}</strong> to secure your booking. Your reservation will expire after that.</>,
+					requiresPayment: true,
+				});
+			}
 		} else {
-			const body = error.value as { message?: string };
+			const body = error?.value as { message?: string };
 			setInterestMessage((prev) => ({ ...prev, [puppyId]: body?.message ?? 'Something went wrong.' }));
 		}
 		setSubmittingInterest(null);
@@ -241,6 +317,10 @@ export function PortalLitterDetail() {
 		if (data) setMyLitterInterest((data as { interested: boolean }).interested);
 		setLitterInterestLoading(false);
 	};
+
+	const myReservedPuppyId = [...myInterestStatuses.entries()].find(([, s]) => s === 'pending')?.[0] ?? null;
+	const myBookedPuppyId = [...myInterestStatuses.entries()].find(([, s]) => s === 'approved')?.[0] ?? null;
+	const myClaimedPuppyId = myBookedPuppyId ?? myReservedPuppyId;
 
 	const isWaitlistedOrLater = !!clientStage && ['waitlisted', 'match_requested', 'matched', 'matched_paid'].includes(clientStage);
 	const isNotified = !!eligibility && eligibility.isNotified;
@@ -341,6 +421,28 @@ export function PortalLitterDetail() {
 						Puppies ({litter.puppies.length})
 					</h2>
 
+					{/* Client's own puppy banner */}
+					{myClaimedPuppyId && (
+						<div className={`mb-4 p-4 rounded-xl border flex items-center gap-3 ${myBookedPuppyId ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+							<span className="text-xl flex-shrink-0">{myBookedPuppyId ? '🎉' : '⏳'}</span>
+							<div>
+								<p className={`text-sm font-semibold ${myBookedPuppyId ? 'text-green-800' : 'text-amber-800'}`}>
+									{myBookedPuppyId ? 'Your puppy is booked in this litter' : 'You have a puppy reserved in this litter'}
+								</p>
+								<p className={`text-xs mt-0.5 ${myBookedPuppyId ? 'text-green-700' : 'text-amber-700'}`}>
+									{myBookedPuppyId
+										? 'Your booking is confirmed — we\'ll be in touch soon with next steps.'
+										: 'Complete your payment within 24 hours to secure this puppy.'}
+								</p>
+							</div>
+							{myReservedPuppyId && !myBookedPuppyId && (
+								<Link to="/portal/payments" className="ml-auto flex-shrink-0 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors">
+									Pay now →
+								</Link>
+							)}
+						</div>
+					)}
+
 					{/* Waitlist eligibility notice */}
 					{user && eligibility && !eligibility.isNotified && eligibility.position !== null && (
 						<div className="mb-4 p-4 rounded-xl border border-amber-200 bg-amber-50">
@@ -361,8 +463,17 @@ export function PortalLitterDetail() {
 							const imgs = (puppy as PuppyWithImages).images ?? [];
 							const imgIdx = puppyImgIndexes[puppy.id] ?? 0;
 
+							const isMyPuppy = puppy.id === myClaimedPuppyId;
+							const isMyBooked = puppy.id === myBookedPuppyId;
+							const isMyReserved = puppy.id === myReservedPuppyId;
+
 							return (
-							<div key={puppy.id} className="bg-white rounded-xl border border-warm-200 overflow-hidden flex flex-col">
+							<div key={puppy.id} className={`rounded-xl border overflow-hidden flex flex-col relative ${isMyBooked ? 'bg-green-50 border-green-300 ring-2 ring-green-300' : isMyReserved ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-300' : 'bg-white border-warm-200'}`}>
+							{isMyPuppy && (
+								<div className={`absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shadow ${isMyBooked ? 'bg-green-500 text-white' : 'bg-amber-500 text-white'}`}>
+									{isMyBooked ? '✓ Your booking' : '⏳ Your reservation'}
+								</div>
+							)}
 								{/* Puppy image carousel */}
 								{imgs.length > 0 && (
 									<div className="relative w-full aspect-square overflow-hidden bg-warm-100 flex-shrink-0">
@@ -422,16 +533,47 @@ export function PortalLitterDetail() {
 									{/* Colour */}
 									<p className="text-sm font-semibold text-warm-900 mb-1 leading-tight">{puppy.colour ?? '—'}</p>
 
-									{/* Status badge */}
-									<div className="mb-3">
-										<PuppyStatusBadge status={puppy.status} />
-									</div>
+									{/* Status badge — hidden for own puppy (overlay badge covers it) */}
+									{!isMyPuppy && (
+										<div className="mb-3">
+											<PuppyStatusBadge status={puppy.status} />
+										</div>
+									)}
+
+									{/* Own-puppy reserved state */}
+									{isMyReserved && (
+										<div className="mt-auto pt-1 space-y-2">
+											<div className="flex items-center gap-1.5">
+												<span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+												<span className="text-xs font-semibold text-amber-700">Reserved — payment pending</span>
+											</div>
+											<Link
+												to="/portal/payments"
+												className="block w-full text-center px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors"
+											>
+												Pay now to confirm →
+											</Link>
+										</div>
+									)}
+
+									{/* Own-puppy booked state */}
+									{isMyBooked && (
+										<div className="mt-auto pt-1">
+											<div className="flex items-center gap-1.5 mb-1">
+												<span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+												<span className="text-xs font-semibold text-green-700">Booking confirmed</span>
+											</div>
+											<p className="text-[10px] text-green-600 leading-snug">We'll be in touch soon with next steps.</p>
+										</div>
+									)}
 
 									{/* CTA */}
 									{puppy.status === 'available' && user && clientStage && (
 										<div className="mt-auto">
 											{myInterestPuppyIds.has(puppy.id) ? (
-												<span className="text-xs text-green-600 font-medium">Interest registered ✓</span>
+												<span className={`text-xs font-medium ${isMyBooked ? 'text-green-600' : isMyReserved ? 'text-amber-700' : 'text-green-600'}`}>
+													{isMyBooked ? 'Booked ✓' : isMyReserved ? 'Reserved — payment pending' : 'Interest registered ✓'}
+												</span>
 											) : interestMessage[puppy.id] ? (
 												<span className="text-xs text-warm-500">{interestMessage[puppy.id]}</span>
 											) : !isWaitlistedOrLater ? (
@@ -476,7 +618,7 @@ export function PortalLitterDetail() {
 													disabled={submittingInterest === puppy.id}
 													className="w-full px-2 py-1.5 bg-brand-500 text-white text-xs rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
 												>
-													{submittingInterest === puppy.id ? 'Reserving…' : 'Reserve'}
+													{submittingInterest === puppy.id ? (isClientR5000 ? 'Booking…' : 'Reserving…') : (isClientR5000 ? 'Book' : 'Reserve')}
 												</button>
 											)}
 										</div>
@@ -513,6 +655,17 @@ export function PortalLitterDetail() {
 				<div className="bg-brand-50 border border-brand-100 rounded-xl p-5">
 					<p className="text-warm-700 text-sm leading-relaxed">{litter.notes}</p>
 				</div>
+			)}
+
+			{/* Confirmation modal */}
+			{!!confirmModal && (
+				<ConfirmationModal
+					title={confirmModal.title}
+					requiresPayment={confirmModal.requiresPayment}
+					onClose={() => setConfirmModal(null)}
+				>
+					{confirmModal.body}
+				</ConfirmationModal>
 			)}
 
 			{/* Lightbox */}
