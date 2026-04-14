@@ -212,6 +212,17 @@ export function AdminClientDetail() {
 	const [finalPrice, setFinalPrice] = useState('');
 	const [requestingFinal, setRequestingFinal] = useState(false);
 	const [finalError, setFinalError] = useState('');
+	const [paymentSummary, setPaymentSummary] = useState<{
+		puppyPriceRands: number | null;
+		shippingRands: number | null;
+		totalPriceRands: number | null;
+		alreadyPaid: number;
+		balanceDue: number | null;
+	} | null>(null);
+	const [instalmentMode, setInstalmentMode] = useState(false);
+	const [instalmentCount, setInstalmentCount] = useState(3);
+	const [customAmounts, setCustomAmounts] = useState(false);
+	const [instalmentAmounts, setInstalmentAmounts] = useState<string[]>([]);
 	const loadTemplates = () => {
 		if (!id) return;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -254,6 +265,10 @@ export function AdminClientDetail() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.payments as any).client({ clientId: id }).get().then(({ data }: { data: Payment[] | null }) => {
 			if (data) setPayments(data);
+		}).catch(() => {});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.payments as any).summary({ clientId: id }).get().then(({ data }: { data: typeof paymentSummary | null }) => {
+			if (data) setPaymentSummary(data);
 		}).catch(() => {});
 		loadTemplates();
 	};
@@ -574,14 +589,13 @@ export function AdminClientDetail() {
 
 			</Card>
 
-			{/* Portal access */}
 			{/* Payments */}
 			<Card id="payments" className="p-5 mb-6 scroll-mt-6">
 				<div className="flex items-center justify-between mb-4">
 					<h3 className="font-medium text-warm-900">Payments</h3>
 					{client.stage === 'puppy_booked' && (
 						<button
-							onClick={() => { setFinalPrice(''); setFinalError(''); setShowFinalPaymentModal(true); }}
+							onClick={() => { setFinalPrice(''); setFinalError(''); setInstalmentMode(false); setShowFinalPaymentModal(true); }}
 							className="px-3 py-1.5 bg-warm-900 hover:bg-warm-700 text-white text-xs font-medium rounded-lg transition-colors"
 						>
 							Request Final Payment
@@ -589,12 +603,48 @@ export function AdminClientDetail() {
 					)}
 				</div>
 
+				{/* Payment Summary Card — shown for puppy_booked clients with pricing set */}
+				{client.stage === 'puppy_booked' && paymentSummary && paymentSummary.puppyPriceRands != null && (
+					<div className="mb-5 p-4 bg-warm-50 rounded-xl border border-warm-200">
+						<h4 className="text-xs font-semibold text-warm-500 uppercase tracking-wide mb-3">Payment Summary</h4>
+						<div className="space-y-1.5 text-sm">
+							<div className="flex justify-between">
+								<span className="text-warm-600">Puppy price</span>
+								<span className="font-medium text-warm-900">R{paymentSummary.puppyPriceRands.toLocaleString()}</span>
+							</div>
+							{(paymentSummary.shippingRands ?? 0) > 0 && (
+								<div className="flex justify-between">
+									<span className="text-warm-600">Shipping</span>
+									<span className="font-medium text-warm-900">R{(paymentSummary.shippingRands ?? 0).toLocaleString()}</span>
+								</div>
+							)}
+							<div className="flex justify-between border-t border-warm-200 pt-1.5">
+								<span className="font-medium text-warm-700">Total</span>
+								<span className="font-bold text-warm-900">R{(paymentSummary.totalPriceRands ?? 0).toLocaleString()}</span>
+							</div>
+							<div className="flex justify-between text-warm-500">
+								<span>Already paid</span>
+								<span>-R{paymentSummary.alreadyPaid.toLocaleString()}</span>
+							</div>
+							<div className="flex justify-between border-t border-warm-200 pt-1.5">
+								<span className="font-semibold text-warm-700">Balance due</span>
+								<span className="font-bold text-warm-900">R{(paymentSummary.balanceDue ?? 0).toLocaleString()}</span>
+							</div>
+						</div>
+					</div>
+				)}
+
 				{payments.length === 0 ? (
 					<p className="text-sm text-warm-400">No payment records yet.</p>
 				) : (
 					<div className="divide-y divide-black/[0.05]">
 						{payments.map((p) => {
-							const typeLabel = p.type === 'deposit' ? 'Deposit' : p.type === 'booking' ? 'Booking Deposit' : 'Final Payment';
+							const meta = p.metadata as Record<string, unknown>;
+							const isInstalment = !!meta.isInstalment;
+							const typeLabel = p.type === 'deposit' ? 'Deposit'
+								: p.type === 'booking' ? 'Booking Deposit'
+								: isInstalment ? `Final Payment (${Number(meta.instalmentIndex) + 1} of ${meta.instalmentTotal})`
+								: 'Final Payment';
 							const statusStyles: Record<Payment['status'], string> = {
 								pending: 'bg-amber-100 text-amber-700',
 								complete: 'bg-green-100 text-green-700',
@@ -606,7 +656,7 @@ export function AdminClientDetail() {
 								: null;
 							return (
 								<div key={p.id} className="py-3 flex items-center justify-between gap-4">
-									<div>
+									<div className="min-w-0 flex-1">
 										<div className="flex items-center gap-2">
 											<p className="text-sm font-medium text-warm-900">
 												R{p.amountRands.toLocaleString()} — {typeLabel}
@@ -624,6 +674,18 @@ export function AdminClientDetail() {
 											)}
 										</p>
 									</div>
+									{p.status === 'pending' && p.type === 'final' && (
+										<button
+											onClick={async () => {
+												// eslint-disable-next-line @typescript-eslint/no-explicit-any
+												await (api.payments as any)({ id: p.id })['mark-paid'].patch();
+												load();
+											}}
+											className="px-2.5 py-1 text-xs font-medium bg-warm-100 text-warm-600 hover:bg-warm-200 rounded-lg transition-colors flex-shrink-0"
+										>
+											Mark paid
+										</button>
+									)}
 								</div>
 							);
 						})}
@@ -631,7 +693,7 @@ export function AdminClientDetail() {
 				)}
 			</Card>
 
-			{/* Final payment modal */}
+			{/* Final payment / instalment modal */}
 			{showFinalPaymentModal && (
 				<div
 					className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -642,38 +704,169 @@ export function AdminClientDetail() {
 						role="dialog"
 						aria-modal="true"
 						aria-labelledby="modal-title"
-						className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+						className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto"
 						onClick={(e) => e.stopPropagation()}
 					>
-						<h2 id="modal-title" className="font-serif text-lg font-bold text-warm-900 mb-1">Request Final Payment</h2>
-						<p className="text-sm text-warm-500 mb-5">Enter the total puppy price. The system will subtract any deposits already paid and send the client a payment link for the balance.</p>
+						<h2 id="modal-title" className="font-serif text-lg font-bold text-warm-900 mb-1">
+							{instalmentMode ? 'Create Instalment Plan' : 'Request Final Payment'}
+						</h2>
+						<p className="text-sm text-warm-500 mb-4">
+							{instalmentMode
+								? 'Split the remaining balance into multiple payments. Each instalment gets its own payment link.'
+								: 'Send the client a single payment link for the remaining balance.'}
+						</p>
 
-						{payments.filter(p => p.status === 'complete').length > 0 && (
-							<div className="mb-4 p-3 bg-warm-50 rounded-lg text-sm text-warm-600">
-								Already paid: <span className="font-semibold text-warm-900">
-									R{payments.filter(p => p.status === 'complete').reduce((sum, p) => sum + p.amountRands, 0).toLocaleString()}
-								</span>
+						{/* Summary */}
+						{paymentSummary && paymentSummary.puppyPriceRands != null && (
+							<div className="mb-4 p-3 bg-warm-50 rounded-lg text-sm space-y-1">
+								<div className="flex justify-between text-warm-600">
+									<span>Puppy price</span>
+									<span>R{paymentSummary.puppyPriceRands.toLocaleString()}</span>
+								</div>
+								{(paymentSummary.shippingRands ?? 0) > 0 && (
+									<div className="flex justify-between text-warm-600">
+										<span>Shipping</span>
+										<span>R{(paymentSummary.shippingRands ?? 0).toLocaleString()}</span>
+									</div>
+								)}
+								<div className="flex justify-between font-medium text-warm-800 border-t border-warm-200 pt-1">
+									<span>Total</span>
+									<span>R{(paymentSummary.totalPriceRands ?? 0).toLocaleString()}</span>
+								</div>
+								<div className="flex justify-between text-warm-500">
+									<span>Paid</span>
+									<span>-R{paymentSummary.alreadyPaid.toLocaleString()}</span>
+								</div>
+								<div className="flex justify-between font-semibold text-warm-900 border-t border-warm-200 pt-1">
+									<span>Balance due</span>
+									<span>R{(paymentSummary.balanceDue ?? 0).toLocaleString()}</span>
+								</div>
 							</div>
 						)}
 
-						<label className="block text-sm font-medium text-warm-700 mb-1.5">
-							Total puppy price (R)
-						</label>
-						<input
-							type="number"
-							min="1"
-							value={finalPrice}
-							onChange={(e) => setFinalPrice(e.target.value)}
-							placeholder="e.g. 25000"
-							className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm text-warm-900 focus:outline-none focus:ring-2 focus:ring-brand-300 mb-1"
-						/>
-						{finalPrice && !isNaN(Number(finalPrice)) && (
-							<p className="text-xs text-warm-500 mb-4">
-								Balance due: <span className="font-semibold text-warm-900">
-									R{Math.max(0, Number(finalPrice) - payments.filter(p => p.status === 'complete').reduce((sum, p) => sum + p.amountRands, 0)).toLocaleString()}
-								</span>
-							</p>
+						{/* Manual override — only if no auto price */}
+						{(!paymentSummary || paymentSummary.puppyPriceRands == null) && !instalmentMode && (
+							<>
+								<label className="block text-sm font-medium text-warm-700 mb-1.5">Total puppy price (R)</label>
+								<input
+									type="number"
+									min="1"
+									value={finalPrice}
+									onChange={(e) => setFinalPrice(e.target.value)}
+									placeholder="e.g. 25000"
+									className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm text-warm-900 focus:outline-none focus:ring-2 focus:ring-brand-300 mb-3"
+								/>
+							</>
 						)}
+
+						{/* Mode toggle */}
+						<div className="flex gap-2 mb-4">
+							<button
+								onClick={() => setInstalmentMode(false)}
+								className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${!instalmentMode ? 'bg-warm-900 text-white border-warm-900' : 'bg-white text-warm-600 border-warm-200 hover:bg-warm-50'}`}
+							>
+								Full Payment
+							</button>
+							<button
+								onClick={() => {
+									setInstalmentMode(true);
+									setCustomAmounts(false);
+									setInstalmentCount(3);
+								}}
+								className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${instalmentMode ? 'bg-warm-900 text-white border-warm-900' : 'bg-white text-warm-600 border-warm-200 hover:bg-warm-50'}`}
+							>
+								Instalments
+							</button>
+						</div>
+
+						{/* Instalment config */}
+						{instalmentMode && (() => {
+							const balance = paymentSummary?.balanceDue ?? (finalPrice ? Number(finalPrice) - (paymentSummary?.alreadyPaid ?? 0) : 0);
+							if (balance <= 0) return <p className="text-sm text-warm-400 mb-3">No balance due.</p>;
+
+							return (
+								<div className="mb-4">
+									<div className="flex items-center gap-3 mb-3">
+										<label className="text-sm text-warm-700">Split into</label>
+										<select
+											value={customAmounts ? 'custom' : instalmentCount}
+											onChange={(e) => {
+												if (e.target.value === 'custom') {
+													setCustomAmounts(true);
+													setInstalmentAmounts(['', '']);
+												} else {
+													setCustomAmounts(false);
+													setInstalmentCount(Number(e.target.value));
+												}
+											}}
+											className="px-2.5 py-1.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+										>
+											{[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+												<option key={n} value={n}>{n} equal parts</option>
+											))}
+											<option value="custom">Custom amounts</option>
+										</select>
+									</div>
+
+									{!customAmounts ? (
+										<div className="space-y-1 text-sm">
+											{Array.from({ length: instalmentCount }, (_, i) => {
+												const amount = i < instalmentCount - 1
+													? Math.floor(balance / instalmentCount)
+													: balance - Math.floor(balance / instalmentCount) * (instalmentCount - 1);
+												return (
+													<div key={i} className="flex justify-between px-3 py-1.5 bg-warm-50 rounded-lg">
+														<span className="text-warm-600">Instalment {i + 1}</span>
+														<span className="font-medium text-warm-900">R{amount.toLocaleString()}</span>
+													</div>
+												);
+											})}
+										</div>
+									) : (
+										<div className="space-y-2">
+											{instalmentAmounts.map((amt, i) => (
+												<div key={i} className="flex items-center gap-2">
+													<span className="text-xs text-warm-500 w-6">{i + 1}.</span>
+													<input
+														type="number"
+														min="1"
+														value={amt}
+														onChange={(e) => {
+															const next = [...instalmentAmounts];
+															next[i] = e.target.value;
+															setInstalmentAmounts(next);
+														}}
+														placeholder="Amount (R)"
+														className="flex-1 px-3 py-1.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+													/>
+													{instalmentAmounts.length > 2 && (
+														<button
+															onClick={() => setInstalmentAmounts((a) => a.filter((_, j) => j !== i))}
+															className="text-warm-400 hover:text-red-500 text-xs"
+														>Remove</button>
+													)}
+												</div>
+											))}
+											{instalmentAmounts.length < 12 && (
+												<button
+													onClick={() => setInstalmentAmounts((a) => [...a, ''])}
+													className="text-xs text-brand-600 hover:text-brand-700"
+												>+ Add instalment</button>
+											)}
+											{(() => {
+												const total = instalmentAmounts.reduce((s, a) => s + (Number(a) || 0), 0);
+												const diff = balance - total;
+												return (
+													<p className={`text-xs mt-1 ${Math.abs(diff) <= 1 ? 'text-green-600' : 'text-amber-600'}`}>
+														Total: R{total.toLocaleString()} {diff > 1 ? `(R${diff.toLocaleString()} remaining)` : diff < -1 ? `(R${Math.abs(diff).toLocaleString()} over)` : ''}
+													</p>
+												);
+											})()}
+										</div>
+									)}
+								</div>
+							);
+						})()}
 
 						{finalError && <p role="alert" className="text-red-600 text-sm mb-3">{finalError}</p>}
 
@@ -686,28 +879,53 @@ export function AdminClientDetail() {
 							</button>
 							<button
 								onClick={async () => {
-									if (!finalPrice || isNaN(Number(finalPrice)) || Number(finalPrice) <= 0) {
-										setFinalError('Please enter a valid price.');
-										return;
-									}
 									setRequestingFinal(true);
 									setFinalError('');
 									try {
-										// eslint-disable-next-line @typescript-eslint/no-explicit-any
-										const { error: apiErr } = await (api.payments as any).final({ clientId: client!.id }).post({
-											totalPriceRands: Number(finalPrice),
-										});
-										if (apiErr) { setFinalError('Failed to request payment. Please try again.'); }
-										else { setShowFinalPaymentModal(false); load(); }
+										if (instalmentMode) {
+											const balance = paymentSummary?.balanceDue ?? (finalPrice ? Number(finalPrice) - (paymentSummary?.alreadyPaid ?? 0) : 0);
+											let amounts: number[];
+											if (customAmounts) {
+												amounts = instalmentAmounts.map((a) => Number(a)).filter((a) => a > 0);
+												if (amounts.length < 2) { setFinalError('At least 2 instalments required.'); setRequestingFinal(false); return; }
+												const total = amounts.reduce((s, a) => s + a, 0);
+												if (Math.abs(total - balance) > 1) { setFinalError('Amounts must add up to the balance due.'); setRequestingFinal(false); return; }
+											} else {
+												amounts = Array.from({ length: instalmentCount }, (_, i) =>
+													i < instalmentCount - 1
+														? Math.floor(balance / instalmentCount)
+														: balance - Math.floor(balance / instalmentCount) * (instalmentCount - 1),
+												);
+											}
+											// eslint-disable-next-line @typescript-eslint/no-explicit-any
+											const { error: apiErr } = await (api.payments as any).final({ clientId: client!.id }).instalments.post({
+												amounts,
+												...(paymentSummary?.totalPriceRands == null && finalPrice ? { totalPriceRands: Number(finalPrice) } : {}),
+											});
+											if (apiErr) { setFinalError('Failed to create instalment plan. Please try again.'); }
+											else { setShowFinalPaymentModal(false); load(); }
+										} else {
+											const body: Record<string, unknown> = {};
+											if (paymentSummary?.totalPriceRands == null) {
+												if (!finalPrice || isNaN(Number(finalPrice)) || Number(finalPrice) <= 0) {
+													setFinalError('Please enter a valid price.'); setRequestingFinal(false); return;
+												}
+												body.totalPriceRands = Number(finalPrice);
+											}
+											// eslint-disable-next-line @typescript-eslint/no-explicit-any
+											const { error: apiErr } = await (api.payments as any).final({ clientId: client!.id }).post(body);
+											if (apiErr) { setFinalError('Failed to request payment. Please try again.'); }
+											else { setShowFinalPaymentModal(false); load(); }
+										}
 									} catch {
-										setFinalError('Failed to request payment. Please try again.');
+										setFinalError('Failed to process request. Please try again.');
 									}
 									setRequestingFinal(false);
 								}}
 								disabled={requestingFinal}
 								className="flex-1 px-4 py-2.5 bg-warm-900 hover:bg-warm-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
 							>
-								{requestingFinal ? 'Sending…' : 'Send payment request'}
+								{requestingFinal ? 'Sending…' : instalmentMode ? 'Create instalment plan' : 'Send payment request'}
 							</button>
 						</div>
 					</div>

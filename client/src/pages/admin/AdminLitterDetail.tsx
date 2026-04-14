@@ -56,7 +56,7 @@ export function AdminLitterDetail() {
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [formError, setFormError] = useState('');
-	const [newPuppy, setNewPuppy] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
+	const [newPuppy, setNewPuppy] = useState({ collarColour: '', sex: 'male' as const, colour: '', priceRands: '' });
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleting, setDeleting] = useState(false);
 	const [deleteBlocking, setDeleteBlocking] = useState<string[] | null>(null);
@@ -92,8 +92,8 @@ export function AdminLitterDetail() {
 	const [newPuppyImageFiles, setNewPuppyImageFiles] = useState<File[]>([]);
 
 	// New-litter form state
-	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; selectionDate: string; goHomeDate: string; notes: string; isPublic: boolean }>({
-		name: '', breedKey: '', sizeKey: '', status: 'planned', selectionDate: '', goHomeDate: '', notes: '', isPublic: false,
+	const [newForm, setNewForm] = useState<{ name: string; breedKey: string; sizeKey: string; status: string; selectionDate: string; goHomeDate: string; notes: string; isPublic: boolean; shippingRands: string; dateOfBirth: string; estimatedAdultWeightKg: string; estimatedAdultHeightCm: string }>({
+		name: '', breedKey: '', sizeKey: '', status: 'planned', selectionDate: '', goHomeDate: '', notes: '', isPublic: false, shippingRands: '', dateOfBirth: '', estimatedAdultWeightKg: '', estimatedAdultHeightCm: '',
 	});
 	const [availableWarning, setAvailableWarning] = useState(false);
 	const [galleryImages, setGalleryImages] = useState<LitterImage[]>([]);
@@ -101,8 +101,8 @@ export function AdminLitterDetail() {
 	const [galleryUploading, setGalleryUploading] = useState(false);
 	const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
 	const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
-	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string; imageFiles?: File[] }>>([]);
-	const [newPuppyDraft, setNewPuppyDraft] = useState({ collarColour: '', sex: 'male' as const, colour: '' });
+	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string; priceRands: string; imageFiles?: File[] }>>([]);
+	const [newPuppyDraft, setNewPuppyDraft] = useState({ collarColour: '', sex: 'male' as const, colour: '', priceRands: '' });
 
 	useEffect(() => {
 		if (!id) return;
@@ -176,8 +176,16 @@ export function AdminLitterDetail() {
 			setFormError('Reserve date must be a future date when status is Planned.');
 			return;
 		}
+		if (newForm.status === 'available' && newForm.selectionDate > today) {
+			setFormError('Reserve date must be today or earlier when status is Available.');
+			return;
+		}
 		if (newForm.goHomeDate && newForm.goHomeDate < newForm.selectionDate) {
 			setFormError('Go-home date must be on or after the reserve date.');
+			return;
+		}
+		if (newForm.dateOfBirth && newForm.dateOfBirth > newForm.selectionDate) {
+			setFormError('Date of birth must be on or before the reserve date.');
 			return;
 		}
 		setSaving(true);
@@ -191,6 +199,10 @@ export function AdminLitterDetail() {
 				...(newForm.goHomeDate ? { goHomeDate: newForm.goHomeDate } : {}),
 				...(newForm.notes ? { notes: newForm.notes } : {}),
 				isPublic: newForm.isPublic,
+				...(newForm.shippingRands ? { shippingRands: Number(newForm.shippingRands) } : {}),
+				...(newForm.dateOfBirth ? { dateOfBirth: newForm.dateOfBirth } : {}),
+				...(newForm.estimatedAdultWeightKg ? { estimatedAdultWeightKg: Number(newForm.estimatedAdultWeightKg) } : {}),
+				...(newForm.estimatedAdultHeightCm ? { estimatedAdultHeightCm: Number(newForm.estimatedAdultHeightCm) } : {}),
 			});
 			if (error) { setFormError('Failed to save. Please try again.'); return; }
 			if (data) {
@@ -210,6 +222,7 @@ export function AdminLitterDetail() {
 						collarColour: puppy.collarColour,
 						sex: puppy.sex,
 						colour: puppy.colour,
+						...(puppy.priceRands ? { priceRands: Number(puppy.priceRands) } : {}),
 					});
 					if (puppyData && puppy.imageFiles && puppy.imageFiles.length > 0) {
 						const created = puppyData as { id: string };
@@ -268,7 +281,12 @@ export function AdminLitterDetail() {
 		if (!id || !newPuppy.collarColour || !newPuppy.colour) return;
 		setAddingPuppy(true);
 		setAddPuppyError('');
-		const { data, error: puppyErr } = await api.litters({ id }).puppies.post(newPuppy);
+		const { data, error: puppyErr } = await api.litters({ id }).puppies.post({
+			collarColour: newPuppy.collarColour,
+			sex: newPuppy.sex,
+			colour: newPuppy.colour,
+			...(newPuppy.priceRands ? { priceRands: Number(newPuppy.priceRands) } : {}),
+		});
 		if (puppyErr || !data) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const msg = (puppyErr as any)?.value?.message;
@@ -293,7 +311,7 @@ export function AdminLitterDetail() {
 					[created.id]: [...(prev[created.id] ?? []), ...uploadedImages],
 				}));
 			}
-			setNewPuppy({ collarColour: '', sex: 'male', colour: '' });
+			setNewPuppy({ collarColour: '', sex: 'male', colour: '', priceRands: '' });
 		}
 		setAddingPuppy(false);
 	};
@@ -565,11 +583,15 @@ export function AdminLitterDetail() {
 								type="date"
 								value={newForm.selectionDate}
 								min={newForm.status === 'planned' ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })() : undefined}
+								max={newForm.status === 'available' ? new Date().toISOString().slice(0, 10) : undefined}
 								onChange={(e) => setF('selectionDate', e.target.value)}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
 							/>
 							{newForm.status === 'planned' && newForm.selectionDate && newForm.selectionDate <= new Date().toISOString().slice(0, 10) && (
 								<p className="text-[11px] text-red-500 mt-1">Must be a future date when status is Planned.</p>
+							)}
+							{newForm.status === 'available' && newForm.selectionDate && newForm.selectionDate > new Date().toISOString().slice(0, 10) && (
+								<p className="text-[11px] text-red-500 mt-1">Must be today or earlier when status is Available.</p>
 							)}
 						</div>
 						<div>
@@ -580,6 +602,55 @@ export function AdminLitterDetail() {
 								onChange={(e) => setF('goHomeDate', e.target.value)}
 								min={newForm.selectionDate || undefined}
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none"
+							/>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Shipping Cost (R)</label>
+							<input
+								type="number"
+								min="0"
+								step="100"
+								value={newForm.shippingRands}
+								onChange={(e) => setNewForm((f) => ({ ...f, shippingRands: e.target.value }))}
+								placeholder="0"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Date of Birth</label>
+							<input
+								type="date"
+								value={newForm.dateOfBirth}
+								max={newForm.selectionDate || undefined}
+								onChange={(e) => setNewForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+							{newForm.dateOfBirth && newForm.selectionDate && newForm.dateOfBirth > newForm.selectionDate && (
+								<p className="text-[11px] text-red-500 mt-1">Must be on or before the reserve date.</p>
+							)}
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Est. Adult Weight (kg)</label>
+							<input
+								type="number"
+								min="0"
+								step="0.5"
+								value={newForm.estimatedAdultWeightKg}
+								onChange={(e) => setNewForm((f) => ({ ...f, estimatedAdultWeightKg: e.target.value }))}
+								placeholder="e.g. 12"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+							/>
+						</div>
+						<div>
+							<label className="block text-xs font-medium text-warm-500 mb-1">Est. Adult Height (cm)</label>
+							<input
+								type="number"
+								min="0"
+								step="1"
+								value={newForm.estimatedAdultHeightCm}
+								onChange={(e) => setNewForm((f) => ({ ...f, estimatedAdultHeightCm: e.target.value }))}
+								placeholder="e.g. 35"
+								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 						</div>
 						<div className="col-span-2">
@@ -662,6 +733,7 @@ export function AdminLitterDetail() {
 												)}
 												<span className="w-3 h-3 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
 												<span className="text-warm-700">{p.colour} {p.sex}</span>
+												{p.priceRands && <span className="text-warm-500 text-xs">R{Number(p.priceRands).toLocaleString()}</span>}
 												<button
 													type="button"
 													onClick={() => setPendingPuppies((list) => list.filter((_, j) => j !== i))}
@@ -719,6 +791,15 @@ export function AdminLitterDetail() {
 										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, colour: e.target.value }))}
 										className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 									/>
+									<input
+										type="number"
+										min="0"
+										step="500"
+										placeholder="Price (R)"
+										value={newPuppyDraft.priceRands}
+										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, priceRands: e.target.value }))}
+										className="w-28 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+									/>
 									<select
 										value={newPuppyDraft.sex}
 										onChange={(e) => setNewPuppyDraft((p) => ({ ...p, sex: e.target.value as 'male' | 'female' }))}
@@ -732,7 +813,7 @@ export function AdminLitterDetail() {
 										onClick={() => {
 											if (!newPuppyDraft.collarColour || !newPuppyDraft.colour) return;
 											setPendingPuppies((p) => [...p, { ...newPuppyDraft, imageFiles: newPuppyDraftImageFiles.length > 0 ? [...newPuppyDraftImageFiles] : undefined }]);
-											setNewPuppyDraft({ collarColour: '', sex: 'male', colour: '' });
+											setNewPuppyDraft({ collarColour: '', sex: 'male', colour: '', priceRands: '' });
 											setNewPuppyDraftImageFiles([]);
 										}}
 										className="px-4 py-2 bg-warm-100 text-warm-700 text-sm rounded-lg hover:bg-warm-200 transition-colors"
@@ -888,12 +969,14 @@ export function AdminLitterDetail() {
 									type="date"
 									defaultValue={litter.selectionDate ? new Date(litter.selectionDate as unknown as string).toISOString().slice(0, 10) : ''}
 									min={litter.status === 'planned' ? (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })() : undefined}
+									max={litter.status === 'available' ? new Date().toISOString().slice(0, 10) : undefined}
 									onChange={async (e) => {
 										if (!id) return;
 										const value = e.target.value;
 										if (!value) return;
 										const todayStr = new Date().toISOString().slice(0, 10);
 										if (litter.status === 'planned' && value <= todayStr) return;
+										if (litter.status === 'available' && value > todayStr) return;
 										await api.litters({ id }).patch({ selectionDate: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
 										setLitter((l) => l ? { ...l, selectionDate: value as unknown as Date } : l);
 									}}
@@ -924,7 +1007,78 @@ export function AdminLitterDetail() {
 						</div>
 						<div className="flex justify-between">
 							<span className="text-warm-500">Deposit</span>
-							<span>{litter.depositAmount ? `R${litter.depositAmount}` : '—'}</span>
+							<span>{litter.depositAmount ? `R${litter.depositAmount.toLocaleString()}` : '—'}</span>
+						</div>
+						<div className="flex justify-between items-center">
+							<span className="text-warm-500">Shipping</span>
+							<input
+								type="number"
+								min="0"
+								step="100"
+								defaultValue={litter.shippingRands ?? 0}
+								onBlur={async (e) => {
+									if (!id) return;
+									const value = e.target.value ? Number(e.target.value) : 0;
+									await api.litters({ id }).patch({ shippingRands: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+									setLitter((l) => l ? { ...l, shippingRands: value } : l);
+								}}
+								className="w-28 px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-right text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors"
+							/>
+						</div>
+						<div className="flex justify-between items-center">
+							<span className="text-warm-500">Date of birth</span>
+							<input
+								type="date"
+								defaultValue={litter.dateOfBirth ?? ''}
+								max={litter.selectionDate ? new Date(litter.selectionDate as unknown as string).toISOString().slice(0, 10) : undefined}
+								onChange={async (e) => {
+									if (!id) return;
+									const value = e.target.value || null;
+									await api.litters({ id }).patch({ dateOfBirth: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+									setLitter((l) => l ? { ...l, dateOfBirth: value } : l);
+								}}
+								className="px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors cursor-pointer"
+							/>
+						</div>
+						<div className="flex justify-between items-center">
+							<span className="text-warm-500">Est. adult weight</span>
+							<div className="flex items-center gap-1">
+								<input
+									type="number"
+									min="0"
+									step="0.5"
+									defaultValue={litter.estimatedAdultWeightKg ?? ''}
+									onBlur={async (e) => {
+										if (!id) return;
+										const value = e.target.value ? Number(e.target.value) : null;
+										await api.litters({ id }).patch({ estimatedAdultWeightKg: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+										setLitter((l) => l ? { ...l, estimatedAdultWeightKg: value } : l);
+									}}
+									placeholder="—"
+									className="w-20 px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-right text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors"
+								/>
+								<span className="text-xs text-warm-400">kg</span>
+							</div>
+						</div>
+						<div className="flex justify-between items-center">
+							<span className="text-warm-500">Est. adult height</span>
+							<div className="flex items-center gap-1">
+								<input
+									type="number"
+									min="0"
+									step="1"
+									defaultValue={litter.estimatedAdultHeightCm ?? ''}
+									onBlur={async (e) => {
+										if (!id) return;
+										const value = e.target.value ? Number(e.target.value) : null;
+										await api.litters({ id }).patch({ estimatedAdultHeightCm: value } as Parameters<ReturnType<typeof api.litters>['patch']>[0]);
+										setLitter((l) => l ? { ...l, estimatedAdultHeightCm: value } : l);
+									}}
+									placeholder="—"
+									className="w-20 px-2.5 py-1 border border-warm-200 rounded-lg text-sm text-right text-warm-800 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors"
+								/>
+								<span className="text-xs text-warm-400">cm</span>
+							</div>
 						</div>
 					</div>
 				</Card>
@@ -967,7 +1121,7 @@ export function AdminLitterDetail() {
 					<EmptyState icon="🐶" title="No puppies recorded yet" />
 				) : (
 					<div className="divide-y divide-black/[0.05]">
-						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; currentWeight: number | null; bookingExpiresAt: string | null; client: { id: string; firstName: string; lastName: string } | null }>).map((p) => {
+						{(litter.puppies as Array<{ id: string; collarColour: string; sex: string; colour: string; status: string; priceRands: number | null; currentWeight: number | null; bookingExpiresAt: string | null; client: { id: string; firstName: string; lastName: string } | null }>).map((p) => {
 							const pendingInterests = puppyInterests.filter((i) => i.puppyId === p.id && i.status === 'pending');
 							const allInterests = puppyInterests.filter((i) => i.puppyId === p.id);
 							const isExpanded = expandedPuppy === p.id;
@@ -1043,6 +1197,21 @@ export function AdminLitterDetail() {
 											)}
 										</div>
 										<span className="w-4 h-4 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
+										<input
+											type="number"
+											min="0"
+											step="500"
+											defaultValue={p.priceRands ?? ''}
+											placeholder="R"
+											onBlur={async (e) => {
+												const value = e.target.value ? Number(e.target.value) : null;
+												if (value === p.priceRands) return;
+												await api.litters.puppies({ puppyId: p.id }).patch({ priceRands: value } as Parameters<ReturnType<typeof api.litters.puppies>['patch']>[0]);
+												setLitter((l) => l ? { ...l, puppies: l.puppies.map((pp: Record<string, unknown>) => pp.id === p.id ? { ...pp, priceRands: value } : pp) } : l);
+											}}
+											className="w-24 px-2 py-0.5 text-xs border border-warm-200 rounded-md text-warm-600 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors flex-shrink-0"
+											title="Puppy price (R)"
+										/>
 										<span className="text-sm font-medium text-warm-800 flex-1">
 											{p.colour} · {p.sex}
 											{!!p.client && (
@@ -1181,7 +1350,7 @@ export function AdminLitterDetail() {
 					) : (
 						<>
 							<p className="text-xs font-medium text-warm-500 uppercase tracking-wide mb-3">Add puppy</p>
-							<div className="flex gap-2 items-start">
+							<div className="flex flex-wrap gap-2 items-start">
 								<div className="flex flex-wrap gap-1">
 									{newPuppyImageFiles.map((f, idx) => (
 										<div key={idx} className="relative w-9 h-9 flex-shrink-0">
@@ -1199,7 +1368,7 @@ export function AdminLitterDetail() {
 								<select
 									value={newPuppy.collarColour}
 									onChange={(e) => setNewPuppy((p) => ({ ...p, collarColour: e.target.value }))}
-									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+									className="min-w-[120px] flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 								>
 									<option value="">Collar colour</option>
 									{COLLAR_COLOURS.map((c) => (
@@ -1210,7 +1379,16 @@ export function AdminLitterDetail() {
 									placeholder="Puppy description"
 									value={newPuppy.colour}
 									onChange={(e) => setNewPuppy((p) => ({ ...p, colour: e.target.value }))}
-									className="flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+									className="min-w-[120px] flex-1 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
+								/>
+								<input
+									type="number"
+									min="0"
+									step="500"
+									placeholder="Price (R)"
+									value={newPuppy.priceRands}
+									onChange={(e) => setNewPuppy((p) => ({ ...p, priceRands: e.target.value }))}
+									className="w-28 px-3 py-2 text-sm border border-warm-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-300"
 								/>
 								<select
 									value={newPuppy.sex}

@@ -74,11 +74,13 @@ function ClientActionCenter({
 	templates,
 	pendingNotifications,
 	pendingBookingPayment,
+	pendingDepositPayment,
 }: {
 	client: Client;
 	templates: TemplateItem[] | null;
 	pendingNotifications: PendingNotification[];
-	pendingBookingPayment: { amountRands: number; expiresAt: string | null; authorizationUrl: string | null } | null;
+	pendingBookingPayment: { amountRands: number; expiresAt: string | null; authorizationUrl: string | null; paymentType: 'booking' | 'final'; isInstalment: boolean; instalmentIndex: number | null; instalmentTotal: number | null } | null;
+	pendingDepositPayment: { amountRands: number; authorizationUrl: string | null } | null;
 }) {
 	const [dismissed, setDismissed] = useState<Set<string>>(() => {
 		try {
@@ -108,9 +110,29 @@ function ClientActionCenter({
 		const urgencyLabel = hoursLeft !== null
 			? ` — ${hoursLeft}h left`
 			: '';
+
+		let paymentLabel: string;
+		if (pendingBookingPayment.paymentType === 'booking') {
+			paymentLabel = 'Booking deposit';
+		} else if (pendingBookingPayment.isInstalment && pendingBookingPayment.instalmentIndex !== null && pendingBookingPayment.instalmentTotal !== null) {
+			paymentLabel = `Instalment ${pendingBookingPayment.instalmentIndex + 1} of ${pendingBookingPayment.instalmentTotal}`;
+		} else {
+			paymentLabel = 'Final payment';
+		}
+
 		actions.push({
 			type: 'link',
-			label: `💳 Payment required: R${pendingBookingPayment.amountRands.toLocaleString()}${urgencyLabel}`,
+			label: `💳 ${paymentLabel}: R${pendingBookingPayment.amountRands.toLocaleString()}${urgencyLabel}`,
+			to: '/portal/payments',
+			color: 'amber',
+		});
+	}
+
+	// Pending deposit payment (failed/abandoned from apply flow or portal)
+	if (pendingDepositPayment) {
+		actions.push({
+			type: 'link',
+			label: `💳 Deposit payment pending: R${pendingDepositPayment.amountRands.toLocaleString()} — complete it to secure your spot`,
 			to: '/portal/payments',
 			color: 'amber',
 		});
@@ -179,7 +201,7 @@ function ClientActionCenter({
 		});
 	}
 
-	if (client.stage === 'puppy_booked') {
+	if (client.stage === 'puppy_booked' && !pendingBookingPayment) {
 		actions.push({
 			type: 'status',
 			label: 'Your puppy is booked — congratulations! We\'ll be in touch regarding next steps.',
@@ -591,7 +613,8 @@ export function PortalDashboard() {
 	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
 	const [templates, setTemplates] = useState<TemplateItem[] | null>(null);
 	const [pendingNotifications, setPendingNotifications] = useState<PendingNotification[]>([]);
-	const [pendingBookingPayment, setPendingBookingPayment] = useState<{ amountRands: number; expiresAt: string | null; authorizationUrl: string | null } | null>(null);
+	const [pendingBookingPayment, setPendingBookingPayment] = useState<{ amountRands: number; expiresAt: string | null; authorizationUrl: string | null; paymentType: 'booking' | 'final'; isInstalment: boolean; instalmentIndex: number | null; instalmentTotal: number | null } | null>(null);
+	const [pendingDepositPayment, setPendingDepositPayment] = useState<{ amountRands: number; authorizationUrl: string | null } | null>(null);
 	const setClientStage = useAuthStore(s => s.setClientStage);
 	const mountedRef = useRef(true);
 
@@ -623,16 +646,33 @@ export function PortalDashboard() {
 						if (mountedRef.current && notifs) setPendingNotifications(notifs);
 					}).catch(() => {});
 				}
-				// Check for any pending booking or final payments
+				// Check for any pending booking, final, or deposit payments
 				api.payments.mine.get().then(({ data: pmts }) => {
 					if (!mountedRef.current || !pmts) return;
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					const pending = (pmts as any[]).find((p: any) => p.status === 'pending' && (p.type === 'booking' || p.type === 'final'));
-					if (pending) {
+					const allPayments = pmts as any[];
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					const pendingBooking = allPayments.find((p: any) => p.status === 'pending' && (p.type === 'booking' || p.type === 'final'));
+					if (pendingBooking) {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						const meta = (pendingBooking.metadata ?? {}) as any;
 						setPendingBookingPayment({
-							amountRands: pending.amountRands,
-							expiresAt: pending.expiresAt ?? null,
-							authorizationUrl: pending.authorizationUrl ?? null,
+							amountRands: pendingBooking.amountRands,
+							expiresAt: pendingBooking.expiresAt ?? null,
+							authorizationUrl: pendingBooking.authorizationUrl ?? null,
+							paymentType: pendingBooking.type,
+							isInstalment: !!meta.isInstalment,
+							instalmentIndex: meta.instalmentIndex ?? null,
+							instalmentTotal: meta.instalmentTotal ?? null,
+						});
+					}
+					// Check for pending deposit payment (failed/abandoned from apply flow)
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					const pendingDeposit = allPayments.find((p: any) => p.status === 'pending' && p.type === 'deposit');
+					if (pendingDeposit && c.depositStatus !== 'paid') {
+						setPendingDepositPayment({
+							amountRands: pendingDeposit.amountRands,
+							authorizationUrl: pendingDeposit.authorizationUrl ?? null,
 						});
 					}
 				}).catch(() => {});
@@ -675,6 +715,7 @@ if (loading) return <LoadingPage />;
 				templates={templates}
 				pendingNotifications={pendingNotifications}
 				pendingBookingPayment={pendingBookingPayment}
+				pendingDepositPayment={pendingDepositPayment}
 			/>
 
 			{/* Two-column top row */}

@@ -66,6 +66,10 @@ function formatBreed(raw: string | null | undefined): string | null {
 	return size ? `${breed} · ${size}` : breed;
 }
 
+function formatRands(amount: number): string {
+	return `R${amount.toLocaleString('en-ZA')}`;
+}
+
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
 function Lightbox({ urls, index, onClose, onPrev, onNext }: {
@@ -201,6 +205,7 @@ export function PortalLitterDetail() {
 	const [clientDepositStatus, setClientDepositStatus] = useState<string | null>(null);
 	const [clientDepositTier, setClientDepositTier] = useState<string | null>(null);
 	const [myInterestStatuses, setMyInterestStatuses] = useState<Map<string, string>>(new Map());
+	const [lockedPricing, setLockedPricing] = useState<{ puppyPriceRands: number; shippingRands: number } | null>(null);
 	const [confirmModal, setConfirmModal] = useState<{ title: string; body: React.ReactNode; requiresPayment: boolean } | null>(null);
 
 	useEffect(() => {
@@ -215,12 +220,13 @@ export function PortalLitterDetail() {
 		if (!id || !user) return;
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: { interests: Array<{ puppyId: string; status: string }>; isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null }) => {
+		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: { interests: Array<{ puppyId: string; status: string }>; isNotified: boolean; position: number | null; notifiedUpTo: number | null; lockedPricing: { puppyPriceRands: number; shippingRands: number } | null } | null }) => {
 			if (data) {
 				const activeInterests = data.interests.filter((i) => i.status !== 'rejected');
 				setMyInterestPuppyIds(new Set(activeInterests.map((i) => i.puppyId)));
 				setMyInterestStatuses(new Map(activeInterests.map((i) => [i.puppyId, i.status])));
 				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo, hasActivePuppyInterest: data.hasActivePuppyInterest ?? false });
+				if (data.lockedPricing) setLockedPricing(data.lockedPricing);
 			}
 		}).catch(() => {});
 
@@ -344,11 +350,14 @@ export function PortalLitterDetail() {
 						<h1 className="font-serif text-2xl font-bold text-warm-900">{litter.name}</h1>
 						{litter.breed && <Badge variant="default">{formatBreed(litter.breed)}</Badge>}
 					</div>
-					<div className="flex items-center gap-3 text-sm text-warm-500">
+					<div className="flex items-center gap-3 text-sm text-warm-500 flex-wrap">
 						<LitterStatusBadge status={litter.status} />
 						<span>Selection {new Date(litter.selectionDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
 						{litter.goHomeDate && (
 							<span>· Go home {new Date(litter.goHomeDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+						)}
+						{(lockedPricing ? lockedPricing.shippingRands : litter.shippingRands) != null && (lockedPricing ? lockedPricing.shippingRands : litter.shippingRands)! > 0 && (
+							<span>· Courier {formatRands(lockedPricing ? lockedPricing.shippingRands : litter.shippingRands!)}</span>
 						)}
 					</div>
 				</div>
@@ -378,6 +387,34 @@ export function PortalLitterDetail() {
 					</div>
 				)}
 			</div>
+
+			{/* Litter details — DOB (only when available+), weight, height */}
+			{(
+				(litter.status !== 'planned' && litter.dateOfBirth) ||
+				litter.estimatedAdultWeightKg != null ||
+				litter.estimatedAdultHeightCm != null
+			) && (
+				<div className="mb-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-warm-600">
+					{litter.status !== 'planned' && litter.dateOfBirth && (
+						<div>
+							<span className="text-warm-400 mr-1.5">Born</span>
+							<span className="font-medium">{new Date(litter.dateOfBirth).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+						</div>
+					)}
+					{litter.estimatedAdultWeightKg != null && (
+						<div>
+							<span className="text-warm-400 mr-1.5">Est. adult weight</span>
+							<span className="font-medium">{litter.estimatedAdultWeightKg} kg</span>
+						</div>
+					)}
+					{litter.estimatedAdultHeightCm != null && (
+						<div>
+							<span className="text-warm-400 mr-1.5">Est. adult height</span>
+							<span className="font-medium">{litter.estimatedAdultHeightCm} cm</span>
+						</div>
+					)}
+				</div>
+			)}
 
 			{/* Match card */}
 			{myMatch && (
@@ -533,6 +570,16 @@ export function PortalLitterDetail() {
 
 									{/* Colour */}
 									<p className="text-sm font-semibold text-warm-900 mb-1 leading-tight">{puppy.colour ?? '—'}</p>
+
+									{/* Price */}
+									{(() => {
+										const price = isMyPuppy && lockedPricing
+											? lockedPricing.puppyPriceRands
+											: puppy.priceRands;
+										return price != null ? (
+											<p className="text-xs font-semibold text-brand-600 mb-1">{formatRands(price)}</p>
+										) : null;
+									})()}
 
 									{/* Status badge — hidden for own puppy (overlay badge covers it) */}
 									{!isMyPuppy && (

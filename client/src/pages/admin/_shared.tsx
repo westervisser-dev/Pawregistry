@@ -239,8 +239,8 @@ export function SortableClientRow({ client, index, action }: {
 				{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
 				{client.stage === 'puppy_booked' && !!client.matchedAt && (
 					<div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-700 border border-green-200">
-						<span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-						Payment email sent · <MatchedElapsed since={client.matchedAt} /> ago
+						<span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+						Booked · <MatchedElapsed since={client.matchedAt} /> ago
 					</div>
 				)}
 				{parsed && (

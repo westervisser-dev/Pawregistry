@@ -13,6 +13,7 @@ type ActivityType =
 	| 'booking_payment_received'
 	| 'booking_expired'
 	| 'final_payment_received'
+	| 'instalment_payment_received'
 	| 'payment_marked_paid';
 
 type Actor = 'client' | 'admin' | 'system';

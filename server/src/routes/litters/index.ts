@@ -263,7 +263,14 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	.get(
 		'/:id/my-interests',
 		async ({ params, user }) => {
-			const empty = { interests: [], isNotified: false, position: null as number | null, notifiedUpTo: null as number | null, hasActivePuppyInterest: false };
+			const empty = {
+				interests: [] as { puppyId: string; status: string }[],
+				isNotified: false,
+				position: null as number | null,
+				notifiedUpTo: null as number | null,
+				hasActivePuppyInterest: false,
+				lockedPricing: null as { puppyPriceRands: number; shippingRands: number } | null,
+			};
 			if (!user) return empty;
 
 			const client = await db.query.clients.findFirst({
@@ -311,12 +318,35 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				columns: { id: true },
 			});
 
+			// Check for locked pricing — if a non-cancelled final payment exists for
+			// this client, the price was snapshotted at that point and shouldn't change.
+			let lockedPricing: { puppyPriceRands: number; shippingRands: number } | null = null;
+			const finalPayment = await db.query.payments.findFirst({
+				where: and(
+					eq(payments.clientId, client.id),
+					eq(payments.type, 'final'),
+					ne(payments.status, 'cancelled'),
+				),
+				columns: { metadata: true },
+			});
+			if (finalPayment) {
+				const meta = finalPayment.metadata as Record<string, unknown>;
+				// Only lock if this payment is for a puppy in this litter
+				if (puppyIds.includes(meta.puppyId as string) && meta.puppyPriceRands != null) {
+					lockedPricing = {
+						puppyPriceRands: meta.puppyPriceRands as number,
+						shippingRands: (meta.shippingRands as number) ?? 0,
+					};
+				}
+			}
+
 			return {
 				interests,
 				isNotified,
 				position,
 				notifiedUpTo: batchRecords.length > 0 ? batchRecords.length : null,
 				hasActivePuppyInterest: !!activeInterestGlobal,
+				lockedPricing,
 			};
 		}
 	)
@@ -871,7 +901,18 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 
 	.post(
 		'/',
-		async ({ body }) => {
+		async ({ body, error }) => {
+			// Validate: available litters cannot have a future selection date
+			if (body.status === 'available' && body.selectionDate) {
+				const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+				if (body.selectionDate > todayStr) {
+					return error(400, { error: 'InvalidDate', message: 'An available litter cannot have a future selection date. Set the date to today or earlier, or keep the status as planned.' });
+				}
+			}
+			// Validate: date of birth cannot be after the reserve date
+			if (body.dateOfBirth && body.selectionDate && body.dateOfBirth > body.selectionDate) {
+				return error(400, { error: 'InvalidDate', message: 'Date of birth must be on or before the reserve date.' });
+			}
 			const [litter] = await db.insert(litters).values(body).returning();
 			return litter;
 		},
@@ -886,6 +927,10 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				selectionDate: t.String(),
 				goHomeDate: t.Optional(t.Nullable(t.String())),
 				depositAmount: t.Optional(t.Nullable(t.Number())),
+				shippingRands: t.Optional(t.Nullable(t.Number())),
+				dateOfBirth: t.Optional(t.Nullable(t.String())),
+				estimatedAdultWeightKg: t.Optional(t.Nullable(t.Number())),
+				estimatedAdultHeightCm: t.Optional(t.Nullable(t.Number())),
 				notes: t.Optional(t.Nullable(t.String())),
 				isPublic: t.Optional(t.Boolean()),
 			}),
@@ -895,6 +940,34 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	.patch(
 		'/:id',
 		async ({ params, body, error }) => {
+			// Validate: available litters cannot have a future selection date
+			if (body.status === 'available' || body.selectionDate) {
+				const current = await db.query.litters.findFirst({ where: eq(litters.id, params.id), columns: { status: true, selectionDate: true } });
+				const effectiveStatus = body.status ?? current?.status;
+				const effectiveDate = body.selectionDate ?? current?.selectionDate;
+				if (effectiveStatus === 'available' && effectiveDate) {
+					const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+					const dateStr = typeof effectiveDate === 'string' ? effectiveDate.slice(0, 10) : new Date(effectiveDate).toLocaleDateString('en-CA');
+					if (dateStr > todayStr) {
+						return error(400, { error: 'InvalidDate', message: 'An available litter cannot have a future selection date. Set the date to today or earlier, or keep the status as planned.' });
+					}
+				}
+			}
+
+			// Validate: date of birth cannot be after the reserve date
+			if (body.dateOfBirth || body.selectionDate) {
+				const current = await db.query.litters.findFirst({ where: eq(litters.id, params.id), columns: { dateOfBirth: true, selectionDate: true } });
+				const effectiveDob = body.dateOfBirth ?? current?.dateOfBirth;
+				const effectiveSelection = body.selectionDate ?? current?.selectionDate;
+				if (effectiveDob && effectiveSelection) {
+					const dobStr = typeof effectiveDob === 'string' ? effectiveDob.slice(0, 10) : effectiveDob;
+					const selStr = typeof effectiveSelection === 'string' ? effectiveSelection.slice(0, 10) : effectiveSelection;
+					if (dobStr > selStr) {
+						return error(400, { error: 'InvalidDate', message: 'Date of birth must be on or before the reserve date.' });
+					}
+				}
+			}
+
 			const [updated] = await db
 				.update(litters)
 				.set({ ...body, updatedAt: new Date() })
@@ -926,6 +999,10 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 			goHomeDate: t.Nullable(t.String()),
 			puppyCount: t.Nullable(t.Number()),
 			availableCount: t.Nullable(t.Number()), depositAmount: t.Nullable(t.Number()),
+			shippingRands: t.Nullable(t.Number()),
+			dateOfBirth: t.Nullable(t.String()),
+			estimatedAdultWeightKg: t.Nullable(t.Number()),
+			estimatedAdultHeightCm: t.Nullable(t.Number()),
 			notes: t.Nullable(t.String()), isPublic: t.Boolean(),
 		})) }
 	)
@@ -1041,6 +1118,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					t.Literal('puppy_fully_paid'), t.Literal('retained'), t.Literal('not_for_sale'),
 				])),
 				birthWeight: t.Optional(t.Nullable(t.Number())),
+				priceRands: t.Optional(t.Nullable(t.Number())),
 				notes: t.Optional(t.Nullable(t.String())),
 			}),
 		}
@@ -1112,6 +1190,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					t.Literal('puppy_fully_paid'), t.Literal('retained'), t.Literal('not_for_sale'),
 				]),
 				birthWeight: t.Nullable(t.Number()), currentWeight: t.Nullable(t.Number()),
+				priceRands: t.Nullable(t.Number()),
 				notes: t.Nullable(t.String()), profileImageUrl: t.Nullable(t.String()),
 			})),
 		}

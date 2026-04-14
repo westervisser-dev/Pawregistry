@@ -132,6 +132,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			return {
 				id: client.id,
 				authorizationUrl,
+				reference,
 				message: 'Application received. Complete your deposit payment to secure your spot.',
 			};
 		},
