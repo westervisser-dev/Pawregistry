@@ -217,8 +217,9 @@ export function PortalLitterDetail() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.litters({ id }) as any)['my-interests'].get().then(({ data }: { data: { interests: Array<{ puppyId: string; status: string }>; isNotified: boolean; position: number | null; notifiedUpTo: number | null } | null }) => {
 			if (data) {
-				setMyInterestPuppyIds(new Set(data.interests.map((i) => i.puppyId)));
-				setMyInterestStatuses(new Map(data.interests.map((i) => [i.puppyId, i.status])));
+				const activeInterests = data.interests.filter((i) => i.status !== 'rejected');
+				setMyInterestPuppyIds(new Set(activeInterests.map((i) => i.puppyId)));
+				setMyInterestStatuses(new Map(activeInterests.map((i) => [i.puppyId, i.status])));
 				setEligibility({ isNotified: data.isNotified, position: data.position, notifiedUpTo: data.notifiedUpTo, hasActivePuppyInterest: data.hasActivePuppyInterest ?? false });
 			}
 		}).catch(() => {});

@@ -100,8 +100,8 @@ function ClientActionCenter({
 
 	const actions: Action[] = [];
 
-	// Pending booking / final payment — highest priority, shown first
-	if (pendingBookingPayment) {
+	// Pending booking / final payment — highest priority, shown first (only when client is in a booking stage)
+	if (pendingBookingPayment && ['puppy_reserved', 'puppy_booked'].includes(client.stage)) {
 		const hoursLeft = pendingBookingPayment.expiresAt
 			? Math.max(0, Math.floor((new Date(pendingBookingPayment.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
 			: null;
