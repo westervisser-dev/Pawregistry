@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, LitterStatus } from '@paw-registry/shared';
+import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, LitterStatus, Client } from '@paw-registry/shared';
 import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
 import { LoadingPage, EmptyState } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
@@ -96,7 +96,7 @@ function formatDate(litter: LitterWithDogs): string {
 
 /* ── Litter card ── */
 
-function LitterCard({ litter, match, interested }: { litter: LitterWithDogs; match?: LitterMatchResult; interested?: boolean }) {
+function LitterCard({ litter, match, interested, isMyLitter }: { litter: LitterWithDogs; match?: LitterMatchResult; interested?: boolean; isMyLitter?: boolean }) {
 	const breedLabel = getBreedLabel(litter.breed);
 	const sizeLabel = getSizeLabel(litter.breed);
 	const availableCount = litter.puppies.filter((p) => p.status === 'available').length;
@@ -123,10 +123,10 @@ function LitterCard({ litter, match, interested }: { litter: LitterWithDogs; mat
 	return (
 		<Link
 			to={`/portal/litters/${litter.id}`}
-			className="group bg-white border-[1.5px] border-warm-200 rounded-xl overflow-hidden flex flex-col shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.10),0_1px_4px_rgba(0,0,0,0.05)] hover:border-brand-500/50 transition-[transform,box-shadow,border-color] duration-[180ms] ease-out"
+			className={`group bg-white border-[1.5px] rounded-xl overflow-hidden flex flex-col shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.10),0_1px_4px_rgba(0,0,0,0.05)] transition-[transform,box-shadow,border-color] duration-[180ms] ease-out ${isMyLitter ? 'border-green-400 ring-1 ring-green-200 hover:border-green-500' : 'border-warm-200 hover:border-brand-500/50'}`}
 		>
 			{/* Match bar */}
-			{tier && <div className={`h-[3px] w-full ${tierBarColor[tier]}`} />}
+			{(tier || isMyLitter) && <div className={`h-[3px] w-full ${isMyLitter ? 'bg-green-500' : tier ? tierBarColor[tier] : ''}`} />}
 
 			{/* Body */}
 			<div className="px-5 pt-[18px] pb-4 flex-1 flex flex-col">
@@ -137,7 +137,12 @@ function LitterCard({ litter, match, interested }: { litter: LitterWithDogs; mat
 						{litter.name}
 					</h3>
 					<div className="flex items-center gap-1.5 flex-shrink-0 ml-2.5 mt-[2px]">
-						{interested && (
+						{isMyLitter && (
+							<span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap bg-green-50 text-green-700 border border-green-200">
+								<span aria-hidden="true">✓</span> Your litter
+							</span>
+						)}
+						{!!interested && !isMyLitter && (
 							<span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap bg-brand-50 text-brand-600">
 								<span aria-hidden="true">★</span> Interested
 							</span>
@@ -210,7 +215,7 @@ function LitterCard({ litter, match, interested }: { litter: LitterWithDogs; mat
 
 /* ── Section ── */
 
-function Section({ label, litters, matches, interestedIds }: { label: string; litters: LitterWithDogs[]; matches: Record<string, LitterMatchResult>; interestedIds: Set<string> }) {
+function Section({ label, litters, matches, interestedIds, myLitterId }: { label: string; litters: LitterWithDogs[]; matches: Record<string, LitterMatchResult>; interestedIds: Set<string>; myLitterId: string | null }) {
 	if (litters.length === 0) return null;
 	return (
 		<div className="mb-10">
@@ -222,7 +227,7 @@ function Section({ label, litters, matches, interestedIds }: { label: string; li
 				</span>
 			</div>
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-				{litters.map((l) => <LitterCard key={l.id} litter={l} match={matches[l.id]} interested={interestedIds.has(l.id)} />)}
+				{litters.map((l) => <LitterCard key={l.id} litter={l} match={matches[l.id]} interested={interestedIds.has(l.id)} isMyLitter={l.id === myLitterId} />)}
 			</div>
 		</div>
 	);
@@ -236,13 +241,14 @@ export function PortalLitters() {
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState<LitterMatchTier | 'all'>('all');
 	const [interestedIds, setInterestedIds] = useState<Set<string>>(new Set());
+	const [myLitterId, setMyLitterId] = useState<string | null>(null);
 	const { user } = useAuthStore();
 
 	usePageTitle('Litters');
 
 	useEffect(() => {
 		const fetchAll = async () => {
-			const [littersRes, matchesRes, interestsRes] = await Promise.all([
+			const [littersRes, matchesRes, interestsRes, clientRes] = await Promise.all([
 				api.litters.get(),
 				user
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -251,6 +257,9 @@ export function PortalLitters() {
 				user
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					? (api.litters.portal as any)['my-litter-interests'].get()
+					: Promise.resolve({ data: null }),
+				user
+					? api.clients.me.get()
 					: Promise.resolve({ data: null }),
 			]);
 
@@ -264,6 +273,11 @@ export function PortalLitters() {
 
 			if (interestsRes.data) {
 				setInterestedIds(new Set(interestsRes.data as string[]));
+			}
+
+			if (clientRes.data) {
+				const c = clientRes.data as Client;
+				if (c.litterId) setMyLitterId(c.litterId);
 			}
 
 			setLoading(false);
@@ -324,8 +338,8 @@ export function PortalLitters() {
 						</div>
 					)}
 
-					<Section label="Available Now" litters={availableNow} matches={matches} interestedIds={interestedIds} />
-					<Section label="Upcoming Litters" litters={upcoming} matches={matches} interestedIds={interestedIds} />
+					<Section label="Available Now" litters={availableNow} matches={matches} interestedIds={interestedIds} myLitterId={myLitterId} />
+					<Section label="Upcoming Litters" litters={upcoming} matches={matches} interestedIds={interestedIds} myLitterId={myLitterId} />
 
 					{filtered.length === 0 && (
 						<p className="text-sm text-warm-400 text-center py-12">No litters match this filter.</p>
