@@ -210,7 +210,17 @@ export function PortalPayments() {
 									</div>
 									<StatusBadge status={p.status} />
 								</div>
-								{p.authorizationUrl && (
+								{p.type === 'deposit' && p.status === 'pending' ? (
+									<button
+										onClick={() => {
+											const tier = (p.metadata as Record<string, unknown>)?.tier as 'r5000' | 'r500' | undefined;
+											if (tier) handlePay(tier);
+										}}
+										className="inline-flex items-center justify-center px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-lg transition-colors"
+									>
+										Pay now →
+									</button>
+								) : p.authorizationUrl && (
 									<a
 										href={p.authorizationUrl}
 										className="inline-flex items-center justify-center px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-lg transition-colors"
