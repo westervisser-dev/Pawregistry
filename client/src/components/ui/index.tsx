@@ -347,16 +347,20 @@ const litterStatusVariant: Record<string, BadgeVariant> = {
 	completed: 'default',
 };
 
+function fmtStatus(s: string): string {
+	return s.replaceAll('_', ' ').replace(/^\w/, c => c.toUpperCase());
+}
+
 export function StageBadge({ stage }: { stage: string }) {
-	return <Badge variant={stageVariant[stage] ?? 'default'}>{stage.replaceAll('_', ' ')}</Badge>;
+	return <Badge variant={stageVariant[stage] ?? 'default'}>{fmtStatus(stage)}</Badge>;
 }
 
 export function PuppyStatusBadge({ status }: { status: string }) {
-	return <Badge variant={puppyStatusVariant[status] ?? 'default'}>{status.replaceAll('_', ' ')}</Badge>;
+	return <Badge variant={puppyStatusVariant[status] ?? 'default'}>{fmtStatus(status)}</Badge>;
 }
 
 export function LitterStatusBadge({ status }: { status: string }) {
-	return <Badge variant={litterStatusVariant[status] ?? 'default'}>{status.replaceAll('_', ' ')}</Badge>;
+	return <Badge variant={litterStatusVariant[status] ?? 'default'}>{fmtStatus(status)}</Badge>;
 }
 
 // Deterministically map a breed name to a consistent colour

@@ -1102,7 +1102,7 @@ export function AdminLitterDetail() {
 													? ['reserved', 'available']
 													: ['available', 'reserved', 'booked', 'matched', 'retained', 'not_for_sale']
 												).map((s) => (
-													<option key={s} value={s}>{s.replace('_', ' ')}</option>
+													<option key={s} value={s}>{s.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}</option>
 												))}
 											</select>
 										)}
