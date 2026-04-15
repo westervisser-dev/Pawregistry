@@ -85,7 +85,6 @@ export function AdminLitterDetail() {
 	const [puppyImagesMap, setPuppyImagesMap] = useState<Record<string, PuppyImage[]>>({});
 	const [puppyImageIndex, setPuppyImageIndex] = useState<Record<string, number>>({});
 	const [uploadingPuppyId, setUploadingPuppyId] = useState<string | null>(null);
-	const [uploadingPuppyImages, setUploadingPuppyImages] = useState(false);
 	const [addingPuppy, setAddingPuppy] = useState(false);
 	const [addPuppyError, setAddPuppyError] = useState('');
 	const [newPuppyDraftImageFiles, setNewPuppyDraftImageFiles] = useState<File[]>([]);
@@ -215,8 +214,8 @@ export function AdminLitterDetail() {
 					}
 					setUploadProgress(null);
 				}
-				const puppiesWithImages = pendingPuppies.filter((p) => p.imageFiles && p.imageFiles.length > 0);
-				if (puppiesWithImages.length > 0) setUploadingPuppyImages(true);
+				const totalPuppyImages = pendingPuppies.reduce((sum, p) => sum + (p.imageFiles?.length ?? 0), 0);
+				let uploadedPuppyImages = 0;
 				for (const puppy of pendingPuppies) {
 					const { data: puppyData } = await api.litters({ id: newId }).puppies.post({
 						collarColour: puppy.collarColour,
@@ -227,12 +226,14 @@ export function AdminLitterDetail() {
 					if (puppyData && puppy.imageFiles && puppy.imageFiles.length > 0) {
 						const created = puppyData as { id: string };
 						for (const imgFile of puppy.imageFiles) {
+							uploadedPuppyImages++;
+							if (totalPuppyImages > 0) setUploadProgress({ current: uploadedPuppyImages, total: totalPuppyImages });
 							// eslint-disable-next-line @typescript-eslint/no-explicit-any
 							await (api.litters.puppies({ puppyId: created.id }) as any).images.post({ file: imgFile });
 						}
 					}
 				}
-				setUploadingPuppyImages(false);
+				setUploadProgress(null);
 				navigate('/admin/litters');
 			}
 		} catch {
@@ -832,7 +833,6 @@ export function AdminLitterDetail() {
 					>
 						{uploadProgress
 						? `Uploading photo ${uploadProgress.current} of ${uploadProgress.total}…`
-						: uploadingPuppyImages ? 'Uploading image(s)…'
 						: saving ? 'Saving…' : 'Create Litter'
 					}
 					</button>

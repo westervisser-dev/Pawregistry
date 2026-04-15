@@ -14,7 +14,7 @@ interface FormData {
 	country: string;
 	primaryCaregiver: string;
 	// Home & Life
-	residenceOwnership: 'own' | 'rent' | 'lease' | '';
+	residenceOwnership: 'own' | 'rent' | '';
 	livingType: 'house' | 'townhouse' | 'apartment' | 'farm' | 'other';
 	otherLivingType: string;
 	hasGarden: boolean;
@@ -78,7 +78,7 @@ const initial: FormData = {
 	hasGarden: false, yardSize: '',
 	hasPoolOrDriveway: false, poolDrivewayFenced: false,
 	neighbourhoodRestrictions: false, neighbourhoodRestrictionsDetails: '',
-	dogLivesIndoors: true,
+	dogLivesIndoors: false,
 	puppyDaytimeLocation: '', hoursAlonePerDay: '',
 	someoneHomeDuringDay: false, aloneArrangements: '',
 	activityLevel: '',
@@ -271,9 +271,12 @@ export function ApplyPage() {
 		if (err) { setError(err); return; }
 		setError('');
 		setStep(steps[steps.indexOf(step) + 1] as Step);
-		window.scrollTo({ top: 0, behavior: 'smooth' });
 	};
-	const back = () => { setError(''); setStep(steps[steps.indexOf(step) - 1] as Step); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+	const back = () => { setError(''); setStep(steps[steps.indexOf(step) - 1] as Step); };
+
+	useEffect(() => {
+		window.scrollTo(0, 0);
+	}, [step]);
 
 	const handleBreedChange = (breed: string) => {
 		const sizes = BREED_SIZES[breed] ?? [];
@@ -488,20 +491,18 @@ export function ApplyPage() {
 						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Home & Life</h2>
 
 						<ButtonGroup
-							label="Do you own, rent or lease your home?"
+							label="Do you own or rent your home?"
 							options={[
 								{ value: 'own', label: 'Own' },
 								{ value: 'rent', label: 'Rent' },
-								{ value: 'lease', label: 'Lease' },
 							]}
 							value={form.residenceOwnership}
 							onChange={(v) => set('residenceOwnership', v)}
-							cols={3}
 						/>
 
 						<div>
 							<label className="block text-sm font-medium text-warm-700 mb-2">Type of home<span className="text-red-500 ml-0.5">*</span></label>
-							<div className="grid grid-cols-3 gap-2">
+							<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
 								{(['house', 'townhouse', 'apartment', 'farm', 'other'] as const).map((t) => (
 									<button
 										key={t}
