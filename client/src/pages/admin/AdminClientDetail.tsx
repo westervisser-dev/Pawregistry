@@ -769,8 +769,12 @@ export function AdminClientDetail() {
 									value={fullPaymentDueDate}
 									onChange={(e) => setFullPaymentDueDate(e.target.value)}
 									min={new Date().toISOString().slice(0, 10)}
+									max={client?.litter?.goHomeDate ?? undefined}
 									className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm text-warm-900 focus:outline-none focus:ring-2 focus:ring-brand-300"
 								/>
+								{client?.litter?.goHomeDate && (
+									<p className="mt-1 text-xs text-warm-400">Must be on or before go-home date ({new Date(client.litter.goHomeDate + 'T00:00:00').toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })})</p>
+								)}
 							</div>
 						)}
 
@@ -823,6 +827,7 @@ export function AdminClientDetail() {
 																setInstalmentDueDates(next);
 															}}
 															min={new Date().toISOString().slice(0, 10)}
+															max={client?.litter?.goHomeDate ?? undefined}
 															className="ml-auto w-32 px-2 py-1 border border-warm-200 rounded text-xs text-warm-700 focus:outline-none focus:ring-1 focus:ring-brand-300"
 														/>
 													</div>
@@ -856,6 +861,7 @@ export function AdminClientDetail() {
 															setInstalmentDueDates(next);
 														}}
 														min={new Date().toISOString().slice(0, 10)}
+														max={client?.litter?.goHomeDate ?? undefined}
 														className="w-32 px-2 py-1.5 border border-warm-200 rounded-lg text-xs text-warm-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
 													/>
 													{instalmentAmounts.length > 2 && (
