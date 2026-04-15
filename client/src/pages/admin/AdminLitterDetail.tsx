@@ -1199,24 +1199,10 @@ export function AdminLitterDetail() {
 										{/* Right content block */}
 										<div className="flex-1 min-w-0">
 											{/* Line 1: name + status */}
-											<div className="flex items-center gap-2 flex-wrap">
+											<div className="flex items-center gap-2">
 												<span className="text-sm font-medium text-warm-800 flex-1 min-w-0">
 													{p.colour} · {p.sex}
 												</span>
-												{/* Interest count badge */}
-												{allInterests.length > 0 && (
-													<button
-														onClick={() => setExpandedPuppy(isExpanded ? null : p.id)}
-														className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors flex-shrink-0 ${
-															pendingInterests.length > 0
-																? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-																: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
-														}`}
-													>
-														{pendingInterests.length > 0 ? `${pendingInterests.length} pending` : `${allInterests.length} interested`}
-														<span className="text-[10px]">{isExpanded ? '▲' : '▼'}</span>
-													</button>
-												)}
 												{/* Inline status selector */}
 												{['available', 'booked', 'puppy_fully_paid'].includes(p.status) ? (
 													<PuppyStatusBadge status={p.status} />
@@ -1236,6 +1222,22 @@ export function AdminLitterDetail() {
 													</select>
 												)}
 											</div>
+											{/* Line 1b: interest count badge */}
+											{allInterests.length > 0 && (
+												<div className="mt-1">
+													<button
+														onClick={() => setExpandedPuppy(isExpanded ? null : p.id)}
+														className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+															pendingInterests.length > 0
+																? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+																: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
+														}`}
+													>
+														{pendingInterests.length > 0 ? `${pendingInterests.length} pending` : `${allInterests.length} interested`}
+														<span className="text-[10px]">{isExpanded ? '▲' : '▼'}</span>
+													</button>
+												</div>
+											)}
 											{/* Line 2: collar + price */}
 											<div className="flex items-center gap-2 mt-1">
 												<span className="w-4 h-4 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
