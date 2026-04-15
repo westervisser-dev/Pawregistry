@@ -12,7 +12,7 @@ const TRIGGER_LABELS: Record<string, string> = {
 	stage_waitlisted: 'Added to Waitlist',
 	stage_puppy_reserved: 'Puppy Reserved',
 	stage_puppy_booked: 'Puppy Booked',
-	stage_puppy_fully_paid: 'Puppy Fully Paid',
+	stage_puppy_fully_paid: 'Puppy Booked & Paid',
 	docs_received: 'Documents Uploaded',
 	payment_confirmed: 'Payment Confirmed',
 	puppy_booked: 'Puppy Booked (Payment)',
@@ -154,7 +154,7 @@ export function AdminEmails() {
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 					{/* Template list */}
 					<div className="flex flex-col gap-1.5">
-						{templates.map((t) => (
+						{[...templates].sort((a, b) => (TRIGGER_LABELS[a.trigger] ?? a.trigger).localeCompare(TRIGGER_LABELS[b.trigger] ?? b.trigger)).map((t) => (
 							<button
 								key={t.id}
 								onClick={() => selectTemplate(t)}

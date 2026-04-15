@@ -2,7 +2,7 @@ import Elysia, { t } from 'elysia';
 import { eq, asc, desc, max, sql, inArray, count, and, isNotNull } from 'drizzle-orm';
 import { db } from '../../db';
 import { clients, clientActivity, documentTemplates, clientTemplateChecklist, puppies, puppyInterests, litterInterests, litters, payments } from '../../db/schema';
-import { adminPlugin, authPlugin } from '../../lib/auth';
+import { adminPlugin, clientPlugin } from '../../lib/auth';
 import { sendStageEmail, sendClientEmail, sendAdminNotification } from '../../lib/email';
 import { logActivity } from '../../lib/activity';
 import { initializeTransaction, generateReference } from '../../lib/paystack';
@@ -81,7 +81,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			const [client] = await db.insert(clients).values({
 				firstName: body.firstName,
 				lastName: body.lastName,
-				email: body.email,
+				email: body.email.toLowerCase().trim(),
 				phone: body.phone ?? null,
 				city: body.city ?? null,
 				country: body.country ?? 'ZA',
@@ -151,7 +151,7 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 	)
 
 	// ── Client portal: view own record ──
-	.use(authPlugin)
+	.use(clientPlugin)
 	.get('/me', async ({ user, error }) => {
 		const client = await db.query.clients.findFirst({
 			where: eq(clients.userId, user.id),

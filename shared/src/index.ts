@@ -294,6 +294,7 @@ export interface Payment {
 	authorizationUrl: string | null;
 	status: PaymentStatus;
 	expiresAt: string | null;
+	dueDate: string | null;
 	paidAt: string | null;
 	metadata: Record<string, unknown>;
 	createdAt: string;

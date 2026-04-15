@@ -80,7 +80,7 @@ function ClientActionCenter({
 	client: Client;
 	templates: TemplateItem[] | null;
 	pendingNotifications: PendingNotification[];
-	pendingBookingPayment: { amountRands: number; expiresAt: string | null; authorizationUrl: string | null; paymentType: 'booking' | 'final'; isInstalment: boolean; instalmentIndex: number | null; instalmentTotal: number | null } | null;
+	pendingBookingPayment: { amountRands: number; expiresAt: string | null; authorizationUrl: string | null; paymentType: 'booking' | 'final'; isInstalment: boolean; instalmentIndex: number | null; instalmentTotal: number | null; dueDate: string | null } | null;
 	pendingDepositPayment: { amountRands: number; authorizationUrl: string | null } | null;
 }) {
 	const [dismissed, setDismissed] = useState<Set<string>>(() => {
@@ -121,9 +121,15 @@ function ClientActionCenter({
 			paymentLabel = 'Final payment';
 		}
 
+		const dueDateLabel = pendingBookingPayment.dueDate
+			? new Date(pendingBookingPayment.dueDate) < new Date()
+				? ' (OVERDUE)'
+				: ` — due ${new Date(pendingBookingPayment.dueDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}`
+			: '';
+
 		actions.push({
 			type: 'link',
-			label: `💳 ${paymentLabel}: R${pendingBookingPayment.amountRands.toLocaleString()}${urgencyLabel}`,
+			label: `💳 ${paymentLabel}: R${pendingBookingPayment.amountRands.toLocaleString()}${urgencyLabel}${dueDateLabel}`,
 			to: '/portal/payments',
 			color: 'amber',
 		});
@@ -347,7 +353,7 @@ const STAGES = [
 	},
 	{
 		key: 'puppy_fully_paid',
-		label: 'Puppy Fully Paid',
+		label: 'Puppy Booked & Paid',
 		variant: 'green' as const,
 		icon: '🎉',
 		description: 'Everything is in order — your puppy is ready to come home! Our team will coordinate the final handover details with you.',
@@ -596,7 +602,7 @@ export function PortalDashboard() {
 	const [waitlistPosition, setWaitlistPosition] = useState<{ position: number | null; total: number | null } | null>(null);
 	const [templates, setTemplates] = useState<TemplateItem[] | null>(null);
 	const [pendingNotifications, setPendingNotifications] = useState<PendingNotification[]>([]);
-	const [pendingBookingPayment, setPendingBookingPayment] = useState<{ amountRands: number; expiresAt: string | null; authorizationUrl: string | null; paymentType: 'booking' | 'final'; isInstalment: boolean; instalmentIndex: number | null; instalmentTotal: number | null } | null>(null);
+	const [pendingBookingPayment, setPendingBookingPayment] = useState<{ amountRands: number; expiresAt: string | null; authorizationUrl: string | null; paymentType: 'booking' | 'final'; isInstalment: boolean; instalmentIndex: number | null; instalmentTotal: number | null; dueDate: string | null } | null>(null);
 	const [pendingDepositPayment, setPendingDepositPayment] = useState<{ amountRands: number; authorizationUrl: string | null } | null>(null);
 	const setClientStage = useAuthStore(s => s.setClientStage);
 	const mountedRef = useRef(true);
@@ -647,6 +653,7 @@ export function PortalDashboard() {
 							isInstalment: !!meta.isInstalment,
 							instalmentIndex: meta.instalmentIndex ?? null,
 							instalmentTotal: meta.instalmentTotal ?? null,
+							dueDate: pendingBooking.dueDate ?? null,
 						});
 					}
 					// Check for pending deposit payment (failed/abandoned from apply flow)

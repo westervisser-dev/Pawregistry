@@ -347,8 +347,12 @@ const litterStatusVariant: Record<string, BadgeVariant> = {
 	completed: 'default',
 };
 
+const stageLabel: Record<string, string> = {
+	puppy_fully_paid: 'Puppy booked & paid',
+};
+
 function fmtStatus(s: string): string {
-	return s.replaceAll('_', ' ').replace(/^\w/, c => c.toUpperCase());
+	return stageLabel[s] ?? s.replaceAll('_', ' ').replace(/^\w/, c => c.toUpperCase());
 }
 
 export function StageBadge({ stage }: { stage: string }) {

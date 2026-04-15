@@ -32,6 +32,16 @@ export async function isAdminUser(userId: string): Promise<boolean> {
 	return !!record;
 }
 
+// Guards client portal routes — returns 401 if no valid session
+export const clientPlugin = new Elysia({ name: 'client' })
+	.use(authPlugin)
+	.onBeforeHandle({ as: 'scoped' }, ({ user, set }) => {
+		if (!user) {
+			set.status = 401;
+			return { error: 'Unauthorized', message: 'Not authenticated' };
+		}
+	});
+
 export const adminPlugin = new Elysia({ name: 'admin' })
 	.use(authPlugin)
 	.onBeforeHandle({ as: 'scoped' }, async ({ user, set }) => {
