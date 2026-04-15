@@ -9,20 +9,18 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 	// Send magic link to a client email
 	.post(
 		'/magic-link',
-		async ({ body, error }) => {
+		async ({ body, set }) => {
 			const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 			const isAdmin = adminEmails.includes(body.email);
 
 			// Allow admins through without a client record; all others must have an application
 			if (!isAdmin) {
 				const client = await db.query.clients.findFirst({
-					where: eq(clients.email, body.email),
+					where: eq(clients.email, body.email.toLowerCase().trim()),
 				});
 				if (!client) {
-					return error(404, {
-						error: 'Not found',
-						message: 'No application found for this email address.',
-					});
+					set.status = 404;
+					return { error: 'Not found', message: 'No application found for this email address.' };
 				}
 			}
 
@@ -33,7 +31,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 					options: { redirectTo: `${process.env.CLIENT_URL}/portal/callback` },
 				});
 				if (linkError) {
-					return error(500, { error: 'Auth error', message: linkError.message });
+					set.status = 500;
+					return { error: 'Auth error', message: linkError.message };
 				}
 				return { message: 'Bypass active.', token: linkData.properties.hashed_token };
 			}
@@ -44,7 +43,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			});
 
 			if (authError) {
-				return error(500, { error: 'Auth error', message: authError.message });
+				set.status = 500;
+				return { error: 'Auth error', message: authError.message };
 			}
 
 			return { message: 'Magic link sent — check your email.', token: null };
@@ -55,18 +55,19 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 	// Exchange Supabase session token for user info + link userId to client record
 	.post(
 		'/session',
-		async ({ body, error }) => {
+		async ({ body, set }) => {
 			try {
 				const { data, error: authError } = await supabase.auth.getUser(body.accessToken);
 				if (authError || !data.user) {
-					return error(401, { error: 'Unauthorized', message: 'Invalid token' });
+					set.status = 401;
+					return { error: 'Unauthorized', message: 'Invalid token' };
 				}
 
 				const user = data.user;
 
 				// Link the Supabase user ID to the client record (first login)
 				const client = await db.query.clients.findFirst({
-					where: eq(clients.email, user.email ?? ''),
+					where: eq(clients.email, (user.email ?? '').toLowerCase().trim()),
 				});
 
 				if (client && !client.userId) {

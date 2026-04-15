@@ -126,7 +126,7 @@ export function AdminDashboard() {
 		} else if (c.stage === 'puppy_booked') {
 			events.push({ text: `${name} booked a puppy`, ts: new Date(c.updatedAt).getTime(), color: 'blue', link });
 		} else if (c.stage === 'puppy_fully_paid') {
-			events.push({ text: `${name} — fully paid`, ts: new Date(c.updatedAt).getTime(), color: 'green', link });
+			events.push({ text: `${name} — booked & paid`, ts: new Date(c.updatedAt).getTime(), color: 'green', link });
 		}
 	}
 

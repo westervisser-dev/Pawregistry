@@ -49,7 +49,7 @@ export function AdminClients() {
 		waitlisted: 'Waitlisted',
 		puppy_reserved: 'Puppy Reserved',
 		puppy_booked: 'Puppy Booked',
-		puppy_fully_paid: 'Puppy Fully Paid',
+		puppy_fully_paid: 'Puppy Booked & Paid',
 	};
 
 	// Derive per-client action badge — priority: review_documents > review_application

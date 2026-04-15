@@ -12,7 +12,7 @@ const EMAIL_TRIGGER_LABELS: Record<string, string> = {
 	stage_waitlisted: 'Added to Waitlist',
 	stage_puppy_reserved: 'Puppy Reserved',
 	stage_puppy_booked: 'Puppy Booked',
-	stage_puppy_fully_paid: 'Puppy Fully Paid',
+	stage_puppy_fully_paid: 'Puppy Booked & Paid',
 };
 
 // ─── Application view helpers ─────────────────────────────────────────────────

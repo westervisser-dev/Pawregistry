@@ -353,7 +353,7 @@ const STAGES = [
 	},
 	{
 		key: 'puppy_fully_paid',
-		label: 'Puppy Fully Paid',
+		label: 'Puppy Booked & Paid',
 		variant: 'green' as const,
 		icon: '🎉',
 		description: 'Everything is in order — your puppy is ready to come home! Our team will coordinate the final handover details with you.',

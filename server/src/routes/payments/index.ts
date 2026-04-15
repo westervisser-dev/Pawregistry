@@ -2,7 +2,7 @@ import Elysia, { t } from 'elysia';
 import { eq, desc, and, sum, or, ne, inArray } from 'drizzle-orm';
 import { db } from '../../db';
 import { payments, clients, puppies, litters, puppyInterests } from '../../db/schema';
-import { adminPlugin, authPlugin } from '../../lib/auth';
+import { adminPlugin, clientPlugin } from '../../lib/auth';
 import { logActivity } from '../../lib/activity';
 import { sendClientEmailWithVars, sendAdminNotification } from '../../lib/email';
 import {
@@ -311,7 +311,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	)
 
 	// ── Client: initiate a deposit payment from portal ────────────────────────
-	.use(authPlugin)
+	.use(clientPlugin)
 	.post(
 		'/deposit',
 		async ({ body, user, error }) => {

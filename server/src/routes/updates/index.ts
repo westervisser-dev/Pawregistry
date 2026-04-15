@@ -2,13 +2,13 @@ import Elysia, { t } from 'elysia';
 import { eq, desc, and, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '../../db';
 import { updates, clients, litterInterests, litterNotifications, litterUpdateOptOuts, puppies } from '../../db/schema';
-import { adminPlugin, authPlugin } from '../../lib/auth';
+import { adminPlugin, clientPlugin } from '../../lib/auth';
 import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { sendLitterUpdateEmails } from '../../lib/email';
 
 export const updatesRoutes = new Elysia({ prefix: '/updates' })
 	// ── Client portal ──────────────────────────────────────────────────────────
-	.use(authPlugin)
+	.use(clientPlugin)
 
 	.get('/my', async ({ user, error }) => {
 		const client = await db.query.clients.findFirst({

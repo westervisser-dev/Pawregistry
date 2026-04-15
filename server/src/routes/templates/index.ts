@@ -2,7 +2,7 @@ import Elysia, { t } from 'elysia';
 import { eq, asc, and, count, isNotNull } from 'drizzle-orm';
 import { db } from '../../db';
 import { documentTemplates, clientTemplateChecklist, clients } from '../../db/schema';
-import { adminPlugin, authPlugin } from '../../lib/auth';
+import { adminPlugin, clientPlugin } from '../../lib/auth';
 import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { logActivity } from '../../lib/activity';
 import { sendAdminNotification, sendClientEmail } from '../../lib/email';
@@ -42,7 +42,7 @@ async function checkAllDocsUploaded(
 
 export const templatesRoutes = new Elysia({ prefix: '/templates' })
 	// ── Client: list templates with checklist status ──
-	.use(authPlugin)
+	.use(clientPlugin)
 	.get('/my', async ({ user, error }) => {
 		const client = await db.query.clients.findFirst({ where: eq(clients.userId, user.id) });
 		if (!client) return error(404, { error: 'Not found', message: 'Client record not found' });
