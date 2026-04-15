@@ -1212,7 +1212,7 @@ export function AdminLitterDetail() {
 											className="w-24 px-2 py-0.5 text-xs border border-warm-200 rounded-md text-warm-600 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors flex-shrink-0"
 											title="Puppy price (R)"
 										/>
-										<span className="text-sm font-medium text-warm-800 flex-1">
+										<span className="text-sm font-medium text-warm-800 flex-1 min-w-0">
 											{p.colour} · {p.sex}
 											{!!p.client && (
 												<Link to={`/admin/clients/${p.client.id}`} className="ml-2 text-xs font-normal text-brand-600 hover:underline">
@@ -1223,8 +1223,9 @@ export function AdminLitterDetail() {
 												const interest = puppyInterests.find((i) => i.puppyId === p.id && i.status === 'pending');
 												if (!interest) return null;
 												return (
-													<span className="block text-xs text-warm-500 mt-0.5 font-normal">
-														<Link to={`/admin/clients/${interest.client.id}`} className="text-brand-600 hover:underline">{interest.client.firstName} {interest.client.lastName}</Link>
+													<span className="block mt-0.5 font-normal">
+														<Link to={`/admin/clients/${interest.client.id}`} className="text-xs text-brand-600 hover:underline">{interest.client.firstName} {interest.client.lastName}</Link>
+														<span className="block mt-0.5"><NotifyTimer since={interest.createdAt} label="— Elapsed" /></span>
 													</span>
 												);
 											})()}
@@ -1242,16 +1243,6 @@ export function AdminLitterDetail() {
 												);
 											})()}
 										</span>
-										{/* Reservation timer — right-aligned, only for reserved puppies */}
-										{p.status === 'reserved' && (() => {
-											const interest = puppyInterests.find((i) => i.puppyId === p.id && i.status === 'pending');
-											if (!interest) return null;
-											return (
-												<div className="flex-shrink-0">
-													<NotifyTimer since={interest.createdAt} label="— Elapsed time for payment" />
-												</div>
-											);
-										})()}
 										{/* Interest count badge */}
 										{allInterests.length > 0 && (
 											<button
