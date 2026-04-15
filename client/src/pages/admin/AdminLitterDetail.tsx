@@ -506,7 +506,7 @@ export function AdminLitterDetail() {
 				<Link to="/admin/litters" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">← Litters</Link>
 				<PageHeader title="New Litter" />
 				<Card className="p-6 flex flex-col gap-4">
-					<div className="grid grid-cols-2 gap-4">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
 							<label className="block text-xs font-medium text-warm-500 mb-1">
 								Litter Name<span className="text-red-400 ml-0.5">*</span>
@@ -653,7 +653,7 @@ export function AdminLitterDetail() {
 								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 							/>
 						</div>
-						<div className="col-span-2">
+						<div className="sm:col-span-2">
 							<label className="block text-xs font-medium text-warm-500 mb-1">Notes</label>
 							<textarea
 								value={newForm.notes}
