@@ -4,7 +4,7 @@ import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
 import type { Client, ClientStage, ClientActivity, EmailLog, DocumentTemplateWithChecklist, Payment } from '@paw-registry/shared';
-import { DeleteModal, DepositStatusBadge } from './_shared';
+import { DeleteModal, DepositStatusBadge, formatBreedSize } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
 	stage_enquired: 'Application Received',
@@ -16,33 +16,6 @@ const EMAIL_TRIGGER_LABELS: Record<string, string> = {
 };
 
 // ─── Application view helpers ─────────────────────────────────────────────────
-
-const BREED_LABELS: Record<string, string> = {
-	f1_goldendoodle: 'F1 Goldendoodle',
-	f1b_goldendoodle: 'F1b Goldendoodle',
-	f1_border_doodle: 'F1 Border Doodle',
-	f1_mini_biewer_doodle: 'F1 Mini Biewer Doodle',
-	red_tuxedo_french_poodle: 'Red Tuxedo French Poodle',
-};
-
-const SIZE_LABELS: Record<string, string> = {
-	standard: 'Standard',
-	miniature: 'Miniature',
-	dwarf: 'Dwarf',
-	border_doodle: 'Border Doodle',
-	biewer_doodle: 'Biewer Doodle',
-	standard_poodle: 'Standard Poodle',
-	moyen_poodle: 'Moyen Poodle',
-};
-
-function formatBreedSize(raw: string | null | undefined): { breed: string; size: string | null } | null {
-	if (!raw) return null;
-	const [breedRaw, sizeRaw] = raw.split(' - ');
-	return {
-		breed: BREED_LABELS[breedRaw] ?? breedRaw,
-		size: sizeRaw ? (SIZE_LABELS[sizeRaw] ?? sizeRaw) : null,
-	};
-}
 
 function BreedSizeDisplay({ raw }: { raw: string | null | undefined }) {
 	const parsed = formatBreedSize(raw);

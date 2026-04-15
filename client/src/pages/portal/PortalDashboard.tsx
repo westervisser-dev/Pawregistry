@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { LoadingPage, Card, Badge, useFocusTrap } from '@/components/ui';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Client, ClientApplication } from '@paw-registry/shared';
+import { BREEDS, BREED_SIZES } from '@paw-registry/shared';
 
 // ─── Tooltip ─────────────────────────────────────────────────────────────────
 
@@ -253,7 +254,7 @@ function ClientActionCenter({
 									type="button"
 									aria-label="Dismiss"
 									onClick={() => dismiss(action.dismissKey)}
-									className={`inline-flex items-center justify-center px-2 py-1.5 rounded-r-full border text-xs transition-colors cursor-pointer ${ACTION_PILL[action.color]}`}
+									className={`inline-flex items-center justify-center w-6 py-1.5 rounded-r-full border text-[10px] transition-colors cursor-pointer ${ACTION_PILL[action.color]}`}
 								>
 									✕
 								</button>
@@ -272,7 +273,7 @@ function ClientActionCenter({
 									type="button"
 									aria-label="Dismiss"
 									onClick={() => dismiss(action.dismissKey)}
-									className={`inline-flex items-center justify-center px-2 py-1.5 rounded-r-full border text-xs transition-colors cursor-pointer ${ACTION_PILL[action.color]}`}
+									className={`inline-flex items-center justify-center w-6 py-1.5 rounded-r-full border text-[10px] transition-colors cursor-pointer ${ACTION_PILL[action.color]}`}
 								>
 									✕
 								</button>
@@ -371,30 +372,12 @@ function getStageIndex(stage: string): number {
 
 // ─── Breed / Size Helpers ────────────────────────────────────────────────────
 
-const BREED_LABELS: Record<string, string> = {
-	f1_goldendoodle: 'F1 Goldendoodle',
-	f1b_goldendoodle: 'F1b Goldendoodle',
-	f1_border_doodle: 'F1 Border Doodle',
-	f1_mini_biewer_doodle: 'F1 Mini Biewer Doodle',
-	red_tuxedo_french_poodle: 'Red Tuxedo French Poodle',
-};
-
-const SIZE_LABELS: Record<string, string> = {
-	standard: 'Standard',
-	miniature: 'Miniature',
-	dwarf: 'Dwarf',
-	border_doodle: 'Border Doodle',
-	biewer_doodle: 'Biewer Doodle',
-	standard_poodle: 'Standard Poodle',
-	moyen_poodle: 'Moyen Poodle',
-};
-
 function formatBreedSize(raw: string | null | undefined): { breed: string; size: string | null } | null {
 	if (!raw) return null;
 	const [breedRaw, sizeRaw] = raw.split(' - ');
 	return {
-		breed: BREED_LABELS[breedRaw] ?? breedRaw,
-		size: sizeRaw ? (SIZE_LABELS[sizeRaw] ?? sizeRaw) : null,
+		breed: BREEDS.find((b) => b.value === breedRaw)?.label ?? breedRaw,
+		size: sizeRaw ? (BREED_SIZES[breedRaw]?.find((s) => s.value === sizeRaw)?.label ?? sizeRaw) : null,
 	};
 }
 
@@ -735,26 +718,37 @@ if (loading) return <LoadingPage />;
 					</div>
 
 					{/* Waitlist position — only shown when waitlisted */}
-					{client.stage === 'waitlisted' && waitlistPosition?.position != null && (
-						<div className="mt-4 flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-200/70 px-4 py-3">
-							<div className="flex items-baseline gap-1 shrink-0">
-								<span className="font-serif text-[28px] leading-none text-amber-700 font-bold">
-									#{waitlistPosition.position}
-								</span>
-								{waitlistPosition.total != null && (
-									<span className="text-[11px] text-amber-500 font-medium">
-										of {waitlistPosition.total}
+					{client.stage === 'waitlisted' && waitlistPosition?.position != null && (() => {
+						const hasActiveLitterNotif = pendingNotifications.length > 0 && pendingNotifications.some((n) => {
+							try {
+								const raw = localStorage.getItem('dismissed_litter_notifications');
+								const d = new Set(raw ? JSON.parse(raw) as string[] : []);
+								return !d.has(n.litterId);
+							} catch { return true; }
+						});
+						return (
+							<div className="mt-4 flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-200/70 px-4 py-3">
+								<div className="flex items-baseline gap-1 shrink-0">
+									<span className="font-serif text-[28px] leading-none text-amber-700 font-bold">
+										#{waitlistPosition.position}
 									</span>
-								)}
+									{waitlistPosition.total != null && (
+										<span className="text-[11px] text-amber-500 font-medium">
+											of {waitlistPosition.total}
+										</span>
+									)}
+								</div>
+								<div className="min-w-0">
+									<p className="text-[12.5px] font-medium text-amber-800">Waiting list position</p>
+									<p className="text-[11px] text-amber-600/80 mt-0.5 leading-relaxed">
+										{hasActiveLitterNotif
+											? 'A litter has been suggested for you — check your actions above.'
+											: 'Your spot is reserved — we\'ll be in touch when a litter is available.'}
+									</p>
+								</div>
 							</div>
-							<div className="min-w-0">
-								<p className="text-[12.5px] font-medium text-amber-800">Waiting list position</p>
-								<p className="text-[11px] text-amber-600/80 mt-0.5 leading-relaxed">
-									Your spot is reserved — we'll be in touch when a litter is available.
-								</p>
-							</div>
-						</div>
-					)}
+						);
+					})()}
 
 					{/* Spacer pushes progress bar toward bottom, capped so it doesn't over-expand */}
 					<div className={`flex-1 ${client.stage === 'waitlisted' ? 'min-h-[8px] max-h-[20px]' : 'min-h-[20px] max-h-[52px]'}`} />

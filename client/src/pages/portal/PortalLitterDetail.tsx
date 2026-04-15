@@ -201,6 +201,7 @@ export function PortalLitterDetail() {
 	const [litterInterestLoading, setLitterInterestLoading] = useState(false);
 	const [clientStage, setClientStage] = useState<ClientStage | null>(null);
 	const [puppyImgIndexes, setPuppyImgIndexes] = useState<Record<string, number>>({});
+	const [puppyImgLoading, setPuppyImgLoading] = useState<Record<string, boolean>>({});
 	const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
 	const [clientDepositStatus, setClientDepositStatus] = useState<string | null>(null);
 	const [clientDepositTier, setClientDepositTier] = useState<string | null>(null);
@@ -520,20 +521,26 @@ export function PortalLitterDetail() {
 											alt={puppy.colour ?? ''}
 											loading="lazy"
 											decoding="async"
-											className="w-full h-full object-cover cursor-zoom-in"
+											className={`w-full h-full object-cover cursor-zoom-in transition-opacity duration-150 ${puppyImgLoading[puppy.id] ? 'opacity-40' : 'opacity-100'}`}
+											onLoad={() => setPuppyImgLoading((prev) => ({ ...prev, [puppy.id]: false }))}
 											onClick={() => setLightbox({ urls: imgs.map((i) => i.url), index: imgIdx })}
 										/>
+										{puppyImgLoading[puppy.id] && (
+											<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+												<div className="w-7 h-7 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+											</div>
+										)}
 										{imgs.length > 1 && (
 											<>
 												<button
 													type="button"
-													onClick={(e) => { e.stopPropagation(); setPuppyImgIndexes((prev) => ({ ...prev, [puppy.id]: imgIdx > 0 ? imgIdx - 1 : imgs.length - 1 })); }}
+													onClick={(e) => { e.stopPropagation(); setPuppyImgLoading((prev) => ({ ...prev, [puppy.id]: true })); setPuppyImgIndexes((prev) => ({ ...prev, [puppy.id]: imgIdx > 0 ? imgIdx - 1 : imgs.length - 1 })); }}
 													className="absolute left-1.5 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center text-base shadow-md transition-colors"
 													aria-label="Previous photo"
 												>&#8249;</button>
 												<button
 													type="button"
-													onClick={(e) => { e.stopPropagation(); setPuppyImgIndexes((prev) => ({ ...prev, [puppy.id]: imgIdx < imgs.length - 1 ? imgIdx + 1 : 0 })); }}
+													onClick={(e) => { e.stopPropagation(); setPuppyImgLoading((prev) => ({ ...prev, [puppy.id]: true })); setPuppyImgIndexes((prev) => ({ ...prev, [puppy.id]: imgIdx < imgs.length - 1 ? imgIdx + 1 : 0 })); }}
 													className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center text-base shadow-md transition-colors"
 													aria-label="Next photo"
 												>&#8250;</button>
