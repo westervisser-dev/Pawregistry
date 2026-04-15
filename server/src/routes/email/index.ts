@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
 import { eq, desc, asc } from 'drizzle-orm';
 import { db } from '../../db';
-import { emailTemplates, emailLogs } from '../../db/schema';
+import { emailTemplates, emailLogs, appSettings } from '../../db/schema';
 import { adminPlugin } from '../../lib/auth';
 
 export const emailRoutes = new Elysia({ prefix: '/email' })
@@ -31,6 +31,33 @@ export const emailRoutes = new Elysia({ prefix: '/email' })
 				enabled: t.Boolean(),
 			})),
 		}
+	)
+
+	// ── Get app settings (key-value) ──
+	.get('/settings', async () => {
+		const rows = await db.select().from(appSettings);
+		return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+	})
+
+	// ── Upsert one or more settings ──
+	.patch(
+		'/settings',
+		async ({ body }) => {
+			for (const [key, value] of Object.entries(body)) {
+				if (value === undefined) continue;
+				await db
+					.insert(appSettings)
+					.values({ key, value })
+					.onConflictDoUpdate({ target: appSettings.key, set: { value, updatedAt: new Date() } });
+			}
+			const rows = await db.select().from(appSettings);
+			return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+		},
+		{
+			body: t.Object({
+				admin_email: t.Optional(t.String()),
+			}),
+		},
 	)
 
 	// ── List email logs (optionally filtered by client) ──

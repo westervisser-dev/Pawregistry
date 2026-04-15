@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { emailTemplates, emailLogs, clients, litters, updates, litterInterests, litterNotifications, litterUpdateOptOuts, puppies } from '../db/schema';
+import { emailTemplates, emailLogs, clients, litters, updates, litterInterests, litterNotifications, litterUpdateOptOuts, puppies, appSettings } from '../db/schema';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? '';
 
@@ -377,7 +377,10 @@ function buildUpdateEmailHtml(params: {
 export async function sendAdminNotification(subject: string, body: string): Promise<void> {
 	try {
 		const from = process.env.RESEND_FROM_EMAIL ?? 'Paw Registry <onboarding@resend.dev>';
-		await getResend().emails.send({ from, to: ADMIN_EMAIL, subject, html: toHtml(body) });
+		const [setting] = await db.select().from(appSettings).where(eq(appSettings.key, 'admin_email'));
+		const to = setting?.value || ADMIN_EMAIL;
+		if (!to) return;
+		await getResend().emails.send({ from, to, subject, html: toHtml(body) });
 	} catch (e) {
 		console.error('Admin notification failed:', e);
 	}

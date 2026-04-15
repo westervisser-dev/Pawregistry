@@ -271,8 +271,9 @@ export function ApplyPage() {
 		if (err) { setError(err); return; }
 		setError('');
 		setStep(steps[steps.indexOf(step) + 1] as Step);
+		window.scrollTo({ top: 0, behavior: 'smooth' });
 	};
-	const back = () => { setError(''); setStep(steps[steps.indexOf(step) - 1] as Step); };
+	const back = () => { setError(''); setStep(steps[steps.indexOf(step) - 1] as Step); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
 	const handleBreedChange = (breed: string) => {
 		const sizes = BREED_SIZES[breed] ?? [];

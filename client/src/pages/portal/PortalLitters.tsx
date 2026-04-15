@@ -293,7 +293,8 @@ export function PortalLitters() {
 		? litters
 		: litters.filter((l) => matches[l.id]?.tier === filter);
 
-	const availableNow = filtered.filter((l) => l.status === 'available' || l.status === 'booked');
+	const availableNow = filtered.filter((l) => l.status === 'available');
+	const booked = filtered.filter((l) => l.status === 'booked');
 	const upcoming = filtered.filter((l) => l.status === 'planned');
 
 	return (
@@ -339,6 +340,7 @@ export function PortalLitters() {
 					)}
 
 					<Section label="Available Now" litters={availableNow} matches={matches} interestedIds={interestedIds} myLitterId={myLitterId} />
+					<Section label="Booked" litters={booked} matches={matches} interestedIds={interestedIds} myLitterId={myLitterId} />
 					<Section label="Upcoming Litters" litters={upcoming} matches={matches} interestedIds={interestedIds} myLitterId={myLitterId} />
 
 					{filtered.length === 0 && (

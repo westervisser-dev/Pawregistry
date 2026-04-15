@@ -92,6 +92,13 @@
       "when": 1776183845116,
       "tag": "0012_legal_imperial_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1776240048656,
+      "tag": "0013_cynical_bromley",
+      "breakpoints": true
     }
   ]
 }

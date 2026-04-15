@@ -1132,7 +1132,7 @@ export function AdminLitterDetail() {
 
 							return (
 								<div key={p.id}>
-									<div className="flex items-center gap-3 py-3">
+									<div className="flex items-start gap-3 py-3">
 										{/* Puppy image thumbnail with carousel */}
 										<div className="flex flex-col items-center gap-0.5 flex-shrink-0">
 											<div className="relative w-14 h-14 group">
@@ -1196,94 +1196,100 @@ export function AdminLitterDetail() {
 												<span className="text-[10px] text-warm-400 leading-none">uploading…</span>
 											)}
 										</div>
-										<span className="w-4 h-4 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
-										<input
-											type="number"
-											min="0"
-											step="500"
-											defaultValue={p.priceRands ?? ''}
-											placeholder="R"
-											onBlur={async (e) => {
-												const value = e.target.value ? Number(e.target.value) : null;
-												if (value === p.priceRands) return;
-												await api.litters.puppies({ puppyId: p.id }).patch({ priceRands: value } as Parameters<ReturnType<typeof api.litters.puppies>['patch']>[0]);
-												setLitter((l) => l ? { ...l, puppies: l.puppies.map((pp: Record<string, unknown>) => pp.id === p.id ? { ...pp, priceRands: value } : pp) } : l);
-											}}
-											className="w-24 px-2 py-0.5 text-xs border border-warm-200 rounded-md text-warm-600 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors flex-shrink-0"
-											title="Puppy price (R)"
-										/>
-										<span className="text-sm font-medium text-warm-800 flex-1">
-											{p.colour} · {p.sex}
-											{!!p.client && (
-												<Link to={`/admin/clients/${p.client.id}`} className="ml-2 text-xs font-normal text-brand-600 hover:underline">
-													{p.client.firstName} {p.client.lastName}
-												</Link>
-											)}
+										{/* Right content block */}
+										<div className="flex-1 min-w-0">
+											{/* Line 1: name + status/badge stacked on right */}
+											<div className="flex items-start gap-2">
+												<span className="text-sm font-medium text-warm-800 flex-1 min-w-0">
+													{p.colour} · {p.sex}
+												</span>
+												<div className="flex flex-col items-end gap-1 flex-shrink-0">
+													{/* Inline status selector */}
+													{['available', 'booked', 'puppy_fully_paid'].includes(p.status) ? (
+														<PuppyStatusBadge status={p.status} />
+													) : (
+														<select
+															value={p.status}
+															disabled={updatingPuppyId === p.id}
+															onChange={(e) => updatePuppyStatus(p.id, e.target.value)}
+															className="px-2 py-1 text-xs border border-warm-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-300 bg-white disabled:opacity-50"
+														>
+															{(p.status === 'reserved'
+																? ['reserved', 'available']
+																: ['available', 'reserved', 'retained', 'not_for_sale']
+															).map((s) => (
+																<option key={s} value={s}>{s.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}</option>
+															))}
+														</select>
+													)}
+													{/* Interest count badge — below status */}
+													{allInterests.length > 0 && (
+														<button
+															onClick={() => setExpandedPuppy(isExpanded ? null : p.id)}
+															className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+																pendingInterests.length > 0
+																	? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+																	: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
+															}`}
+														>
+															{pendingInterests.length > 0 ? `${pendingInterests.length} pending` : `${allInterests.length} interested`}
+															<span className="text-[10px]">{isExpanded ? '▲' : '▼'}</span>
+														</button>
+													)}
+												</div>
+											</div>
+											{/* Line 2: collar + price */}
+											<div className="flex items-center gap-2 mt-1">
+												<span className="w-4 h-4 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
+												<input
+													type="number"
+													min="0"
+													step="500"
+													defaultValue={p.priceRands ?? ''}
+													placeholder="R"
+													onBlur={async (e) => {
+														const value = e.target.value ? Number(e.target.value) : null;
+														if (value === p.priceRands) return;
+														await api.litters.puppies({ puppyId: p.id }).patch({ priceRands: value } as Parameters<ReturnType<typeof api.litters.puppies>['patch']>[0]);
+														setLitter((l) => l ? { ...l, puppies: l.puppies.map((pp: Record<string, unknown>) => pp.id === p.id ? { ...pp, priceRands: value } : pp) } : l);
+													}}
+													className="w-24 px-2 py-0.5 text-xs border border-warm-200 rounded-md text-warm-600 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors"
+													title="Puppy price (R)"
+												/>
+											</div>
+											{/* Line 3: client + timer (reserved) */}
 											{p.status === 'reserved' && (() => {
 												const interest = puppyInterests.find((i) => i.puppyId === p.id && i.status === 'pending');
 												if (!interest) return null;
 												return (
-													<span className="block text-xs text-warm-500 mt-0.5 font-normal">
-														<Link to={`/admin/clients/${interest.client.id}`} className="text-brand-600 hover:underline">{interest.client.firstName} {interest.client.lastName}</Link>
-													</span>
+													<div className="mt-1 space-y-1">
+														<Link to={`/admin/clients/${interest.client.id}`} className="text-xs text-brand-600 hover:underline">{interest.client.firstName} {interest.client.lastName}</Link>
+														<div><NotifyTimer since={interest.createdAt} label="— Elapsed" /></div>
+													</div>
 												);
 											})()}
+											{/* Line 3: client + deposit tier (booked) */}
 											{p.status === 'booked' && (() => {
 												const interest = puppyInterests.find((i) => i.puppyId === p.id && i.status === 'approved');
 												if (!interest) return null;
 												return (
-													<span className="block text-xs text-warm-500 mt-0.5 font-normal">
-														<Link to={`/admin/clients/${interest.client.id}`} className="text-brand-600 hover:underline">{interest.client.firstName} {interest.client.lastName}</Link>
-														{' · '}
+													<div className="mt-1 flex items-center gap-1.5 flex-wrap">
+														<Link to={`/admin/clients/${interest.client.id}`} className="text-xs text-brand-600 hover:underline">{interest.client.firstName} {interest.client.lastName}</Link>
 														<span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium ${interest.client.depositTier === 'r5000' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
 															{interest.client.depositTier === 'r5000' ? 'R5,000 deposit' : 'R500 deposit'}
 														</span>
-													</span>
+													</div>
 												);
 											})()}
-										</span>
-										{/* Reservation timer — right-aligned, only for reserved puppies */}
-										{p.status === 'reserved' && (() => {
-											const interest = puppyInterests.find((i) => i.puppyId === p.id && i.status === 'pending');
-											if (!interest) return null;
-											return (
-												<div className="flex-shrink-0">
-													<NotifyTimer since={interest.createdAt} label="— Elapsed time for payment" />
+											{/* Line 3: client (other statuses with client assigned) */}
+											{!!p.client && !['reserved', 'booked'].includes(p.status) && (
+												<div className="mt-1">
+													<Link to={`/admin/clients/${p.client.id}`} className="text-xs text-brand-600 hover:underline">
+														{p.client.firstName} {p.client.lastName}
+													</Link>
 												</div>
-											);
-										})()}
-										{/* Interest count badge */}
-										{allInterests.length > 0 && (
-											<button
-												onClick={() => setExpandedPuppy(isExpanded ? null : p.id)}
-												className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-													pendingInterests.length > 0
-														? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-														: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
-												}`}
-											>
-												{pendingInterests.length > 0 ? `${pendingInterests.length} pending` : `${allInterests.length} interested`}
-												<span className="text-[10px]">{isExpanded ? '▲' : '▼'}</span>
-											</button>
-										)}
-										{/* Inline status selector — available/booked/puppy_fully_paid are read-only; reserved can only reset to available */}
-										{['available', 'booked', 'puppy_fully_paid'].includes(p.status) ? (
-											<PuppyStatusBadge status={p.status} />
-										) : (
-											<select
-												value={p.status}
-												disabled={updatingPuppyId === p.id}
-												onChange={(e) => updatePuppyStatus(p.id, e.target.value)}
-												className="px-2 py-1 text-xs border border-warm-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-300 bg-white disabled:opacity-50"
-											>
-												{(p.status === 'reserved'
-													? ['reserved', 'available']
-													: ['available', 'reserved', 'retained', 'not_for_sale']
-												).map((s) => (
-													<option key={s} value={s}>{s.replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase())}</option>
-												))}
-											</select>
-										)}
+											)}
+										</div>
 									</div>
 									{/* Expanded interests */}
 									{isExpanded && allInterests.length > 0 && (
