@@ -63,17 +63,18 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 	// ── Public: submit application ──
 	.post(
 		'/apply',
-		async ({ body, error }) => {
+		async ({ body, set }) => {
 			// Check for existing application with this email
 			const existing = await db.query.clients.findFirst({
 				where: eq(clients.email, body.email.toLowerCase().trim()),
 				columns: { id: true },
 			});
 			if (existing) {
-				return error(409, {
+				set.status = 409;
+				return {
 					error: 'EmailExists',
 					message: 'An application already exists for this email address. Please log in to your portal instead.',
-				});
+				};
 			}
 
 			const tier = body.depositTier; // null means no deposit chosen
