@@ -1401,8 +1401,8 @@ export function AdminLitterDetail() {
 				{/* Notify bar */}
 				{!matchingLoading && (
 					<>
-						<div className={`mb-4 rounded-lg border p-3 flex flex-wrap items-center gap-2 transition-colors ${notifyOpen ? 'bg-amber-50 border-amber-300' : 'bg-warm-50 border-warm-200'}`}>
-							<p className={`text-xs flex-1 min-w-0 ${notifications.length > 0 ? 'text-blue-600 font-medium' : 'text-warm-500'}`}>
+						<div className={`mb-4 rounded-lg border p-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center transition-colors ${notifyOpen ? 'bg-amber-50 border-amber-300' : 'bg-warm-50 border-warm-200'}`}>
+							<p className={`text-xs sm:flex-1 ${notifications.length > 0 ? 'text-blue-600 font-medium' : 'text-warm-500'}`}>
 								{notifications.length > 0
 									? `${notifications.length} client${notifications.length !== 1 ? 's' : ''} already notified about this litter`
 									: 'No clients notified yet'}
