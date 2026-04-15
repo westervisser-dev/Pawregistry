@@ -351,6 +351,7 @@ export const payments = pgTable('payments', {
 	authorizationUrl: text('authorization_url'),       // stored so Pay Now link can be resent
 	status: paymentStatusEnum('status').notNull().default('pending'),
 	expiresAt: timestamp('expires_at', { withTimezone: true }), // 24h window for booking type
+	dueDate: timestamp('due_date', { withTimezone: true }),    // admin-set due date for instalment/final payments
 	paidAt: timestamp('paid_at', { withTimezone: true }),
 	metadata: jsonb('metadata').notNull().default({}).$type<Record<string, unknown>>(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

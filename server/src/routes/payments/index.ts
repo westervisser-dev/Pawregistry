@@ -1,5 +1,5 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc, and, sum, or, ne } from 'drizzle-orm';
+import { eq, desc, and, sum, or, ne, inArray } from 'drizzle-orm';
 import { db } from '../../db';
 import { payments, clients, puppies, litters, puppyInterests } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
@@ -509,6 +509,38 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 		{ params: t.Object({ clientId: t.String() }) },
 	)
 
+	// ── Admin: clients needing a payment plan ────────────────────────────────
+	.get(
+		'/needs-payment-plan',
+		async () => {
+			const bookedClients = await db.query.clients.findMany({
+				where: eq(clients.stage, 'puppy_booked'),
+				columns: { id: true, firstName: true, lastName: true },
+			});
+
+			if (bookedClients.length === 0) return [];
+
+			// Find which booked clients already have a non-cancelled final payment
+			const clientsWithFinal = await db
+				.selectDistinct({ clientId: payments.clientId })
+				.from(payments)
+				.where(and(
+					inArray(payments.clientId, bookedClients.map((c) => c.id)),
+					eq(payments.type, 'final'),
+					ne(payments.status, 'cancelled'),
+				));
+
+			const hasPaymentPlanIds = new Set(clientsWithFinal.map((r) => r.clientId));
+
+			return bookedClients
+				.filter((c) => !hasPaymentPlanIds.has(c.id))
+				.map((c) => ({
+					clientId: c.id,
+					clientName: `${c.firstName} ${c.lastName}`,
+				}));
+		},
+	)
+
 	// ── Admin: trigger final payment ──────────────────────────────────────────
 	.post(
 		'/final/:clientId',
@@ -586,6 +618,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				reference,
 				authorizationUrl,
 				status: 'pending',
+				dueDate: body.dueDate ? new Date(body.dueDate) : null,
 				metadata: {
 					puppyId: client.puppyId,
 					puppyName,
@@ -615,7 +648,10 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 		},
 		{
 			params: t.Object({ clientId: t.String() }),
-			body: t.Object({ totalPriceRands: t.Optional(t.Number()) }),
+			body: t.Object({
+				totalPriceRands: t.Optional(t.Number()),
+				dueDate: t.Optional(t.String()),
+			}),
 		},
 	)
 
@@ -666,6 +702,11 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				return error(400, { error: 'AmountMismatch', message: `Instalment amounts (R${amountsSum.toLocaleString()}) do not match balance due (R${balanceDue.toLocaleString()})` });
 			}
 
+			// Validate dueDates length matches amounts if provided
+			if (body.dueDates && body.dueDates.length !== body.amounts.length) {
+				return error(400, { error: 'DueDateMismatch', message: 'dueDates array must match amounts array length' });
+			}
+
 			// Cancel any existing pending final payments
 			await db.update(payments)
 				.set({ status: 'cancelled' })
@@ -709,6 +750,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 					reference,
 					authorizationUrl,
 					status: 'pending',
+					dueDate: body.dueDates?.[i] ? new Date(body.dueDates[i]!) : null,
 					metadata: {
 						puppyId: client.puppyId,
 						puppyName,
@@ -726,7 +768,12 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			}
 
 			// Notify client with instalment schedule
-			const scheduleLines = body.amounts.map((a, i) => `  ${i + 1}. R${a.toLocaleString()}`).join('\n');
+			const scheduleLines = body.amounts.map((a, i) => {
+				const dueDateStr = body.dueDates?.[i]
+					? ` — due ${new Date(body.dueDates[i]!).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}`
+					: '';
+				return `  ${i + 1}. R${a.toLocaleString()}${dueDateStr}`;
+			}).join('\n');
 			await sendClientEmailWithVars(client.id, 'final_payment_requested', {
 				amount: `R${balanceDue.toLocaleString()} (${instalmentTotal} instalments)`,
 				total_price: `R${totalPriceRands.toLocaleString()}`,
@@ -748,6 +795,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			body: t.Object({
 				totalPriceRands: t.Optional(t.Number()),
 				amounts: t.Array(t.Number(), { minItems: 2, maxItems: 12 }),
+				dueDates: t.Optional(t.Array(t.Union([t.String(), t.Null()]))),
 			}),
 		},
 	);

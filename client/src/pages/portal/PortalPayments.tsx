@@ -207,6 +207,13 @@ export function PortalPayments() {
 												⏳ {timeRemaining(p.expiresAt)}
 											</p>
 										)}
+										{p.dueDate && (
+											<p className={`text-xs font-medium mt-1 ${new Date(p.dueDate) < new Date() ? 'text-red-700' : 'text-warm-500'}`}>
+												{new Date(p.dueDate) < new Date()
+													? `Overdue since ${formatDate(p.dueDate)}`
+													: `Due by ${formatDate(p.dueDate)}`}
+											</p>
+										)}
 									</div>
 									<StatusBadge status={p.status} />
 								</div>
@@ -324,6 +331,9 @@ export function PortalPayments() {
 									<p className="text-sm font-medium text-warm-900">{paymentTypeLabel(p)}</p>
 									<p className="text-xs text-warm-400 mt-0.5">
 										{p.paidAt ? formatDate(p.paidAt) : formatDate(p.createdAt)}
+										{p.dueDate && p.status === 'complete' && (
+											<span className="text-warm-300 ml-1">(was due {formatDate(p.dueDate)})</span>
+										)}
 									</p>
 								</div>
 								<div className="flex items-center gap-3">

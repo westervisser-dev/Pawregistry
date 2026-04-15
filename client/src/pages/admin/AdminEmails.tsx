@@ -154,7 +154,7 @@ export function AdminEmails() {
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 					{/* Template list */}
 					<div className="flex flex-col gap-1.5">
-						{templates.map((t) => (
+						{[...templates].sort((a, b) => (TRIGGER_LABELS[a.trigger] ?? a.trigger).localeCompare(TRIGGER_LABELS[b.trigger] ?? b.trigger)).map((t) => (
 							<button
 								key={t.id}
 								onClick={() => selectTemplate(t)}

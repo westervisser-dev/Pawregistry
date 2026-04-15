@@ -47,6 +47,7 @@ export function AdminDashboard() {
 	const [docsCompleteIds, setDocsCompleteIds] = useState<Set<string>>(new Set());
 	const [pendingReservations, setPendingReservations] = useState<PendingReservation[]>([]);
 	const [awaitingPayment, setAwaitingPayment] = useState<AwaitingPaymentItem[]>([]);
+	const [needsPaymentPlan, setNeedsPaymentPlan] = useState<{ clientId: string; clientName: string }[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 	const attentionRef = useRef<HTMLDivElement>(null);
@@ -75,12 +76,15 @@ export function AdminDashboard() {
 			(api.litters.admin as any)['pending-reservations'].get(),
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(api.litters.admin as any)['awaiting-payment'].get(),
-		]).then(([littersRes, clientsRes, attentionRes, pendingRes, awaitingRes]) => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(api.payments as any)['needs-payment-plan'].get(),
+		]).then(([littersRes, clientsRes, attentionRes, pendingRes, awaitingRes, paymentPlanRes]) => {
 			const litters = (littersRes.data as Litter[] | null) ?? [];
 			const clients = (clientsRes.data as Client[] | null) ?? [];
 			const attentionData = (attentionRes as { data: { docsCompleteIds: string[] } | null }).data;
 			const pendingData = (pendingRes as { data: PendingReservation[] | null }).data ?? [];
 			const awaitingData = (awaitingRes as { data: AwaitingPaymentItem[] | null }).data ?? [];
+			const paymentPlanData = (paymentPlanRes as { data: { clientId: string; clientName: string }[] | null }).data ?? [];
 
 			const enquired = clients.filter((c) => c.stage === 'enquired');
 
@@ -93,6 +97,7 @@ export function AdminDashboard() {
 			setDocsCompleteIds(new Set(attentionData?.docsCompleteIds ?? []));
 			setPendingReservations(pendingData);
 			setAwaitingPayment(awaitingData);
+			setNeedsPaymentPlan(paymentPlanData);
 			setAllClients(clients);
 			setAllLitters(litters);
 			setLoading(false);
@@ -211,6 +216,15 @@ export function AdminDashboard() {
 						dot: 'bg-orange-500',
 						dropdown: 'border-orange-200',
 						item: 'hover:bg-orange-50 text-orange-900',
+					},
+					{
+						key: 'needs_payment_plan',
+						items: needsPaymentPlan.map((c) => ({ id: c.clientId, name: c.clientName, link: `/admin/clients/${c.clientId}#payments` })),
+						label: (n: number) => `${n} ${n === 1 ? 'client needs' : 'clients need'} a payment plan`,
+						pill: 'bg-teal-100 hover:bg-teal-200 border-teal-300 text-teal-800',
+						dot: 'bg-teal-500',
+						dropdown: 'border-teal-200',
+						item: 'hover:bg-teal-50 text-teal-900',
 					},
 					{
 						key: 'pending_reservations',

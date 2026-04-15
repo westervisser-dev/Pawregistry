@@ -196,6 +196,8 @@ export function AdminClientDetail() {
 	const [instalmentCount, setInstalmentCount] = useState(3);
 	const [customAmounts, setCustomAmounts] = useState(false);
 	const [instalmentAmounts, setInstalmentAmounts] = useState<string[]>([]);
+	const [instalmentDueDates, setInstalmentDueDates] = useState<string[]>([]);
+	const [fullPaymentDueDate, setFullPaymentDueDate] = useState('');
 	const loadTemplates = () => {
 		if (!id) return;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -568,7 +570,7 @@ export function AdminClientDetail() {
 					<h3 className="font-medium text-warm-900">Payments</h3>
 					{client.stage === 'puppy_booked' && (
 						<button
-							onClick={() => { setFinalPrice(''); setFinalError(''); setInstalmentMode(false); setShowFinalPaymentModal(true); }}
+							onClick={() => { setFinalPrice(''); setFinalError(''); setInstalmentMode(false); setInstalmentDueDates([]); setFullPaymentDueDate(''); setShowFinalPaymentModal(true); }}
 							className="px-3 py-1.5 bg-warm-900 hover:bg-warm-700 text-white text-xs font-medium rounded-lg transition-colors"
 						>
 							Request Final Payment
@@ -644,6 +646,12 @@ export function AdminClientDetail() {
 												: `Created ${new Date(p.createdAt).toLocaleDateString()}`}
 											{p.status === 'pending' && hoursLeft !== null && (
 												<span className="text-amber-600 ml-2">{hoursLeft}h remaining</span>
+											)}
+											{p.status === 'pending' && p.dueDate && (
+												<span className={`ml-2 ${new Date(p.dueDate) < new Date() ? 'text-red-600 font-medium' : 'text-warm-500'}`}>
+													{new Date(p.dueDate) < new Date() ? 'Overdue — ' : 'Due '}
+													{new Date(p.dueDate).toLocaleDateString()}
+												</span>
 											)}
 										</p>
 									</div>
@@ -752,6 +760,20 @@ export function AdminClientDetail() {
 							</button>
 						</div>
 
+						{/* Due date for full payment */}
+						{!instalmentMode && (
+							<div className="mb-4">
+								<label className="block text-xs font-medium text-warm-700 mb-1.5">Due date (optional)</label>
+								<input
+									type="date"
+									value={fullPaymentDueDate}
+									onChange={(e) => setFullPaymentDueDate(e.target.value)}
+									min={new Date().toISOString().slice(0, 10)}
+									className="w-full px-3 py-2.5 border border-warm-200 rounded-lg text-sm text-warm-900 focus:outline-none focus:ring-2 focus:ring-brand-300"
+								/>
+							</div>
+						)}
+
 						{/* Instalment config */}
 						{instalmentMode && (() => {
 							const balance = paymentSummary?.balanceDue ?? (finalPrice ? Number(finalPrice) - (paymentSummary?.alreadyPaid ?? 0) : 0);
@@ -782,15 +804,27 @@ export function AdminClientDetail() {
 									</div>
 
 									{!customAmounts ? (
-										<div className="space-y-1 text-sm">
+										<div className="space-y-1.5 text-sm">
 											{Array.from({ length: instalmentCount }, (_, i) => {
 												const amount = i < instalmentCount - 1
 													? Math.floor(balance / instalmentCount)
 													: balance - Math.floor(balance / instalmentCount) * (instalmentCount - 1);
 												return (
-													<div key={i} className="flex justify-between px-3 py-1.5 bg-warm-50 rounded-lg">
-														<span className="text-warm-600">Instalment {i + 1}</span>
+													<div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-warm-50 rounded-lg">
+														<span className="text-warm-600 flex-shrink-0">Instalment {i + 1}</span>
 														<span className="font-medium text-warm-900">R{amount.toLocaleString()}</span>
+														<input
+															type="date"
+															value={instalmentDueDates[i] ?? ''}
+															onChange={(e) => {
+																const next = [...instalmentDueDates];
+																while (next.length <= i) next.push('');
+																next[i] = e.target.value;
+																setInstalmentDueDates(next);
+															}}
+															min={new Date().toISOString().slice(0, 10)}
+															className="ml-auto w-32 px-2 py-1 border border-warm-200 rounded text-xs text-warm-700 focus:outline-none focus:ring-1 focus:ring-brand-300"
+														/>
 													</div>
 												);
 											})}
@@ -812,9 +846,24 @@ export function AdminClientDetail() {
 														placeholder="Amount (R)"
 														className="flex-1 px-3 py-1.5 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
 													/>
+													<input
+														type="date"
+														value={instalmentDueDates[i] ?? ''}
+														onChange={(e) => {
+															const next = [...instalmentDueDates];
+															while (next.length <= i) next.push('');
+															next[i] = e.target.value;
+															setInstalmentDueDates(next);
+														}}
+														min={new Date().toISOString().slice(0, 10)}
+														className="w-32 px-2 py-1.5 border border-warm-200 rounded-lg text-xs text-warm-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+													/>
 													{instalmentAmounts.length > 2 && (
 														<button
-															onClick={() => setInstalmentAmounts((a) => a.filter((_, j) => j !== i))}
+															onClick={() => {
+																setInstalmentAmounts((a) => a.filter((_, j) => j !== i));
+																setInstalmentDueDates((d) => d.filter((_, j) => j !== i));
+															}}
 															className="text-warm-400 hover:text-red-500 text-xs"
 														>Remove</button>
 													)}
@@ -822,7 +871,10 @@ export function AdminClientDetail() {
 											))}
 											{instalmentAmounts.length < 12 && (
 												<button
-													onClick={() => setInstalmentAmounts((a) => [...a, ''])}
+													onClick={() => {
+														setInstalmentAmounts((a) => [...a, '']);
+														setInstalmentDueDates((d) => [...d, '']);
+													}}
 													className="text-xs text-brand-600 hover:text-brand-700"
 												>+ Add instalment</button>
 											)}
@@ -873,6 +925,7 @@ export function AdminClientDetail() {
 											// eslint-disable-next-line @typescript-eslint/no-explicit-any
 											const { error: apiErr } = await (api.payments as any).final({ clientId: client!.id }).instalments.post({
 												amounts,
+												dueDates: instalmentDueDates.map((d) => d || null),
 												...(paymentSummary?.totalPriceRands == null && finalPrice ? { totalPriceRands: Number(finalPrice) } : {}),
 											});
 											if (apiErr) { setFinalError('Failed to create instalment plan. Please try again.'); }
@@ -885,6 +938,7 @@ export function AdminClientDetail() {
 												}
 												body.totalPriceRands = Number(finalPrice);
 											}
+											if (fullPaymentDueDate) body.dueDate = fullPaymentDueDate;
 											// eslint-disable-next-line @typescript-eslint/no-explicit-any
 											const { error: apiErr } = await (api.payments as any).final({ clientId: client!.id }).post(body);
 											if (apiErr) { setFinalError('Failed to request payment. Please try again.'); }
