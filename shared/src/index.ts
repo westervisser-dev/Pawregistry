@@ -225,6 +225,12 @@ export interface Admin {
 
 // ─── Email ────────────────────────────────────────────────────────────────────
 
+export interface AppSetting {
+	key: string;
+	value: string;
+	updatedAt: string;
+}
+
 export interface EmailTemplate {
 	id: string;
 	trigger: string;

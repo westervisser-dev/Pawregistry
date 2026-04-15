@@ -331,6 +331,14 @@ export const litterInterestsRelations = relations(litterInterests, ({ one }) => 
 	litter: one(litters, { fields: [litterInterests.litterId], references: [litters.id] }),
 }));
 
+// ─── App Settings ─────────────────────────────────────────────────────────────
+
+export const appSettings = pgTable('app_settings', {
+	key: text('key').primaryKey(),
+	value: text('value').notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ─── Payments ─────────────────────────────────────────────────────────────────
 
 export const payments = pgTable('payments', {
