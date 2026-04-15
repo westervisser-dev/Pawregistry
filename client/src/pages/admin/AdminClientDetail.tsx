@@ -568,7 +568,7 @@ export function AdminClientDetail() {
 			<Card id="payments" className="p-5 mb-6 scroll-mt-6">
 				<div className="flex items-center justify-between mb-4">
 					<h3 className="font-medium text-warm-900">Payments</h3>
-					{client.stage === 'puppy_booked' && (
+					{client.stage === 'puppy_booked' && !payments.some((p) => p.type === 'final' && p.status !== 'cancelled') && (
 						<button
 							onClick={() => { setFinalPrice(''); setFinalError(''); setInstalmentMode(false); setInstalmentDueDates([]); setFullPaymentDueDate(''); setShowFinalPaymentModal(true); }}
 							className="px-3 py-1.5 bg-warm-900 hover:bg-warm-700 text-white text-xs font-medium rounded-lg transition-colors"
