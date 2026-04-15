@@ -139,6 +139,55 @@ function Lightbox({ urls, index, onClose, onPrev, onNext }: {
 	);
 }
 
+// ─── Pre-confirm Modal ────────────────────────────────────────────────────────
+
+function PreConfirmModal({ isBook, onConfirm, onCancel }: {
+	isBook: boolean;
+	onConfirm: () => void;
+	onCancel: () => void;
+}) {
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	}, [onCancel]);
+
+	return (
+		<div
+			className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="pre-confirm-modal-title"
+		>
+			<div className="bg-white rounded-2xl shadow-2xl max-w-sm w-[calc(100%-2rem)] mx-4 p-6 flex flex-col items-center text-center">
+				<div className="text-4xl mb-4">{isBook ? '🐾' : '⏳'}</div>
+				<h2 id="pre-confirm-modal-title" className="font-serif text-xl font-bold text-warm-900 mb-2">
+					{isBook ? 'Book this puppy?' : 'Reserve this puppy?'}
+				</h2>
+				<p className="text-sm text-warm-600 leading-relaxed mb-5">
+					{isBook
+						? 'This puppy will be automatically assigned and locked to you, since your securing deposit is already paid.'
+						: 'You will have 24 hours to complete your securing deposit in order to book your puppy.'}
+				</p>
+				<button
+					type="button"
+					onClick={onConfirm}
+					className="w-full mb-3 px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors"
+				>
+					Continue
+				</button>
+				<button
+					type="button"
+					onClick={onCancel}
+					className="w-full px-4 py-2.5 bg-warm-100 text-warm-700 rounded-xl text-sm font-medium hover:bg-warm-200 transition-colors"
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	);
+}
+
 // ─── Confirmation Modal ───────────────────────────────────────────────────────
 
 function ConfirmationModal({ title, children, onClose, requiresPayment }: {
@@ -208,6 +257,7 @@ export function PortalLitterDetail() {
 	const [myInterestStatuses, setMyInterestStatuses] = useState<Map<string, string>>(new Map());
 	const [lockedPricing, setLockedPricing] = useState<{ puppyPriceRands: number; shippingRands: number } | null>(null);
 	const [confirmModal, setConfirmModal] = useState<{ title: string; body: React.ReactNode; requiresPayment: boolean } | null>(null);
+	const [preConfirmPuppyId, setPreConfirmPuppyId] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (!id) return;
@@ -669,7 +719,7 @@ export function PortalLitterDetail() {
 												</div>
 											) : (
 												<button
-													onClick={() => expressInterest(puppy.id)}
+													onClick={() => setPreConfirmPuppyId(puppy.id)}
 													disabled={submittingInterest === puppy.id}
 													className="w-full px-2 py-1.5 bg-brand-500 text-white text-xs rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors"
 												>
@@ -710,6 +760,19 @@ export function PortalLitterDetail() {
 				<div className="bg-brand-50 border border-brand-100 rounded-xl p-5">
 					<p className="text-warm-700 text-sm leading-relaxed">{litter.notes}</p>
 				</div>
+			)}
+
+			{/* Pre-confirm modal */}
+			{!!preConfirmPuppyId && (
+				<PreConfirmModal
+					isBook={isClientR5000}
+					onConfirm={() => {
+						const id = preConfirmPuppyId;
+						setPreConfirmPuppyId(null);
+						expressInterest(id);
+					}}
+					onCancel={() => setPreConfirmPuppyId(null)}
+				/>
 			)}
 
 			{/* Confirmation modal */}
