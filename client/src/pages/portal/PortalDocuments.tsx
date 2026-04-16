@@ -209,8 +209,8 @@ export function PortalDocuments() {
 											>
 												<span className="w-7 h-7 rounded-full bg-warm-200 text-warm-700 text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
 												<div className="min-w-0">
-													<p className="text-[11px] font-medium text-warm-400 uppercase tracking-wide">Step 1</p>
-													<p className="text-sm font-semibold text-warm-800">Download template</p>
+													<p className="text-[13px] font-medium text-warm-400 uppercase tracking-wide">Step 1</p>
+													<p className="text-[17px] font-semibold text-warm-800">Download template</p>
 												</div>
 												<svg className="w-4 h-4 text-warm-400 ml-auto flex-shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 													<path d="M8 2v8M4 8l4 4 4-4M3 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -226,8 +226,8 @@ export function PortalDocuments() {
 											<label className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-50 border border-brand-200 cursor-pointer hover:bg-brand-100 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
 												<span className="w-7 h-7 rounded-full bg-brand-100 text-brand-600 text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
 												<div className="min-w-0">
-													<p className="text-[11px] font-medium text-brand-400 uppercase tracking-wide">Step 2</p>
-													<p className="text-sm font-semibold text-brand-800">{isUploading ? 'Uploading…' : 'Upload signed copy'}</p>
+													<p className="text-[13px] font-medium text-brand-400 uppercase tracking-wide">Step 2</p>
+													<p className="text-[17px] font-semibold text-brand-800">{isUploading ? 'Uploading…' : 'Upload signed copy'}</p>
 												</div>
 												<svg className="w-4 h-4 text-brand-400 ml-auto flex-shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 													<path d="M8 2v9M4 5l4-3 4 3M3 13h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
