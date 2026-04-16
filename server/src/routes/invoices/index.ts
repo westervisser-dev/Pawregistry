@@ -1,9 +1,19 @@
 import Elysia, { t } from 'elysia';
-import { eq, and, sum, desc, ne } from 'drizzle-orm';
+import { eq, and, sum, desc, ne, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { invoices, payments, clients, puppies, litters, appSettings, emailLogs } from '../../db/schema';
 import { adminPlugin, clientPlugin } from '../../lib/auth';
 import { Resend } from 'resend';
+import { BREEDS, BREED_SIZES } from '@paw-registry/shared';
+
+function formatBreed(breedCode: string | null | undefined): string | null {
+	if (!breedCode) return null;
+	const [breedVal, sizeVal] = breedCode.split(' - ');
+	const breed = BREEDS.find((b) => b.value === breedVal);
+	if (!breed) return breedCode;
+	const size = sizeVal ? BREED_SIZES[breedVal]?.find((s) => s.value === sizeVal) : null;
+	return size ? `${breed.label} (${size.label})` : breed.label;
+}
 
 const CLIENT_URL = process.env.CLIENT_URL ?? 'http://localhost:5173';
 
@@ -17,13 +27,13 @@ async function nextInvoiceNumber(): Promise<string> {
 
 	// Atomic increment via raw SQL
 	const rows = await db.execute<{ value: string }>(
-		`INSERT INTO app_settings (key, value, updated_at)
-		 VALUES ('${key}', '1', NOW())
+		sql`INSERT INTO app_settings (key, value, updated_at)
+		 VALUES (${key}, '1', NOW())
 		 ON CONFLICT (key) DO UPDATE SET value = (app_settings.value::int + 1)::text, updated_at = NOW()
 		 RETURNING value`,
 	);
 
-	const counter = Number(rows.rows?.[0]?.value ?? (rows as unknown as Array<{ value: string }>)[0]?.value ?? 1);
+	const counter = Number((rows as unknown as Array<{ value: string }>)[0]?.value ?? 1);
 	return `INV-${year}-${String(counter).padStart(4, '0')}`;
 }
 
@@ -113,7 +123,7 @@ export const invoicesRoutes = new Elysia({ prefix: '/invoices' })
 
 				if (puppy?.priceRands != null) {
 					lineItems.push({
-						description: `Puppy — ${puppy.collarColour} collar (${puppy.sex})${puppy.litter?.breed ? `, ${puppy.litter.breed}` : ''}`,
+						description: `Puppy — ${puppy.collarColour} collar (${puppy.sex})${puppy.litter?.breed ? `, ${formatBreed(puppy.litter.breed)}` : ''}`,
 						quantity: 1,
 						unitPriceRands: puppy.priceRands,
 						totalRands: puppy.priceRands,

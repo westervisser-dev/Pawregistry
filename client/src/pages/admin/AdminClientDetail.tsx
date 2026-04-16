@@ -200,6 +200,7 @@ export function AdminClientDetail() {
 	const [fullPaymentDueDate, setFullPaymentDueDate] = useState('');
 	const [clientInvoices, setClientInvoices] = useState<Invoice[]>([]);
 	const [creatingInvoice, setCreatingInvoice] = useState(false);
+	const [invoiceError, setInvoiceError] = useState<string | null>(null);
 	const loadTemplates = () => {
 		if (!id) return;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -691,11 +692,16 @@ export function AdminClientDetail() {
 							disabled={creatingInvoice}
 							onClick={async () => {
 								setCreatingInvoice(true);
-								try {
+								setInvoiceError(null);
+								// eslint-disable-next-line @typescript-eslint/no-explicit-any
+								const { error: err } = await (api.invoices as any).admin.post({ clientId: client.id, puppyId: client.puppyId });
+								if (err) {
 									// eslint-disable-next-line @typescript-eslint/no-explicit-any
-									await (api.invoices as any).admin.post({ clientId: client.id, puppyId: client.puppyId });
-									load();
-								} catch {}
+									setInvoiceError((err as any).value?.message ?? 'Failed to create invoice');
+									setCreatingInvoice(false);
+									return;
+								}
+								await load();
 								setCreatingInvoice(false);
 							}}
 							className="px-3 py-1.5 bg-warm-900 hover:bg-warm-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
@@ -704,6 +710,8 @@ export function AdminClientDetail() {
 						</button>
 					)}
 				</div>
+
+				{invoiceError && <p role="alert" className="text-red-600 text-xs mb-3">{invoiceError}</p>}
 
 				{clientInvoices.length === 0 ? (
 					<p className="text-sm text-warm-400">No invoices yet.</p>
