@@ -105,11 +105,12 @@ function ClientActionCenter({
 
 	// Pending booking / final payment — highest priority, shown first (only when client is in a booking stage)
 	if (pendingBookingPayment && ['puppy_reserved', 'puppy_booked'].includes(client.stage)) {
-		const hoursLeft = pendingBookingPayment.expiresAt
-			? Math.max(0, Math.floor((new Date(pendingBookingPayment.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
+		const msLeft = pendingBookingPayment.expiresAt
+			? new Date(pendingBookingPayment.expiresAt).getTime() - Date.now()
 			: null;
-		const urgencyLabel = hoursLeft !== null
-			? ` — ${hoursLeft}h left`
+		const hoursLeft = msLeft !== null ? Math.floor(msLeft / (1000 * 60 * 60)) : null;
+		const urgencyLabel = msLeft !== null
+			? msLeft <= 0 ? ' — EXPIRED' : ` — ${hoursLeft}h left`
 			: '';
 
 		let paymentLabel: string;
