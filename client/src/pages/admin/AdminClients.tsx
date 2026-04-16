@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { LoadingPage, PageHeader } from '@/components/ui';
-import type { Client, ClientStage } from '@paw-registry/shared';
+import type { Client, ClientStage, PaymentSummary } from '@paw-registry/shared';
 import { ClientDndTable, ClientReadTable, type ClientAction } from './_shared';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
@@ -12,6 +12,7 @@ export function AdminClients() {
 	const [stage, setStage] = useState('');
 	const [loading, setLoading] = useState(true);
 	const [actionMap, setActionMap] = useState<Record<string, ClientAction>>({});
+	const [paymentSummaries, setPaymentSummaries] = useState<Record<string, PaymentSummary>>({});
 
 	usePageTitle('Clients');
 
@@ -23,7 +24,7 @@ export function AdminClients() {
 		});
 	};
 
-	// Fetch attention flags once on mount — stage filter doesn't affect this
+	// Fetch attention flags + payment summaries once on mount
 	useEffect(() => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.clients.admin as any).attention.get().then(({ data }: { data: { docsCompleteIds: string[] } | null }) => {
@@ -31,6 +32,13 @@ export function AdminClients() {
 			const map: Record<string, ClientAction> = {};
 			for (const id of data.docsCompleteIds) map[id] = 'review_documents';
 			setActionMap(map);
+		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.payments.admin as any).summaries.get().then(({ data }: { data: PaymentSummary[] | null }) => {
+			if (!data) return;
+			const map: Record<string, PaymentSummary> = {};
+			for (const s of data) map[s.clientId] = s;
+			setPaymentSummaries(map);
 		});
 	}, []);
 
@@ -140,6 +148,7 @@ export function AdminClients() {
 						clients={depositQueueClients}
 						onReorder={handleDepositReorder}
 						actionMap={computedActionMap}
+						paymentSummaries={paymentSummaries}
 					/>
 					<ClientDndTable
 						title="Waitlisted — No Deposit"
@@ -147,16 +156,19 @@ export function AdminClients() {
 						onReorder={handleNoDepositReorder}
 						startIndex={depositQueueClients.length}
 						actionMap={computedActionMap}
+						paymentSummaries={paymentSummaries}
 					/>
 					<ClientReadTable
 						title="Not Yet Waitlisted"
 						clients={notYetWaitlistedClients}
 						actionMap={computedActionMap}
+						paymentSummaries={paymentSummaries}
 					/>
 					<ClientReadTable
 						title="Completed"
 						clients={completedClients}
 						actionMap={computedActionMap}
+						paymentSummaries={paymentSummaries}
 					/>
 				</div>
 			)}

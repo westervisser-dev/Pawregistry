@@ -40,6 +40,7 @@ export const depositStatusEnum = pgEnum('deposit_status', ['none', 'pending', 'p
 export const depositTierEnum = pgEnum('deposit_tier', ['r5000', 'r500']);
 export const paymentTypeEnum = pgEnum('payment_type', ['deposit', 'booking', 'final']);
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'complete', 'failed', 'cancelled']);
+export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'viewed', 'paid', 'cancelled']);
 
 // ─── Litters ─────────────────────────────────────────────────────────────────
 
@@ -353,10 +354,46 @@ export const payments = pgTable('payments', {
 	expiresAt: timestamp('expires_at', { withTimezone: true }), // 24h window for booking type
 	dueDate: timestamp('due_date', { withTimezone: true }),    // admin-set due date for instalment/final payments
 	paidAt: timestamp('paid_at', { withTimezone: true }),
+	invoiceId: text('invoice_id').references(() => invoices.id, { onDelete: 'set null' }),
 	metadata: jsonb('metadata').notNull().default({}).$type<Record<string, unknown>>(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ─── Invoices ────────────────────────────────────────────────────────────────
+
+export const invoices = pgTable('invoices', {
+	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+	invoiceNumber: text('invoice_number').notNull().unique(),
+	clientId: text('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+	puppyId: text('puppy_id').references(() => puppies.id),
+	status: invoiceStatusEnum('status').notNull().default('draft'),
+	lineItems: jsonb('line_items').notNull().$type<Array<{ description: string; quantity: number; unitPriceRands: number; totalRands: number }>>(),
+	subtotalRands: real('subtotal_rands').notNull(),
+	totalRands: real('total_rands').notNull(),
+	paidRands: real('paid_rands').notNull().default(0),
+	breederName: text('breeder_name').notNull(),
+	breederEmail: text('breeder_email').notNull(),
+	clientName: text('client_name').notNull(),
+	clientEmail: text('client_email').notNull(),
+	clientPhone: text('client_phone'),
+	clientCity: text('client_city'),
+	viewToken: text('view_token').notNull().unique(),
+	notes: text('notes'),
+	issuedAt: timestamp('issued_at', { withTimezone: true }),
+	dueDate: timestamp('due_date', { withTimezone: true }),
+	sentAt: timestamp('sent_at', { withTimezone: true }),
+	viewedAt: timestamp('viewed_at', { withTimezone: true }),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+	client: one(clients, { fields: [invoices.clientId], references: [clients.id] }),
+	puppy: one(puppies, { fields: [invoices.puppyId], references: [puppies.id] }),
+	payments: many(payments),
+}));
+
 export const paymentsRelations = relations(payments, ({ one }) => ({
 	client: one(clients, { fields: [payments.clientId], references: [clients.id] }),
+	invoice: one(invoices, { fields: [payments.invoiceId], references: [invoices.id] }),
 }));

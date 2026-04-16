@@ -106,6 +106,13 @@
       "when": 1776269824588,
       "tag": "0014_lush_sheva_callister",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1776344867700,
+      "tag": "0015_goofy_nuke",
+      "breakpoints": true
     }
   ]
 }

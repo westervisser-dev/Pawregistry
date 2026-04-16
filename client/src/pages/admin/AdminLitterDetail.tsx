@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, PuppyStatusBadge, EmptyState } from '@/components/ui';
-import type { Litter, LitterImage, LitterStatus, MatchingClient, PuppyImage } from '@paw-registry/shared';
+import type { Litter, LitterImage, LitterStatus, MatchingClient, PuppyImage, PaymentSummary } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES, buildBreedSize, parseBreedSize, getBreedSizeLabel } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
 
@@ -49,6 +49,75 @@ function NotifyTimer({ since, variant = 'blue', label }: { since: string; varian
 	);
 }
 
+// ─── Lightbox ────────────────────────────────────────────────────────────────
+
+function Lightbox({ urls, index, onClose, onPrev, onNext }: {
+	urls: string[];
+	index: number;
+	onClose: () => void;
+	onPrev: () => void;
+	onNext: () => void;
+}) {
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') onClose();
+			if (e.key === 'ArrowLeft') onPrev();
+			if (e.key === 'ArrowRight') onNext();
+		};
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	}, [onClose, onPrev, onNext]);
+
+	return (
+		<div
+			className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+			role="dialog"
+			aria-modal="true"
+			aria-label="Image enlarged view"
+			onClick={onClose}
+		>
+			<button
+				type="button"
+				onClick={onClose}
+				className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center text-xl transition-colors"
+				aria-label="Close"
+			>&#x2715;</button>
+
+			{urls.length > 1 && (
+				<>
+					<button
+						type="button"
+						onClick={(e) => { e.stopPropagation(); onPrev(); }}
+						className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center text-2xl transition-colors"
+						aria-label="Previous image"
+					>&#8249;</button>
+					<button
+						type="button"
+						onClick={(e) => { e.stopPropagation(); onNext(); }}
+						className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/40 text-white rounded-full flex items-center justify-center text-2xl transition-colors"
+						aria-label="Next image"
+					>&#8250;</button>
+				</>
+			)}
+
+			<img
+				src={urls[index]}
+				alt=""
+				className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+				onClick={(e) => e.stopPropagation()}
+			/>
+
+			{urls.length > 1 && (
+				<div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+					{urls.map((_, i) => (
+						<div key={i} className={`w-2 h-2 rounded-full ${i === index ? 'bg-white' : 'bg-white/40'}`} />
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
 export function AdminLitterDetail() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
@@ -84,7 +153,9 @@ export function AdminLitterDetail() {
 	const [masterListLoading, setMasterListLoading] = useState(false);
 	const [puppyImagesMap, setPuppyImagesMap] = useState<Record<string, PuppyImage[]>>({});
 	const [puppyImageIndex, setPuppyImageIndex] = useState<Record<string, number>>({});
+	const [puppyImgLoading, setPuppyImgLoading] = useState<Record<string, boolean>>({});
 	const [uploadingPuppyId, setUploadingPuppyId] = useState<string | null>(null);
+	const [lightbox, setLightbox] = useState<{ urls: string[]; index: number } | null>(null);
 	const [addingPuppy, setAddingPuppy] = useState(false);
 	const [addPuppyError, setAddPuppyError] = useState('');
 	const [newPuppyDraftImageFiles, setNewPuppyDraftImageFiles] = useState<File[]>([]);
@@ -102,6 +173,7 @@ export function AdminLitterDetail() {
 	const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 	const [pendingPuppies, setPendingPuppies] = useState<Array<{ collarColour: string; sex: 'male' | 'female'; colour: string; priceRands: string; imageFiles?: File[] }>>([]);
 	const [newPuppyDraft, setNewPuppyDraft] = useState({ collarColour: '', sex: 'male' as const, colour: '', priceRands: '' });
+	const [paymentSummaries, setPaymentSummaries] = useState<Record<string, PaymentSummary>>({});
 
 	useEffect(() => {
 		if (!id) return;
@@ -157,6 +229,15 @@ export function AdminLitterDetail() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.litters.admin as any).notifications({ litterId: id }).get().then(({ data }: { data: typeof notifications | null }) => {
 			if (data) setNotifications(data);
+		}).catch(() => {});
+		// Fetch payment summaries for clients with booked puppies
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.payments.admin as any).summaries.get().then(({ data }: { data: PaymentSummary[] | null }) => {
+			if (data) {
+				const map: Record<string, PaymentSummary> = {};
+				for (const s of data) map[s.clientId] = s;
+				setPaymentSummaries(map);
+			}
 		}).catch(() => {});
 	}, [id]);
 
@@ -368,6 +449,7 @@ export function AdminLitterDetail() {
 	};
 
 	const prevPuppyImage = (puppyId: string) => {
+		setPuppyImgLoading((prev) => ({ ...prev, [puppyId]: true }));
 		setPuppyImageIndex((prev) => {
 			const images = puppyImagesMap[puppyId] ?? [];
 			const current = prev[puppyId] ?? 0;
@@ -376,6 +458,7 @@ export function AdminLitterDetail() {
 	};
 
 	const nextPuppyImage = (puppyId: string) => {
+		setPuppyImgLoading((prev) => ({ ...prev, [puppyId]: true }));
 		setPuppyImageIndex((prev) => {
 			const images = puppyImagesMap[puppyId] ?? [];
 			const current = prev[puppyId] ?? 0;
@@ -872,18 +955,25 @@ export function AdminLitterDetail() {
 						<span className="text-xs text-warm-400">{galleryImages.length}/30 photos</span>
 					</div>
 					<div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
-						{galleryImages.map((img) => (
-							<div key={img.id} className="relative aspect-square">
-								<img src={img.url} alt="Gallery" className="w-full h-full object-cover rounded-lg border border-warm-200" />
+						{galleryImages.map((img, i) => (
+							<div key={img.id} className="relative aspect-square group">
+								<img
+									src={img.url}
+									alt="Gallery"
+									loading="lazy"
+									decoding="async"
+									className="w-full h-full object-cover rounded-lg border border-warm-200 cursor-zoom-in"
+									onClick={() => setLightbox({ urls: galleryImages.map((g) => g.url), index: i })}
+								/>
 								<button
 									type="button"
 									onClick={async () => {
 										setGalleryError('');
 										const { error } = await api.litters({ id: id! }).gallery({ imageId: img.id }).delete();
 										if (error) { setGalleryError('Failed to delete image.'); return; }
-										setGalleryImages((prev) => prev.filter((i) => i.id !== img.id));
+										setGalleryImages((prev) => prev.filter((gi) => gi.id !== img.id));
 									}}
-									className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs leading-none transition-colors"
+									className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs leading-none opacity-0 group-hover:opacity-100 transition-all"
 									aria-label="Remove image"
 								>
 									×
@@ -1141,8 +1231,17 @@ export function AdminLitterDetail() {
 														<img
 															src={currentImg.url}
 															alt=""
-															className="w-full h-full object-cover rounded-lg border border-warm-200"
+															loading="lazy"
+															decoding="async"
+															className={`w-full h-full object-cover rounded-lg border border-warm-200 cursor-zoom-in transition-opacity duration-150 ${puppyImgLoading[p.id] ? 'opacity-40' : 'opacity-100'}`}
+															onLoad={() => setPuppyImgLoading((prev) => ({ ...prev, [p.id]: false }))}
+															onClick={() => setLightbox({ urls: puppyImgs.map((i) => i.url), index: imgIdx })}
 														/>
+														{puppyImgLoading[p.id] && (
+															<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+																<div className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+															</div>
+														)}
 														{puppyImgs.length > 1 && (
 															<>
 																<button
@@ -1205,27 +1304,55 @@ export function AdminLitterDetail() {
 												</span>
 												<div className="flex items-center gap-2 mt-0.5">
 													<span className="w-3.5 h-3.5 rounded-full border border-warm-300 flex-shrink-0" style={{ background: p.collarColour }} />
-													<input
-														type="number"
-														min="0"
-														step="500"
-														defaultValue={p.priceRands ?? ''}
-														placeholder="R"
-														onBlur={async (e) => {
-															const value = e.target.value ? Number(e.target.value) : null;
-															if (value === p.priceRands) return;
-															await api.litters.puppies({ puppyId: p.id }).patch({ priceRands: value } as Parameters<ReturnType<typeof api.litters.puppies>['patch']>[0]);
-															setLitter((l) => l ? { ...l, puppies: l.puppies.map((pp: Record<string, unknown>) => pp.id === p.id ? { ...pp, priceRands: value } : pp) } : l);
-														}}
-														className="w-20 px-2 py-0.5 text-xs border border-warm-200 rounded-md text-warm-600 bg-warm-50 hover:border-warm-300 focus:outline-none focus:border-brand-400 focus:bg-white transition-colors"
-														title="Puppy price (R)"
-													/>
+													<span className="inline-flex items-center border border-warm-200 rounded-md bg-warm-50 hover:border-warm-300 focus-within:border-brand-400 focus-within:bg-white transition-colors">
+														<span className="pl-2 text-xs text-warm-400 select-none">R</span>
+														<input
+															type="number"
+															min="0"
+															step="500"
+															defaultValue={p.priceRands ?? ''}
+															placeholder="0"
+															onBlur={async (e) => {
+																const value = e.target.value ? Number(e.target.value) : null;
+																if (value === p.priceRands) return;
+																await api.litters.puppies({ puppyId: p.id }).patch({ priceRands: value } as Parameters<ReturnType<typeof api.litters.puppies>['patch']>[0]);
+																setLitter((l) => l ? { ...l, puppies: l.puppies.map((pp: Record<string, unknown>) => pp.id === p.id ? { ...pp, priceRands: value } : pp) } : l);
+															}}
+															className="w-20 pl-1 pr-2 py-0.5 text-xs text-warm-600 bg-transparent focus:outline-none"
+															title="Puppy price (R)"
+														/>
+													</span>
 												</div>
 											</div>
 											{/* Right: status + interest badge stacked */}
 											<div className="flex flex-col items-end gap-1 flex-shrink-0">
 												{['available', 'booked', 'puppy_fully_paid'].includes(p.status) ? (
-													<PuppyStatusBadge status={p.status} />
+													<>
+														<PuppyStatusBadge status={p.status} />
+														{['booked', 'puppy_fully_paid'].includes(p.status) && (() => {
+															const approvedInterest = puppyInterests.find((i) => i.puppyId === p.id && i.status === 'approved');
+															const clientId = approvedInterest?.clientId ?? p.client?.id;
+															const summary = clientId ? paymentSummaries[clientId] : undefined;
+															if (!summary || summary.totalPriceRands == null) return null;
+															const paid = summary.alreadyPaid;
+															const total = summary.totalPriceRands;
+															const pct = total > 0 ? Math.min(100, (paid / total) * 100) : 0;
+															if (p.status === 'puppy_fully_paid') {
+																return <span className="text-[10px] font-medium text-green-600">Paid in full</span>;
+															}
+															return (
+																<div className="min-w-[80px]">
+																	<p className="text-[10px] text-warm-600 tabular-nums whitespace-nowrap">
+																		R{paid.toLocaleString()} / R{total.toLocaleString()}
+																		{summary.overdueCount > 0 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 ml-1 align-middle" title="Overdue" />}
+																	</p>
+																	<div className="mt-0.5 h-[2px] rounded-full bg-warm-200 overflow-hidden">
+																		<div className="h-full rounded-full bg-green-500" style={{ width: `${pct}%` }} />
+																	</div>
+																</div>
+															);
+														})()}
+													</>
 												) : (
 													<select
 														value={p.status}
@@ -1838,6 +1965,16 @@ export function AdminLitterDetail() {
 				deleting={deleting}
 				blockingRecords={deleteBlocking}
 			/>
+
+			{lightbox && (
+				<Lightbox
+					urls={lightbox.urls}
+					index={lightbox.index}
+					onClose={() => setLightbox(null)}
+					onPrev={() => setLightbox((prev) => prev ? { ...prev, index: prev.index > 0 ? prev.index - 1 : prev.urls.length - 1 } : null)}
+					onNext={() => setLightbox((prev) => prev ? { ...prev, index: prev.index < prev.urls.length - 1 ? prev.index + 1 : 0 } : null)}
+				/>
+			)}
 		</div>
 	);
 }

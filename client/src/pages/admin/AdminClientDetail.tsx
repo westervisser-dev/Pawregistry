@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage, Card, PageHeader, StageBadge } from '@/components/ui';
-import type { Client, ClientStage, ClientActivity, EmailLog, DocumentTemplateWithChecklist, Payment } from '@paw-registry/shared';
+import type { Client, ClientStage, ClientActivity, EmailLog, DocumentTemplateWithChecklist, Payment, Invoice } from '@paw-registry/shared';
 import { DeleteModal, DepositStatusBadge, formatBreedSize } from './_shared';
 
 const EMAIL_TRIGGER_LABELS: Record<string, string> = {
@@ -198,6 +198,8 @@ export function AdminClientDetail() {
 	const [instalmentAmounts, setInstalmentAmounts] = useState<string[]>([]);
 	const [instalmentDueDates, setInstalmentDueDates] = useState<string[]>([]);
 	const [fullPaymentDueDate, setFullPaymentDueDate] = useState('');
+	const [clientInvoices, setClientInvoices] = useState<Invoice[]>([]);
+	const [creatingInvoice, setCreatingInvoice] = useState(false);
 	const loadTemplates = () => {
 		if (!id) return;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -244,6 +246,10 @@ export function AdminClientDetail() {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.payments as any).summary({ clientId: id }).get().then(({ data }: { data: typeof paymentSummary | null }) => {
 			if (data) setPaymentSummary(data);
+		}).catch(() => {});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.invoices as any).admin.get({ query: { clientId: id } }).then(({ data }: { data: Invoice[] | null }) => {
+			if (data) setClientInvoices(data);
 		}).catch(() => {});
 		loadTemplates();
 	};
@@ -669,6 +675,97 @@ export function AdminClientDetail() {
 											Mark paid
 										</button>
 									)}
+								</div>
+							);
+						})}
+					</div>
+				)}
+			</Card>
+
+			{/* Invoices */}
+			<Card className="p-5 mb-6">
+				<div className="flex items-center justify-between mb-4">
+					<h3 className="font-medium text-warm-900">Invoices</h3>
+					{client.puppyId && (
+						<button
+							disabled={creatingInvoice}
+							onClick={async () => {
+								setCreatingInvoice(true);
+								try {
+									// eslint-disable-next-line @typescript-eslint/no-explicit-any
+									await (api.invoices as any).admin.post({ clientId: client.id, puppyId: client.puppyId });
+									load();
+								} catch {}
+								setCreatingInvoice(false);
+							}}
+							className="px-3 py-1.5 bg-warm-900 hover:bg-warm-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+						>
+							{creatingInvoice ? 'Creating...' : 'Create Invoice'}
+						</button>
+					)}
+				</div>
+
+				{clientInvoices.length === 0 ? (
+					<p className="text-sm text-warm-400">No invoices yet.</p>
+				) : (
+					<div className="divide-y divide-black/[0.05]">
+						{clientInvoices.map((inv) => {
+							const balanceDue = Math.max(0, inv.totalRands - inv.paidRands);
+							const statusStyles: Record<string, string> = {
+								draft: 'bg-warm-100 text-warm-500',
+								sent: 'bg-blue-100 text-blue-700',
+								viewed: 'bg-purple-100 text-purple-700',
+								paid: 'bg-green-100 text-green-700',
+								cancelled: 'bg-warm-100 text-warm-400',
+							};
+							return (
+								<div key={inv.id} className="py-3 flex items-center justify-between gap-4">
+									<div className="min-w-0 flex-1">
+										<div className="flex items-center gap-2">
+											<p className="text-sm font-medium text-warm-900">{inv.invoiceNumber}</p>
+											<span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyles[inv.status] ?? 'bg-warm-100 text-warm-500'}`}>
+												{inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+											</span>
+										</div>
+										<p className="text-xs text-warm-400 mt-0.5">
+											R{inv.totalRands.toLocaleString()} total · R{inv.paidRands.toLocaleString()} paid
+											{balanceDue > 0 && <span className="text-amber-600 ml-1">· R{balanceDue.toLocaleString()} due</span>}
+										</p>
+									</div>
+									<div className="flex items-center gap-2 flex-shrink-0">
+										<a
+											href={`/invoices/${inv.viewToken}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="px-2.5 py-1 text-xs font-medium bg-warm-100 text-warm-600 hover:bg-warm-200 rounded-lg transition-colors"
+										>
+											View
+										</a>
+										{inv.status !== 'cancelled' && inv.status !== 'paid' && (
+											<button
+												onClick={async () => {
+													// eslint-disable-next-line @typescript-eslint/no-explicit-any
+													await (api.invoices as any).admin({ id: inv.id }).send.post();
+													load();
+												}}
+												className="px-2.5 py-1 text-xs font-medium bg-brand-100 text-brand-700 hover:bg-brand-200 rounded-lg transition-colors"
+											>
+												Send
+											</button>
+										)}
+										{inv.status === 'draft' && (
+											<button
+												onClick={async () => {
+													// eslint-disable-next-line @typescript-eslint/no-explicit-any
+													await (api.invoices as any).admin({ id: inv.id }).patch({ status: 'cancelled' });
+													load();
+												}}
+												className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+											>
+												Cancel
+											</button>
+										)}
+									</div>
 								</div>
 							);
 						})}

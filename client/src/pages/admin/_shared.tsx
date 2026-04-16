@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { Card, StageBadge, useFocusTrap } from '@/components/ui';
-import type { Client } from '@paw-registry/shared';
+import type { Client, PaymentSummary } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES } from '@paw-registry/shared';
 import {
 	DndContext,
@@ -170,19 +170,22 @@ const DEPOSIT_TIER_LABELS: Record<string, { label: string; cls: string }> = {
 	r500:  { label: 'R500',   cls: 'bg-blue-50 text-blue-700 border-blue-200'   },
 };
 
-export function DepositStatusBadge({ client }: { client: Client }) {
+export function DepositStatusBadge({ client, depositPaid }: { client: Client; depositPaid?: number }) {
 	const cls =
 		client.depositStatus === 'paid'
 			? 'bg-green-50 text-green-700 border-green-200'
 			: 'bg-warm-50 text-warm-500 border-warm-200';
 
-	const label = client.depositStatus === 'paid' ? 'Paid' : 'None';
+	const paidAmount = depositPaid && depositPaid > 0 ? depositPaid : null;
+	const label = client.depositStatus === 'paid'
+		? paidAmount ? `R${paidAmount.toLocaleString()}` : 'Paid'
+		: 'None';
 
 	const tier = client.depositTier ? DEPOSIT_TIER_LABELS[client.depositTier] : null;
 
 	return (
 		<div className="flex items-center gap-1.5 flex-wrap justify-end">
-			{!!tier && (
+			{!!tier && !paidAmount && (
 				<span className={`text-xs font-medium px-2 py-1 rounded-full border ${tier.cls}`} title="Deposit tier selected at application">
 					{tier.label}
 				</span>
@@ -194,12 +197,47 @@ export function DepositStatusBadge({ client }: { client: Client }) {
 	);
 }
 
+// ─── Payment progress cell ───────────────────────────────────────────────────
+
+export function PaymentProgressCell({ summary, stage }: { summary?: PaymentSummary; stage: string }) {
+	if (!summary || summary.totalPriceRands == null) {
+		return <span className="text-warm-300 text-xs">—</span>;
+	}
+
+	if (stage === 'puppy_fully_paid') {
+		return <span className="text-xs font-medium text-green-600">Paid in full</span>;
+	}
+
+	const paid = summary.alreadyPaid;
+	const total = summary.totalPriceRands;
+	const pct = total > 0 ? Math.min(100, (paid / total) * 100) : 0;
+
+	return (
+		<div className="min-w-[90px]">
+			<p className="text-xs text-warm-700 tabular-nums whitespace-nowrap">
+				R{paid.toLocaleString()}{' '}
+				<span className="text-warm-400">/ R{total.toLocaleString()}</span>
+				{summary.overdueCount > 0 && (
+					<span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 ml-1.5 align-middle" title={`${summary.overdueCount} overdue`} />
+				)}
+			</p>
+			<div className="mt-1 h-[3px] rounded-full bg-warm-200 overflow-hidden">
+				<div
+					className="h-full rounded-full bg-green-500 transition-all"
+					style={{ width: `${pct}%` }}
+				/>
+			</div>
+		</div>
+	);
+}
+
 // ─── Sortable client row ──────────────────────────────────────────────────────
 
-export function SortableClientRow({ client, index, action }: {
+export function SortableClientRow({ client, index, action, paymentSummary }: {
 	client: Client;
 	index: number;
 	action?: ClientAction;
+	paymentSummary?: PaymentSummary;
 }) {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: client.id });
 	const style = {
@@ -255,9 +293,12 @@ export function SortableClientRow({ client, index, action }: {
 				) : <span className="text-warm-300 text-xs">—</span>}
 			</td>
 			<td className="hidden md:table-cell py-3 px-4"><StageBadge stage={client.stage} /></td>
+			<td className="hidden md:table-cell py-3 px-4">
+				<PaymentProgressCell summary={paymentSummary} stage={client.stage} />
+			</td>
 			<td className="py-3 px-2 md:px-4">
 				<div className="md:hidden"><StageBadge stage={client.stage} /></div>
-				<div className="hidden md:block"><DepositStatusBadge client={client} /></div>
+				<div className="hidden md:block"><DepositStatusBadge client={client} depositPaid={paymentSummary?.depositPaid} /></div>
 			</td>
 			<td className="hidden md:table-cell py-3 px-4 text-warm-400 text-xs whitespace-nowrap">
 				{new Date(client.createdAt).toLocaleDateString()}
@@ -273,12 +314,13 @@ export function SortableClientRow({ client, index, action }: {
 
 // ─── Client DnD table ─────────────────────────────────────────────────────────
 
-export function ClientDndTable({ title, clients, onReorder, startIndex = 0, actionMap = {} }: {
+export function ClientDndTable({ title, clients, onReorder, startIndex = 0, actionMap = {}, paymentSummaries = {} }: {
 	title: string;
 	clients: Client[];
 	onReorder: (newOrder: Client[]) => void;
 	startIndex?: number;
 	actionMap?: Record<string, ClientAction>;
+	paymentSummaries?: Record<string, PaymentSummary>;
 }) {
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -301,7 +343,7 @@ export function ClientDndTable({ title, clients, onReorder, startIndex = 0, acti
 			</div>
 			<Card>
 				<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-					<AdminTable headers={['#', '', 'Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, { label: 'Deposit Status', mobileLabel: 'Stage' }, { label: 'Applied', hideMobile: true }, '']}>
+					<AdminTable headers={['#', '', 'Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, { label: 'Payment', hideMobile: true }, { label: 'Deposit Status', mobileLabel: 'Stage' }, { label: 'Applied', hideMobile: true }, '']}>
 						<SortableContext items={clients.map((c) => c.id)} strategy={verticalListSortingStrategy}>
 							{clients.map((client, i) => (
 								<SortableClientRow
@@ -309,11 +351,12 @@ export function ClientDndTable({ title, clients, onReorder, startIndex = 0, acti
 									client={client}
 									index={startIndex + i}
 									action={actionMap[client.id]}
+									paymentSummary={paymentSummaries[client.id]}
 								/>
 							))}
 							{clients.length === 0 && (
 								<tr>
-									<td colSpan={8} className="py-3 px-4 text-sm text-warm-400 text-center">
+									<td colSpan={9} className="py-3 px-4 text-sm text-warm-400 text-center">
 										👥 No clients
 									</td>
 								</tr>
@@ -328,10 +371,11 @@ export function ClientDndTable({ title, clients, onReorder, startIndex = 0, acti
 
 // ─── Plain read-only client table (no DnD) ───────────────────────────────────
 
-export function ClientReadTable({ title, clients, actionMap = {} }: {
+export function ClientReadTable({ title, clients, actionMap = {}, paymentSummaries = {} }: {
 	title: string;
 	clients: Client[];
 	actionMap?: Record<string, ClientAction>;
+	paymentSummaries?: Record<string, PaymentSummary>;
 }) {
 	const pbs = (c: Client) =>
 		(c.applicationData as unknown as Record<string, unknown>)?.preferredBreedSize as string | undefined;
@@ -343,7 +387,7 @@ export function ClientReadTable({ title, clients, actionMap = {} }: {
 				<span className="text-xs text-warm-400 bg-warm-200 px-2 py-0.5 rounded-full">{clients.length}</span>
 			</div>
 			<Card>
-				<AdminTable headers={['Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, { label: 'Deposit', mobileLabel: 'Stage' }, { label: 'Applied', hideMobile: true }, '']}>
+				<AdminTable headers={['Name', { label: 'Preference', hideMobile: true }, { label: 'Stage', hideMobile: true }, { label: 'Payment', hideMobile: true }, { label: 'Deposit', mobileLabel: 'Stage' }, { label: 'Applied', hideMobile: true }, '']}>
 					{clients.map((client) => {
 						const parsed = formatBreedSize(pbs(client));
 						const action = actionMap[client.id];
@@ -365,11 +409,16 @@ export function ClientReadTable({ title, clients, actionMap = {} }: {
 									) : <span className="text-warm-300 text-xs">—</span>}
 								</td>
 								<td className="hidden md:table-cell py-3 px-4"><StageBadge stage={client.stage} /></td>
+								<td className="hidden md:table-cell py-3 px-4">
+									<PaymentProgressCell summary={paymentSummaries[client.id]} stage={client.stage} />
+								</td>
 								<td className="py-3 px-2 md:px-4">
 									<div className="md:hidden"><StageBadge stage={client.stage} /></div>
 									<div className="hidden md:block">
 										{client.depositStatus === 'paid' ? (
-											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Deposit — Paid</span>
+											<span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+												Deposit — {paymentSummaries[client.id]?.depositPaid ? `R${paymentSummaries[client.id].depositPaid.toLocaleString()}` : 'Paid'}
+											</span>
 										) : (
 											<span className="text-warm-400 text-xs">No Deposit</span>
 										)}
@@ -388,7 +437,7 @@ export function ClientReadTable({ title, clients, actionMap = {} }: {
 					})}
 					{clients.length === 0 && (
 						<tr>
-							<td colSpan={6} className="py-3 px-4 text-sm text-warm-400 text-center">
+							<td colSpan={7} className="py-3 px-4 text-sm text-warm-400 text-center">
 								👥 No clients
 							</td>
 						</tr>

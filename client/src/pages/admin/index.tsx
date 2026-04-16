@@ -5,5 +5,6 @@ export { AdminClients } from './AdminClients';
 export { AdminClientDetail } from './AdminClientDetail';
 export { AdminUpdates } from './AdminUpdates';
 export { AdminDocuments } from './AdminDocuments';
+export { AdminPayments } from './AdminPayments';
 export { AdminAdmins } from './AdminAdmins';
 export { AdminEmails } from './AdminEmails';
