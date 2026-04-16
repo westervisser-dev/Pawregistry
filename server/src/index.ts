@@ -77,16 +77,23 @@ async function runBookingExpiryCheck(): Promise<void> {
 					sendClientEmailWithVars(pendingBooking.clientId, 'puppy_booking_expired', {
 						puppy_name: puppyName,
 						portal_link: `${process.env.CLIENT_URL}/portal/litters`,
-					}).catch(console.error);
+					}).catch((err: unknown) => {
+						Sentry.captureException(err, { tags: { job: 'booking_expiry', step: 'client_email' } });
+						console.error(err);
+					});
 
 					sendAdminNotification(
 						`Booking expired — ${pendingBooking.client.firstName} ${pendingBooking.client.lastName}`,
 						`The 24h booking window expired for ${pendingBooking.client.firstName} ${pendingBooking.client.lastName}.\n\n${puppyName} is now available again.`,
-					).catch(console.error);
+					).catch((err: unknown) => {
+						Sentry.captureException(err, { tags: { job: 'booking_expiry', step: 'admin_email' } });
+						console.error(err);
+					});
 				}
 			}
 		}
 	} catch (e) {
+		Sentry.captureException(e, { tags: { job: 'booking_expiry' } });
 		console.error('Booking expiry check failed:', e);
 	}
 }
@@ -123,6 +130,7 @@ async function runSelectionDateCheck(): Promise<void> {
 			console.log(`Litter "${litter.name}" auto-transitioned to available (selection date reached)`);
 		}
 	} catch (e) {
+		Sentry.captureException(e, { tags: { job: 'selection_date' } });
 		console.error('Selection date check failed:', e);
 	}
 }

@@ -556,10 +556,11 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			// Always fetch puppy + litter for price snapshot
 			const puppyRecord = await db.query.puppies.findFirst({
 				where: eq(puppies.id, client.puppyId),
-				with: { litter: { columns: { shippingRands: true } } },
+				with: { litter: { columns: { shippingRands: true, goHomeDate: true } } },
 			});
 			const snapshotPuppyPrice = puppyRecord?.priceRands ?? null;
 			const snapshotShipping = puppyRecord?.litter?.shippingRands ?? 0;
+			const goHomeDate = puppyRecord?.litter?.goHomeDate ?? null;
 
 			// Auto-calculate totalPriceRands if not provided
 			let totalPriceRands = body.totalPriceRands;
@@ -568,6 +569,11 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 					return error(400, { error: 'NoPrice', message: 'Puppy has no price set. Set the price on the litter page or provide totalPriceRands.' });
 				}
 				totalPriceRands = snapshotPuppyPrice + snapshotShipping;
+			}
+
+			// Validate due date does not exceed go-home date
+			if (body.dueDate && goHomeDate && body.dueDate > goHomeDate) {
+				return error(400, { error: 'DueDateAfterGoHome', message: `Due date cannot be after the puppy's go-home date (${goHomeDate})` });
 			}
 
 			// Calculate total already paid
@@ -670,10 +676,11 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			// Always fetch puppy + litter for price snapshot
 			const puppyRecord = await db.query.puppies.findFirst({
 				where: eq(puppies.id, client.puppyId),
-				with: { litter: { columns: { shippingRands: true } } },
+				with: { litter: { columns: { shippingRands: true, goHomeDate: true } } },
 			});
 			const snapshotPuppyPrice = puppyRecord?.priceRands ?? null;
 			const snapshotShipping = puppyRecord?.litter?.shippingRands ?? 0;
+			const goHomeDate = puppyRecord?.litter?.goHomeDate ?? null;
 
 			// Auto-calculate totalPriceRands if not provided
 			let totalPriceRands = body.totalPriceRands;
@@ -705,6 +712,15 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			// Validate dueDates length matches amounts if provided
 			if (body.dueDates && body.dueDates.length !== body.amounts.length) {
 				return error(400, { error: 'DueDateMismatch', message: 'dueDates array must match amounts array length' });
+			}
+
+			// Validate no instalment due date exceeds go-home date
+			if (goHomeDate && body.dueDates) {
+				const nonNullDates = body.dueDates.filter((d): d is string => !!d);
+				const maxDueDate = nonNullDates.sort().at(-1);
+				if (maxDueDate && maxDueDate > goHomeDate) {
+					return error(400, { error: 'DueDateAfterGoHome', message: `Instalment due dates cannot be after the puppy's go-home date (${goHomeDate})` });
+				}
 			}
 
 			// Cancel any existing pending final payments
