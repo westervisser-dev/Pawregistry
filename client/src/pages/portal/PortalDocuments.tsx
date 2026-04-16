@@ -152,50 +152,86 @@ export function PortalDocuments() {
 						{templates.map((template) => {
 							const isChecked = !!template.checkedAt;
 							const isUploading = uploading === template.id;
-							return (
-								<Card
-									key={template.id}
-									className={`p-4 transition-colors ${isChecked ? 'bg-green-50/50' : ''}`}
-								>
-									<div className="flex items-center justify-between gap-4">
-										<div className="flex items-center gap-4">
-											<div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-												isChecked ? 'bg-green-500 border-green-500 text-white' : 'border-warm-300'
-											}`}>
-												{isChecked && (
-													<svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+							if (isChecked) {
+								return (
+									<Card key={template.id} className="p-4 bg-green-50/40">
+										<div className="flex items-center justify-between gap-3">
+											<div className="flex items-center gap-3">
+												<div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+													<svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none" aria-hidden="true">
 														<path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 													</svg>
-												)}
-											</div>
-											<span className="text-xl" aria-hidden="true">📄</span>
-											<div>
-												<p className={`font-medium text-sm ${isChecked ? 'text-warm-500' : 'text-warm-900'}`}>
-													{template.name}
-												</p>
-												{(template.category || template.description) && (
+												</div>
+												<div>
+													<p className="font-medium text-sm text-warm-700">{template.name}</p>
 													<p className="text-xs text-warm-400 mt-0.5">
-														{[template.category, template.description].filter(Boolean).join(' · ')}
+														Uploaded {new Date(template.checkedAt!).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
 													</p>
-												)}
+												</div>
 											</div>
+											{!!template.uploadedFileUrl && (
+												<a
+													href={template.uploadedFileUrl}
+													target="_blank"
+													rel="noreferrer"
+													className="text-xs text-green-600 font-medium hover:underline flex-shrink-0 flex items-center gap-1"
+												>
+													View upload
+													<svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+														<path d="M2 2h8v8M10 2L2 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+													</svg>
+												</a>
+											)}
 										</div>
-										<a
-											href={template.fileUrl}
-											target="_blank"
-											rel="noreferrer"
-											className="text-sm text-brand-600 font-medium hover:underline flex-shrink-0"
-										>
-											Download
-										</a>
+									</Card>
+								);
+							}
+							return (
+								<Card key={template.id} className="p-4">
+									<div className="flex items-start gap-3 mb-3">
+										<span className="text-xl mt-0.5" aria-hidden="true">📄</span>
+										<div>
+											<p className="font-medium text-sm text-warm-900">{template.name}</p>
+											{(template.category || template.description) && (
+												<p className="text-xs text-warm-400 mt-0.5">
+													{[template.category, template.description].filter(Boolean).join(' · ')}
+												</p>
+											)}
+										</div>
 									</div>
-									{!isChecked && (
-										<div className="mt-3 pl-10">
-											<label className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-warm-200 text-xs text-warm-600 cursor-pointer hover:bg-warm-50 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-												<svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+									<div className="border-t border-warm-100 pt-3">
+										<div className="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-0">
+											<a
+												href={template.fileUrl}
+												target="_blank"
+												rel="noreferrer"
+												className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl bg-warm-50 border border-warm-200 hover:bg-warm-100 transition-colors"
+											>
+												<span className="w-7 h-7 rounded-full bg-warm-200 text-warm-700 text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+												<div className="min-w-0">
+													<p className="text-[11px] font-medium text-warm-400 uppercase tracking-wide">Step 1</p>
+													<p className="text-sm font-semibold text-warm-800">Download template</p>
+												</div>
+												<svg className="w-4 h-4 text-warm-400 ml-auto flex-shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+													<path d="M8 2v8M4 8l4 4 4-4M3 14h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+												</svg>
+											</a>
+											<div className="flex items-center justify-center py-0.5 sm:py-0 sm:px-2.5">
+												<div className="flex items-center justify-center w-6 h-6 rounded-full bg-warm-100">
+													<svg className="w-3 h-3 text-warm-400 rotate-90 sm:rotate-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+														<path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+													</svg>
+												</div>
+											</div>
+											<label className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-50 border border-brand-200 cursor-pointer hover:bg-brand-100 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+												<span className="w-7 h-7 rounded-full bg-brand-100 text-brand-600 text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+												<div className="min-w-0">
+													<p className="text-[11px] font-medium text-brand-400 uppercase tracking-wide">Step 2</p>
+													<p className="text-sm font-semibold text-brand-800">{isUploading ? 'Uploading…' : 'Upload signed copy'}</p>
+												</div>
+												<svg className="w-4 h-4 text-brand-400 ml-auto flex-shrink-0" viewBox="0 0 16 16" fill="none" aria-hidden="true">
 													<path d="M8 2v9M4 5l4-3 4 3M3 13h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 												</svg>
-												{isUploading ? 'Uploading…' : 'Upload completed document'}
 												<input
 													type="file"
 													className="hidden"
@@ -206,19 +242,7 @@ export function PortalDocuments() {
 												/>
 											</label>
 										</div>
-									)}
-									{isChecked && template.uploadedFileUrl && (
-										<div className="mt-2 pl-10">
-											<a
-												href={template.uploadedFileUrl}
-												target="_blank"
-												rel="noreferrer"
-												className="text-xs text-green-600 hover:underline"
-											>
-												View uploaded document
-											</a>
-										</div>
-									)}
+									</div>
 								</Card>
 							);
 						})}

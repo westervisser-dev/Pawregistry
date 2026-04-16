@@ -2,6 +2,9 @@
 	"name": "paw-registry",
 	"version": "1.0.0",
 	"private": true,
+	"pnpm": {
+		"onlyBuiltDependencies": ["@sentry/cli"]
+	},
 	"scripts": {
 		"dev": "pnpm -r --parallel dev",
 		"build": "pnpm -r --parallel build",
