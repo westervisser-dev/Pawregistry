@@ -640,8 +640,14 @@ export function PortalDashboard() {
 					if (!mountedRef.current || !pmts) return;
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					const allPayments = pmts as any[];
+					// For instalment plans the server returns payments desc(createdAt), so the last
+					// instalment created appears first. Sort by instalmentIndex so we always show
+					// the earliest unpaid instalment (non-instalments sort to -1, i.e. before any instalment).
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					const pendingBooking = allPayments.find((p: any) => p.status === 'pending' && (p.type === 'booking' || p.type === 'final'));
+					const pendingBooking = allPayments
+						.filter((p: any) => p.status === 'pending' && (p.type === 'booking' || p.type === 'final'))
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						.sort((a: any, b: any) => ((a.metadata as any)?.instalmentIndex ?? -1) - ((b.metadata as any)?.instalmentIndex ?? -1))[0] ?? null;
 					if (pendingBooking) {
 						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 						const meta = (pendingBooking.metadata ?? {}) as any;
