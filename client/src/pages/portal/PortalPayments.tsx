@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { LoadingPage } from '@/components/ui';
-import type { Payment } from '@paw-registry/shared';
+import type { Payment, Invoice } from '@paw-registry/shared';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -147,6 +147,7 @@ export function PortalPayments() {
 		litter: { shippingRands: number | null } | null;
 	} | null>(null);
 	const [successRef] = useState(searchParams.get('ref'));
+	const [clientInvoices, setClientInvoices] = useState<Invoice[]>([]);
 
 	const load = async () => {
 		setLoading(true);
@@ -157,6 +158,10 @@ export function PortalPayments() {
 		const clientRes = await api.clients.me.get();
 		if (paymentsRes.data) setPayments(paymentsRes.data as Payment[]);
 		if (clientRes.data) setClient(clientRes.data as typeof client);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.invoices as any).mine.get().then(({ data }: { data: Invoice[] | null }) => {
+			if (data) setClientInvoices(data);
+		}).catch(() => {});
 		setLoading(false);
 	};
 
@@ -346,8 +351,44 @@ export function PortalPayments() {
 				</section>
 			)}
 
+			{/* ── Invoices ── */}
+			{clientInvoices.length > 0 && (
+				<section>
+					<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Invoices</h2>
+					<div className="bg-white border border-warm-200 rounded-xl overflow-hidden">
+						{clientInvoices.map((inv, i) => {
+							const balanceDue = Math.max(0, inv.totalRands - inv.paidRands);
+							const statusLabel = inv.status === 'paid' ? 'Paid' : inv.status === 'cancelled' ? 'Cancelled' : balanceDue > 0 ? 'Outstanding' : 'Paid';
+							const statusCls = inv.status === 'paid' || balanceDue === 0 ? 'bg-green-100 text-green-700' : inv.status === 'cancelled' ? 'bg-warm-100 text-warm-400' : 'bg-amber-100 text-amber-700';
+							return (
+								<div key={inv.id} className={`flex items-center justify-between px-5 py-4 gap-4 ${i > 0 ? 'border-t border-warm-100' : ''}`}>
+									<div>
+										<p className="text-sm font-medium text-warm-900">{inv.invoiceNumber}</p>
+										<p className="text-xs text-warm-400 mt-0.5">
+											{formatRands(inv.totalRands)} total
+											{balanceDue > 0 && <span className="text-amber-600 ml-1">· {formatRands(balanceDue)} due</span>}
+										</p>
+									</div>
+									<div className="flex items-center gap-3">
+										<span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusCls}`}>{statusLabel}</span>
+										<a
+											href={`/invoices/${inv.viewToken}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-sm text-brand-600 hover:underline"
+										>
+											View →
+										</a>
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				</section>
+			)}
+
 			{/* ── Empty state ── */}
-			{pending.length === 0 && history.length === 0 && !depositNotPaid && (
+			{pending.length === 0 && history.length === 0 && !depositNotPaid && clientInvoices.length === 0 && (
 				<div className="text-center py-16 text-warm-400 text-sm">
 					No payment records yet.
 				</div>

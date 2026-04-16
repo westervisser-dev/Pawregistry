@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia';
-import { eq, desc, and, sum, or, ne, inArray } from 'drizzle-orm';
+import { eq, desc, and, sum, or, ne, inArray, count, lt, sql, isNotNull } from 'drizzle-orm';
 import { db } from '../../db';
-import { payments, clients, puppies, litters, puppyInterests } from '../../db/schema';
+import { payments, clients, puppies, litters, puppyInterests, invoices } from '../../db/schema';
 import { adminPlugin, clientPlugin } from '../../lib/auth';
 import { logActivity } from '../../lib/activity';
 import { sendClientEmailWithVars, sendAdminNotification } from '../../lib/email';
@@ -203,6 +203,31 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 				`${instalmentLabel} received — ${payment.client.firstName} ${payment.client.lastName}`,
 				`${payment.client.firstName} ${payment.client.lastName} has paid R${payment.amountRands.toLocaleString()} (${instalmentLabel}).\n\nTotal paid: R${totalPaid.toLocaleString()} of R${totalPriceRands.toLocaleString()}.\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
 			);
+		}
+	}
+
+	// ── Sync linked invoice paidRands ────────────────────────────────────────
+	// Re-fetch to get the invoiceId (may have been set after initial fetch)
+	const freshPayment = await db.query.payments.findFirst({
+		where: eq(payments.id, paymentId),
+		columns: { invoiceId: true },
+	});
+	if (freshPayment?.invoiceId) {
+		const paidResult = await db
+			.select({ total: sum(payments.amountRands) })
+			.from(payments)
+			.where(and(eq(payments.invoiceId, freshPayment.invoiceId), eq(payments.status, 'complete')));
+		const newPaid = Number(paidResult[0]?.total ?? 0);
+
+		const invoice = await db.query.invoices.findFirst({
+			where: eq(invoices.id, freshPayment.invoiceId),
+			columns: { totalRands: true, status: true },
+		});
+		if (invoice) {
+			const newStatus = newPaid >= invoice.totalRands ? 'paid' : invoice.status;
+			await db.update(invoices)
+				.set({ paidRands: newPaid, status: newStatus, updatedAt: new Date() })
+				.where(eq(invoices.id, freshPayment.invoiceId));
 		}
 	}
 }
@@ -507,6 +532,160 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			};
 		},
 		{ params: t.Object({ clientId: t.String() }) },
+	)
+
+	// ── Admin: batch payment summaries for all active clients ───────────────
+	.get(
+		'/admin/summaries',
+		async () => {
+			// Fetch clients with a matched puppy OR a paid deposit
+			const activeClients = await db.query.clients.findMany({
+				where: or(
+					inArray(clients.stage, ['puppy_reserved', 'puppy_booked', 'puppy_fully_paid']),
+					eq(clients.depositStatus, 'paid'),
+				),
+				columns: { id: true, puppyId: true },
+			});
+
+			if (activeClients.length === 0) return [];
+
+			const clientIds = activeClients.map((c) => c.id);
+			const puppyIds = activeClients.map((c) => c.puppyId).filter((id): id is string => !!id);
+
+			// Batch-fetch puppy prices + litter shipping
+			const puppyData = puppyIds.length > 0
+				? await db.query.puppies.findMany({
+					where: inArray(puppies.id, puppyIds),
+					columns: { id: true, priceRands: true, litterId: true },
+					with: { litter: { columns: { shippingRands: true } } },
+				})
+				: [];
+			const puppyMap = new Map(puppyData.map((p) => [p.id, p]));
+
+			// Aggregate payments per client in one query
+			const now = new Date().toISOString();
+			const paymentAggs = await db
+				.select({
+					clientId: payments.clientId,
+					alreadyPaid: sql<number>`coalesce(sum(case when ${payments.status} = 'complete' then ${payments.amountRands} else 0 end), 0)`,
+					depositPaid: sql<number>`coalesce(sum(case when ${payments.status} = 'complete' and ${payments.type} = 'deposit' then ${payments.amountRands} else 0 end), 0)`,
+					pendingCount: sql<number>`count(case when ${payments.status} = 'pending' then 1 end)`,
+					overdueCount: sql<number>`count(case when ${payments.status} = 'pending' and ${payments.dueDate} < ${now} then 1 end)`,
+					nextDueDate: sql<string | null>`min(case when ${payments.status} = 'pending' and ${payments.dueDate} is not null then ${payments.dueDate} end)`,
+				})
+				.from(payments)
+				.where(inArray(payments.clientId, clientIds))
+				.groupBy(payments.clientId);
+
+			const aggMap = new Map(paymentAggs.map((a) => [a.clientId, a]));
+
+			return activeClients.map((c) => {
+				const puppy = c.puppyId ? puppyMap.get(c.puppyId) : undefined;
+				const totalPriceRands = puppy?.priceRands != null
+					? puppy.priceRands + (puppy.litter?.shippingRands ?? 0)
+					: null;
+				const agg = aggMap.get(c.id);
+				const alreadyPaid = Number(agg?.alreadyPaid ?? 0);
+
+				return {
+					clientId: c.id,
+					totalPriceRands,
+					alreadyPaid,
+					depositPaid: Number(agg?.depositPaid ?? 0),
+					balanceDue: totalPriceRands != null ? Math.max(0, totalPriceRands - alreadyPaid) : null,
+					pendingCount: Number(agg?.pendingCount ?? 0),
+					overdueCount: Number(agg?.overdueCount ?? 0),
+					nextDueDate: agg?.nextDueDate ?? null,
+				};
+			});
+		},
+	)
+
+	// ── Admin: all payments with client info ─────────────────────────────────
+	.get(
+		'/admin/all',
+		async ({ query }) => {
+			const conditions = [];
+			if (query.status) conditions.push(eq(payments.status, query.status as 'pending' | 'complete' | 'failed' | 'cancelled'));
+			if (query.type) conditions.push(eq(payments.type, query.type as 'deposit' | 'booking' | 'final'));
+
+			const allPayments = await db.query.payments.findMany({
+				where: conditions.length > 0 ? and(...conditions) : undefined,
+				orderBy: [desc(payments.createdAt)],
+				with: {
+					client: {
+						columns: { id: true, firstName: true, lastName: true, email: true },
+					},
+				},
+			});
+
+			return allPayments;
+		},
+		{
+			query: t.Object({
+				status: t.Optional(t.String()),
+				type: t.Optional(t.String()),
+			}),
+		},
+	)
+
+	// ── Admin: aggregate payment stats ───────────────────────────────────────
+	.get(
+		'/admin/stats',
+		async () => {
+			const now = new Date();
+			const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+			// Collected this month
+			const collectedResult = await db
+				.select({ total: sql<number>`coalesce(sum(${payments.amountRands}), 0)` })
+				.from(payments)
+				.where(and(
+					eq(payments.status, 'complete'),
+					sql`${payments.paidAt} >= ${startOfMonth}`,
+				));
+
+			// Total outstanding (all pending payment amounts)
+			const outstandingResult = await db
+				.select({ total: sql<number>`coalesce(sum(${payments.amountRands}), 0)` })
+				.from(payments)
+				.where(eq(payments.status, 'pending'));
+
+			// Overdue count
+			const overdueResult = await db
+				.select({ count: sql<number>`count(*)` })
+				.from(payments)
+				.where(and(
+					eq(payments.status, 'pending'),
+					isNotNull(payments.dueDate),
+					sql`${payments.dueDate} < ${now}`,
+				));
+
+			// Needs payment plan count
+			const bookedClients = await db.query.clients.findMany({
+				where: eq(clients.stage, 'puppy_booked'),
+				columns: { id: true },
+			});
+			let needsPlanCount = 0;
+			if (bookedClients.length > 0) {
+				const clientsWithFinal = await db
+					.selectDistinct({ clientId: payments.clientId })
+					.from(payments)
+					.where(and(
+						inArray(payments.clientId, bookedClients.map((c) => c.id)),
+						eq(payments.type, 'final'),
+						ne(payments.status, 'cancelled'),
+					));
+				needsPlanCount = bookedClients.length - clientsWithFinal.length;
+			}
+
+			return {
+				collectedThisMonth: Number(collectedResult[0]?.total ?? 0),
+				outstanding: Number(outstandingResult[0]?.total ?? 0),
+				overdueCount: Number(overdueResult[0]?.count ?? 0),
+				needsPlanCount,
+			};
+		},
 	)
 
 	// ── Admin: clients needing a payment plan ────────────────────────────────

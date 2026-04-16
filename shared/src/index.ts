@@ -309,6 +309,58 @@ export interface PaymentWithClient extends Payment {
 	};
 }
 
+export interface PaymentSummary {
+	clientId: string;
+	totalPriceRands: number | null;
+	alreadyPaid: number;
+	depositPaid: number;
+	balanceDue: number | null;
+	pendingCount: number;
+	overdueCount: number;
+	nextDueDate: string | null;
+}
+
+// ─── Invoices ────────────────────────────────────────────────────────────────
+
+export type InvoiceStatus = 'draft' | 'sent' | 'viewed' | 'paid' | 'cancelled';
+
+export interface InvoiceLineItem {
+	description: string;
+	quantity: number;
+	unitPriceRands: number;
+	totalRands: number;
+}
+
+export interface Invoice {
+	id: string;
+	invoiceNumber: string;
+	clientId: string;
+	puppyId: string | null;
+	status: InvoiceStatus;
+	lineItems: InvoiceLineItem[];
+	subtotalRands: number;
+	totalRands: number;
+	paidRands: number;
+	breederName: string;
+	breederEmail: string;
+	clientName: string;
+	clientEmail: string;
+	clientPhone: string | null;
+	clientCity: string | null;
+	viewToken: string;
+	notes: string | null;
+	issuedAt: string | null;
+	dueDate: string | null;
+	sentAt: string | null;
+	viewedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface InvoiceWithPayments extends Invoice {
+	payments: Payment[];
+}
+
 // ─── Puppy Interest ───────────────────────────────────────────────────────────
 
 export type PuppyInterestStatus = 'pending' | 'approved' | 'rejected';

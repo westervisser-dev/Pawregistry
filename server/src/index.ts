@@ -20,6 +20,7 @@ import { authRoutes } from './routes/auth';
 import { adminsRoutes } from './routes/admins';
 import { emailRoutes } from './routes/email';
 import { paymentsRoutes } from './routes/payments';
+import { invoicesRoutes } from './routes/invoices';
 
 // ─── Selection date auto-transition job — runs every 5 minutes ───────────────
 // Finds planned litters whose selectionDate has arrived, flips them to available,
@@ -102,6 +103,7 @@ const app = new Elysia()
 	.use(updatesRoutes)
 	.use(templatesRoutes)
 	.use(paymentsRoutes)
+	.use(invoicesRoutes)
 
 	.listen(process.env.PORT ?? 3000);
 

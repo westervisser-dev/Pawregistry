@@ -134,11 +134,13 @@ const AdminDashboard = lazy$(() => import('@/pages/admin/AdminDashboard'), 'Admi
 const AdminLitters = lazy$(() => import('@/pages/admin/AdminLitters'), 'AdminLitters');
 const AdminLitterDetail = lazy$(() => import('@/pages/admin/AdminLitterDetail'), 'AdminLitterDetail');
 const AdminClients = lazy$(() => import('@/pages/admin/AdminClients'), 'AdminClients');
+const AdminPayments = lazy$(() => import('@/pages/admin/AdminPayments'), 'AdminPayments');
 const AdminClientDetail = lazy$(() => import('@/pages/admin/AdminClientDetail'), 'AdminClientDetail');
 const AdminUpdates = lazy$(() => import('@/pages/admin/AdminUpdates'), 'AdminUpdates');
 const AdminDocuments = lazy$(() => import('@/pages/admin/AdminDocuments'), 'AdminDocuments');
 const AdminAdmins = lazy$(() => import('@/pages/admin/AdminAdmins'), 'AdminAdmins');
 const AdminEmails = lazy$(() => import('@/pages/admin/AdminEmails'), 'AdminEmails');
+const InvoiceView = lazy$(() => import('@/pages/InvoiceView'), 'InvoiceView');
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
@@ -165,6 +167,9 @@ function App() {
 							<Route path="/contact" element={<ContactPage />} />
 							<Route path="/reviews" element={<ReviewsPage />} />
 					</Route>
+
+					{/* Public invoice view (no layout, no auth) */}
+					<Route path="/invoices/:token" element={<InvoiceView />} />
 
 					{/* Auth */}
 					<Route path="/login" element={<LoginPage />} />
@@ -193,6 +198,7 @@ function App() {
 							<Route path="/admin/litters/:id" element={<AdminLitterDetail />} />
 							<Route path="/admin/clients" element={<AdminClients />} />
 							<Route path="/admin/clients/:id" element={<AdminClientDetail />} />
+							<Route path="/admin/payments" element={<AdminPayments />} />
 							<Route path="/admin/updates" element={<AdminUpdates />} />
 							<Route path="/admin/documents" element={<AdminDocuments />} />
 							<Route path="/admin/admins" element={<AdminAdmins />} />

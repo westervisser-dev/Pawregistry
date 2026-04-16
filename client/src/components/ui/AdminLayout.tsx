@@ -7,6 +7,7 @@ const adminNav = [
 	{ to: '/admin', label: 'Dashboard', icon: '▪', end: true },
 	{ to: '/admin/litters', label: 'Litters', icon: '🐾', iconFilter: 'brightness(0) invert(1)' },
 	{ to: '/admin/clients', label: 'Clients', icon: '👥' },
+	{ to: '/admin/payments', label: 'Payments', icon: '💰' },
 	{ divider: true },
 	{ to: '/admin/updates', label: 'Updates', icon: '📋' },
 	{ to: '/admin/documents', label: 'Documents', icon: '📁' },
