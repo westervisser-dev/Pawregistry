@@ -11,7 +11,9 @@ export function CallbackPage() {
 		init().then(() => {
 			const { user, isAdmin } = useAuthStore.getState();
 			if (user) {
-				navigate(isAdmin ? '/admin' : '/portal', { replace: true });
+				const redirect = sessionStorage.getItem('postLoginRedirect');
+				sessionStorage.removeItem('postLoginRedirect');
+				navigate(redirect ?? (isAdmin ? '/admin' : '/portal'), { replace: true });
 			} else {
 				navigate('/login', { replace: true });
 			}

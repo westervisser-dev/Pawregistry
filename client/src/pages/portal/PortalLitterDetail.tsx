@@ -141,16 +141,17 @@ function Lightbox({ urls, index, onClose, onPrev, onNext }: {
 
 // ─── Pre-confirm Modal ────────────────────────────────────────────────────────
 
-function PreConfirmModal({ isBook, onConfirm, onCancel }: {
+function PreConfirmModal({ isBook, onConfirm, onCancel, loading }: {
 	isBook: boolean;
 	onConfirm: () => void;
 	onCancel: () => void;
+	loading: boolean;
 }) {
 	useEffect(() => {
-		const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel(); };
+		const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !loading) onCancel(); };
 		window.addEventListener('keydown', handler);
 		return () => window.removeEventListener('keydown', handler);
-	}, [onCancel]);
+	}, [onCancel, loading]);
 
 	return (
 		<div
@@ -172,14 +173,21 @@ function PreConfirmModal({ isBook, onConfirm, onCancel }: {
 				<button
 					type="button"
 					onClick={onConfirm}
-					className="w-full mb-3 px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors"
+					disabled={loading}
+					className="w-full mb-3 px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-70 transition-colors"
 				>
-					Continue
+					{loading ? (
+						<span className="flex items-center justify-center gap-2">
+							<span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+							{isBook ? 'Booking…' : 'Reserving…'}
+						</span>
+					) : 'Continue'}
 				</button>
 				<button
 					type="button"
 					onClick={onCancel}
-					className="w-full px-4 py-2.5 bg-warm-100 text-warm-700 rounded-xl text-sm font-medium hover:bg-warm-200 transition-colors"
+					disabled={loading}
+					className="w-full px-4 py-2.5 bg-warm-100 text-warm-700 rounded-xl text-sm font-medium hover:bg-warm-200 disabled:opacity-50 transition-colors"
 				>
 					Cancel
 				</button>
@@ -338,6 +346,7 @@ export function PortalLitterDetail() {
 		setSubmittingInterest(puppyId);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const { data, error } = await (api.litters.puppies({ puppyId }) as any).interest.post({});
+		setPreConfirmPuppyId(null);
 		if (!error && data) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const requiresPayment = (data as any).requiresPayment !== false;
@@ -766,10 +775,9 @@ export function PortalLitterDetail() {
 			{!!preConfirmPuppyId && (
 				<PreConfirmModal
 					isBook={isClientR5000}
+					loading={submittingInterest === preConfirmPuppyId}
 					onConfirm={() => {
-						const id = preConfirmPuppyId;
-						setPreConfirmPuppyId(null);
-						expressInterest(id);
+						expressInterest(preConfirmPuppyId);
 					}}
 					onCancel={() => setPreConfirmPuppyId(null)}
 				/>

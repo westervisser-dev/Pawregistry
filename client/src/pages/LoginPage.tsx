@@ -38,7 +38,9 @@ export function LoginPage() {
 			}
 			await init();
 			const { isAdmin } = useAuthStore.getState();
-			navigate(isAdmin ? '/admin' : '/portal', { replace: true });
+			const redirect = sessionStorage.getItem('postLoginRedirect');
+			sessionStorage.removeItem('postLoginRedirect');
+			navigate(redirect ?? (isAdmin ? '/admin' : '/portal'), { replace: true });
 			return;
 		}
 		setLoading(false);
@@ -61,7 +63,9 @@ export function LoginPage() {
 		}
 		await init();
 		const { isAdmin } = useAuthStore.getState();
-		navigate(isAdmin ? '/admin' : '/portal', { replace: true });
+		const redirect = sessionStorage.getItem('postLoginRedirect');
+		sessionStorage.removeItem('postLoginRedirect');
+		navigate(redirect ?? (isAdmin ? '/admin' : '/portal'), { replace: true });
 	};
 
 	usePageTitle('Client Login');

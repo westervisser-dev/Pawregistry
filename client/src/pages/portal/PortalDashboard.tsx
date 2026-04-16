@@ -105,11 +105,12 @@ function ClientActionCenter({
 
 	// Pending booking / final payment — highest priority, shown first (only when client is in a booking stage)
 	if (pendingBookingPayment && ['puppy_reserved', 'puppy_booked'].includes(client.stage)) {
-		const hoursLeft = pendingBookingPayment.expiresAt
-			? Math.max(0, Math.floor((new Date(pendingBookingPayment.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
+		const msLeft = pendingBookingPayment.expiresAt
+			? new Date(pendingBookingPayment.expiresAt).getTime() - Date.now()
 			: null;
-		const urgencyLabel = hoursLeft !== null
-			? ` — ${hoursLeft}h left`
+		const hoursLeft = msLeft !== null ? Math.floor(msLeft / (1000 * 60 * 60)) : null;
+		const urgencyLabel = msLeft !== null
+			? msLeft <= 0 ? ' — EXPIRED' : ` — ${hoursLeft}h left`
 			: '';
 
 		let paymentLabel: string;
@@ -640,8 +641,14 @@ export function PortalDashboard() {
 					if (!mountedRef.current || !pmts) return;
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					const allPayments = pmts as any[];
+					// For instalment plans the server returns payments desc(createdAt), so the last
+					// instalment created appears first. Sort by instalmentIndex so we always show
+					// the earliest unpaid instalment (non-instalments sort to -1, i.e. before any instalment).
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					const pendingBooking = allPayments.find((p: any) => p.status === 'pending' && (p.type === 'booking' || p.type === 'final'));
+					const pendingBooking = allPayments
+						.filter((p: any) => p.status === 'pending' && (p.type === 'booking' || p.type === 'final'))
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						.sort((a: any, b: any) => ((a.metadata as any)?.instalmentIndex ?? -1) - ((b.metadata as any)?.instalmentIndex ?? -1))[0] ?? null;
 					if (pendingBooking) {
 						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 						const meta = (pendingBooking.metadata ?? {}) as any;

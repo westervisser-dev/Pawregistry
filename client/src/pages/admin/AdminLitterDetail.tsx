@@ -1283,7 +1283,7 @@ export function AdminLitterDetail() {
 															</span>
 														</div>
 														{interest.status === 'pending' && (
-															<div className="mt-1"><NotifyTimer since={interest.createdAt} /></div>
+															<div className="mt-1"><NotifyTimer since={interest.createdAt} label="since reserved" /></div>
 														)}
 													</div>
 													{interest.status === 'pending' ? (

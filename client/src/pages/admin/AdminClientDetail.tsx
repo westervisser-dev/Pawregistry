@@ -626,9 +626,9 @@ export function AdminClientDetail() {
 								failed: 'bg-red-100 text-red-700',
 								cancelled: 'bg-warm-100 text-warm-500',
 							};
-							const hoursLeft = p.expiresAt
-								? Math.max(0, Math.floor((new Date(p.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)))
-								: null;
+							const msLeft = p.expiresAt ? new Date(p.expiresAt).getTime() - Date.now() : null;
+							const hoursLeft = msLeft !== null ? Math.floor(msLeft / (1000 * 60 * 60)) : null;
+							const isExpired = msLeft !== null && msLeft <= 0;
 							return (
 								<div key={p.id} className="py-3 flex items-center justify-between gap-4">
 									<div className="min-w-0 flex-1">
@@ -645,7 +645,9 @@ export function AdminClientDetail() {
 												? `Paid ${new Date(p.paidAt).toLocaleDateString()}`
 												: `Created ${new Date(p.createdAt).toLocaleDateString()}`}
 											{p.status === 'pending' && hoursLeft !== null && (
-												<span className="text-amber-600 ml-2">{hoursLeft}h remaining</span>
+												<span className={`ml-2 ${isExpired ? 'text-red-600 font-medium' : 'text-amber-600'}`}>
+													{isExpired ? 'Expired' : `${hoursLeft}h remaining`}
+												</span>
 											)}
 											{p.status === 'pending' && p.dueDate && (
 												<span className={`ml-2 ${new Date(p.dueDate) < new Date() ? 'text-red-600 font-medium' : 'text-warm-500'}`}>
