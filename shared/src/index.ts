@@ -312,6 +312,7 @@ export interface PaymentWithClient extends Payment {
 export interface PaymentSummary {
 	clientId: string;
 	totalPriceRands: number | null;
+	isTotalEstimated: boolean;
 	alreadyPaid: number;
 	depositPaid: number;
 	balanceDue: number | null;

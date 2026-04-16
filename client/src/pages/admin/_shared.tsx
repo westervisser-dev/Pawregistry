@@ -216,14 +216,18 @@ export function PaymentProgressCell({ summary, stage }: { summary?: PaymentSumma
 		<div className="min-w-[90px]">
 			<p className="text-xs text-warm-700 tabular-nums whitespace-nowrap">
 				R{paid.toLocaleString()}{' '}
-				<span className="text-warm-400">/ R{total.toLocaleString()}</span>
+				{summary.isTotalEstimated ? (
+					<span className="text-warm-300 italic" title="Estimated — securing deposit total before puppy is assigned">/ ~R{total.toLocaleString()}</span>
+				) : (
+					<span className="text-warm-400">/ R{total.toLocaleString()}</span>
+				)}
 				{summary.overdueCount > 0 && (
 					<span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 ml-1.5 align-middle" title={`${summary.overdueCount} overdue`} />
 				)}
 			</p>
 			<div className="mt-1 h-[3px] rounded-full bg-warm-200 overflow-hidden">
 				<div
-					className="h-full rounded-full bg-green-500 transition-all"
+					className={`h-full rounded-full transition-all ${summary.isTotalEstimated ? 'bg-warm-400' : 'bg-green-500'}`}
 					style={{ width: `${pct}%` }}
 				/>
 			</div>

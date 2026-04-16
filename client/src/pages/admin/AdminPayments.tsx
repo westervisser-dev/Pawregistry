@@ -108,6 +108,11 @@ function ByClientTab({ summaries, invoiceCounts }: { summaries: ClientSummaryRow
 									)}
 								</div>
 								<p className="text-xs text-warm-400">{s.clientEmail}</p>
+								{s.clientStage && (
+									<span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-warm-100 text-warm-500 capitalize">
+										{s.clientStage.replace(/_/g, ' ')}
+									</span>
+								)}
 							</td>
 							<td className="hidden md:table-cell py-3 px-4 text-sm text-warm-700 tabular-nums">
 								{s.totalPriceRands != null ? `R${s.totalPriceRands.toLocaleString()}` : '—'}
@@ -117,8 +122,8 @@ function ByClientTab({ summaries, invoiceCounts }: { summaries: ClientSummaryRow
 							</td>
 							<td className="hidden md:table-cell py-3 px-4">
 								{s.balanceDue != null ? (
-									<span className={`text-sm font-medium tabular-nums ${s.balanceDue === 0 ? 'text-green-600' : s.overdueCount > 0 ? 'text-red-600' : 'text-warm-700'}`}>
-										R{s.balanceDue.toLocaleString()}
+									<span className={`text-sm font-medium tabular-nums ${s.balanceDue === 0 ? 'text-green-600' : s.overdueCount > 0 ? 'text-red-600' : s.isTotalEstimated ? 'text-warm-400' : 'text-warm-700'}`}>
+										{s.isTotalEstimated && <span className="text-warm-300 mr-0.5">~</span>}R{s.balanceDue.toLocaleString()}
 									</span>
 								) : '—'}
 							</td>

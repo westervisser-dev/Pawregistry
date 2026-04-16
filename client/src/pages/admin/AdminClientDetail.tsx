@@ -201,6 +201,7 @@ export function AdminClientDetail() {
 	const [clientInvoices, setClientInvoices] = useState<Invoice[]>([]);
 	const [creatingInvoice, setCreatingInvoice] = useState(false);
 	const [invoiceError, setInvoiceError] = useState<string | null>(null);
+	const [invoiceToast, setInvoiceToast] = useState<string | null>(null);
 	const loadTemplates = () => {
 		if (!id) return;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -319,6 +320,16 @@ export function AdminClientDetail() {
 
 	return (
 		<div className="p-4 md:p-8 max-w-4xl">
+			{/* Toast */}
+			{invoiceToast && (
+				<div
+					role="status"
+					className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 bg-warm-900 text-white text-sm font-medium rounded-xl shadow-lg pointer-events-none"
+				>
+					{invoiceToast}
+				</div>
+			)}
+
 			<Link to="/admin/clients" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">← Clients</Link>
 
 			<div className="flex items-start justify-between mb-6">
@@ -703,6 +714,8 @@ export function AdminClientDetail() {
 								}
 								await load();
 								setCreatingInvoice(false);
+								setInvoiceToast('Invoice created');
+								setTimeout(() => setInvoiceToast(null), 3000);
 							}}
 							className="px-3 py-1.5 bg-warm-900 hover:bg-warm-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
 						>
@@ -764,9 +777,9 @@ export function AdminClientDetail() {
 										{inv.status === 'draft' && (
 											<button
 												onClick={async () => {
+													setClientInvoices((prev) => prev.filter((i) => i.id !== inv.id));
 													// eslint-disable-next-line @typescript-eslint/no-explicit-any
 													await (api.invoices as any).admin({ id: inv.id }).patch({ status: 'cancelled' });
-													load();
 												}}
 												className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
 											>

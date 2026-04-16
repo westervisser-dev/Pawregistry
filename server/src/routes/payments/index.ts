@@ -538,10 +538,10 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	.get(
 		'/admin/summaries',
 		async () => {
-			// Fetch clients with a matched puppy OR a paid deposit
+			// Fetch clients with a matched puppy OR a paid deposit OR waitlisted
 			const activeClients = await db.query.clients.findMany({
 				where: or(
-					inArray(clients.stage, ['puppy_reserved', 'puppy_booked', 'puppy_fully_paid']),
+					inArray(clients.stage, ['waitlisted', 'puppy_reserved', 'puppy_booked', 'puppy_fully_paid']),
 					eq(clients.depositStatus, 'paid'),
 				),
 				columns: { id: true, puppyId: true },
@@ -579,20 +579,25 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 
 			const aggMap = new Map(paymentAggs.map((a) => [a.clientId, a]));
 
+			const SECURING_DEPOSIT_RANDS = 5000;
+
 			return activeClients.map((c) => {
 				const puppy = c.puppyId ? puppyMap.get(c.puppyId) : undefined;
-				const totalPriceRands = puppy?.priceRands != null
+				const puppyTotal = puppy?.priceRands != null
 					? puppy.priceRands + (puppy.litter?.shippingRands ?? 0)
 					: null;
+				const isTotalEstimated = puppyTotal == null;
+				const totalPriceRands = puppyTotal ?? SECURING_DEPOSIT_RANDS;
 				const agg = aggMap.get(c.id);
 				const alreadyPaid = Number(agg?.alreadyPaid ?? 0);
 
 				return {
 					clientId: c.id,
 					totalPriceRands,
+					isTotalEstimated,
 					alreadyPaid,
 					depositPaid: Number(agg?.depositPaid ?? 0),
-					balanceDue: totalPriceRands != null ? Math.max(0, totalPriceRands - alreadyPaid) : null,
+					balanceDue: Math.max(0, totalPriceRands - alreadyPaid),
 					pendingCount: Number(agg?.pendingCount ?? 0),
 					overdueCount: Number(agg?.overdueCount ?? 0),
 					nextDueDate: agg?.nextDueDate ?? null,
