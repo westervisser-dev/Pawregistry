@@ -6,11 +6,12 @@ values
   ('dog-images',       'dog-images',       true),
   ('litter-media',     'litter-media',     true),
   ('update-media',     'update-media',     true),
-  ('client-documents', 'client-documents', false),
-  ('health-certs',     'health-certs',     false)
+  ('client-documents',    'client-documents',    false),
+  ('health-certs',        'health-certs',        false),
+  ('document-templates',  'document-templates',  true)
 on conflict do nothing;
 
--- Public read for public buckets (dog images, litter media, update media)
+-- Public read for public buckets (dog images, litter media, update media, document templates)
 create policy "Public read dog images"
   on storage.objects for select
   using (bucket_id = 'dog-images');
@@ -22,6 +23,10 @@ create policy "Public read litter media"
 create policy "Public read update media"
   on storage.objects for select
   using (bucket_id = 'update-media');
+
+create policy "Public read document templates"
+  on storage.objects for select
+  using (bucket_id = 'document-templates');
 
 -- Service role has full access to all buckets (server uses service role key)
 -- No additional policies needed for service role — it bypasses RLS by default.
