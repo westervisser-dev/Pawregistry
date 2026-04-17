@@ -1,3 +1,4 @@
+// Static file server for Railway production deployment
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
