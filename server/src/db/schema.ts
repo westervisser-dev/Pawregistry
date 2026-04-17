@@ -167,6 +167,7 @@ export const clients = pgTable('clients', {
 	litterId: text('litter_id').references(() => litters.id),
 	applicationData: jsonb('application_data').notNull().$type<Record<string, unknown>>(),
 	adminNotes: text('admin_notes'),
+	reservedAt: timestamp('reserved_at', { withTimezone: true }),
 	matchedAt: timestamp('matched_at', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

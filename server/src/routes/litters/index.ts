@@ -144,7 +144,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					.where(eq(puppies.id, params.puppyId));
 
 				await db.update(clients)
-					.set({ stage: 'puppy_booked', litterId: puppy.litterId, puppyId: params.puppyId, matchedAt: now, updatedAt: now })
+					.set({ stage: 'puppy_booked', litterId: puppy.litterId, puppyId: params.puppyId, matchedAt: now, reservedAt: null, updatedAt: now })
 					.where(eq(clients.id, client.id));
 
 				// Auto-reject other pending interests for this puppy
@@ -197,7 +197,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.where(eq(puppies.id, params.puppyId));
 
 			await db.update(clients)
-				.set({ stage: 'puppy_reserved', litterId: puppy.litterId, updatedAt: new Date() })
+				.set({ stage: 'puppy_reserved', litterId: puppy.litterId, reservedAt: new Date(), updatedAt: new Date() })
 				.where(eq(clients.id, client.id));
 
 			// Initialise Paystack transaction
@@ -865,10 +865,10 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.where(eq(puppyInterests.id, params.interestId))
 				.returning();
 
-			// Reject: puppy → available, client → waitlisted, clear litterId + puppyId + matchedAt
+			// Reject: puppy → available, client → waitlisted, clear litterId + puppyId + matchedAt + reservedAt
 			await db.update(puppies).set({ status: 'available', bookingExpiresAt: null, updatedAt: new Date() }).where(eq(puppies.id, interest.puppyId));
 			await db.update(clients)
-				.set({ stage: 'waitlisted', litterId: null, puppyId: null, matchedAt: null, updatedAt: new Date() })
+				.set({ stage: 'waitlisted', litterId: null, puppyId: null, matchedAt: null, reservedAt: null, updatedAt: new Date() })
 				.where(eq(clients.id, interest.clientId));
 
 			// Cancel any pending booking payment
@@ -1152,7 +1152,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 						.set({ status: 'rejected', updatedAt: new Date() })
 						.where(eq(puppyInterests.id, activeInterest.id));
 					await db.update(clients)
-						.set({ stage: 'waitlisted', litterId: null, puppyId: null, matchedAt: null, updatedAt: new Date() })
+						.set({ stage: 'waitlisted', litterId: null, puppyId: null, matchedAt: null, reservedAt: null, updatedAt: new Date() })
 						.where(eq(clients.id, activeInterest.clientId));
 					// Cancel any pending booking payment
 					await db.update(payments)

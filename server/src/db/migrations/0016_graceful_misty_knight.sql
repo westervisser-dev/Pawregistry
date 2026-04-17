@@ -1,0 +1,1 @@
+ALTER TABLE "clients" ADD COLUMN "reserved_at" timestamp with time zone;

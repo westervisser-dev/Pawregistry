@@ -384,6 +384,8 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 					...body,
 					...(newPriority !== undefined ? { priority: newPriority } : {}),
 					...(tierChanged ? { depositChosenAt: new Date() } : {}),
+					...(body.stage === 'puppy_reserved' && current?.stage !== 'puppy_reserved' ? { reservedAt: new Date() } : {}),
+					...(body.stage && body.stage !== 'puppy_reserved' && current?.stage === 'puppy_reserved' ? { reservedAt: null } : {}),
 					...(body.stage === 'puppy_booked' && current?.stage !== 'puppy_booked' ? { matchedAt: new Date() } : {}),
 					...(body.stage && body.stage !== 'puppy_booked' && current?.stage === 'puppy_booked' ? { matchedAt: null } : {}),
 					updatedAt: new Date(),
