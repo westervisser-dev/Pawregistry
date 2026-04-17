@@ -184,7 +184,7 @@ export function DepositStatusBadge({ client, depositPaid }: { client: Client; de
 	const tier = client.depositTier ? DEPOSIT_TIER_LABELS[client.depositTier] : null;
 
 	return (
-		<div className="flex items-center gap-1.5 flex-wrap justify-end">
+		<div className="flex items-center gap-1.5 flex-wrap">
 			{!!tier && !paidAmount && (
 				<span className={`text-xs font-medium px-2 py-1 rounded-full border ${tier.cls}`} title="Deposit tier selected at application">
 					{tier.label}
