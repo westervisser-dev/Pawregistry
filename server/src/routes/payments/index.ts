@@ -64,7 +64,7 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 		const tier = (meta.tier as 'r5000' | 'r500') ?? 'r5000';
 		const now = new Date();
 
-		// Update deposit status, stage → puppy_booked, set puppyId + matchedAt
+		// Update deposit status, stage → puppy_booked, set puppyId + matchedAt, clear reservedAt
 		await db.update(clients)
 			.set({
 				depositStatus: 'paid',
@@ -72,6 +72,7 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 				stage: 'puppy_booked',
 				puppyId: puppyId ?? null,
 				matchedAt: now,
+				reservedAt: null,
 				updatedAt: now,
 			})
 			.where(eq(clients.id, payment.clientId));

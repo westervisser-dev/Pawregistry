@@ -110,6 +110,7 @@ export interface Client {
 	litterId: string | null;
 	applicationData: ClientApplication;
 	adminNotes: string | null;
+	reservedAt: string | null;
 	matchedAt: string | null;
 	createdAt: string;
 	updatedAt: string;

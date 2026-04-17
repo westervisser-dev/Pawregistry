@@ -184,7 +184,7 @@ export function DepositStatusBadge({ client, depositPaid }: { client: Client; de
 	const tier = client.depositTier ? DEPOSIT_TIER_LABELS[client.depositTier] : null;
 
 	return (
-		<div className="flex items-center gap-1.5 flex-wrap justify-end">
+		<div className="flex items-center gap-1.5 flex-wrap">
 			{!!tier && !paidAmount && (
 				<span className={`text-xs font-medium px-2 py-1 rounded-full border ${tier.cls}`} title="Deposit tier selected at application">
 					{tier.label}
@@ -279,10 +279,10 @@ export function SortableClientRow({ client, index, action, paymentSummary }: {
 				<p className="font-medium text-warm-900">{client.firstName} {client.lastName}</p>
 				<p className="text-xs text-warm-400">{client.email}</p>
 				{!!action && <div className="mt-1"><ActionBadge action={action} /></div>}
-				{client.stage === 'puppy_booked' && !!client.matchedAt && (
-					<div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-50 text-green-700 border border-green-200">
-						<span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-						Booked · <MatchedElapsed since={client.matchedAt} /> ago
+				{client.stage === 'puppy_reserved' && !!client.reservedAt && (
+					<div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+						<span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+						Reserved · <MatchedElapsed since={client.reservedAt} /> ago
 					</div>
 				)}
 				{parsed && (
