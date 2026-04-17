@@ -377,8 +377,26 @@ function buildUpdateEmailHtml(params: {
 export async function sendAdminNotification(subject: string, body: string): Promise<void> {
 	try {
 		const from = process.env.RESEND_FROM_EMAIL ?? 'Paw Registry <onboarding@resend.dev>';
-		const [setting] = await db.select().from(appSettings).where(eq(appSettings.key, 'admin_email'));
-		const to = setting?.value || ADMIN_EMAIL;
+
+		const [recipientsSetting] = await db.select().from(appSettings).where(eq(appSettings.key, 'admin_notification_recipients'));
+		let to: string | string[] | null = null;
+
+		if (recipientsSetting?.value) {
+			try {
+				const parsed = JSON.parse(recipientsSetting.value) as Array<{ email: string; enabled: boolean }>;
+				const enabled = parsed.filter((r) => r.enabled).map((r) => r.email);
+				if (enabled.length > 0) to = enabled;
+			} catch {
+				// fall through to legacy
+			}
+		}
+
+		if (!to) {
+			const [legacySetting] = await db.select().from(appSettings).where(eq(appSettings.key, 'admin_email'));
+			const legacy = legacySetting?.value || ADMIN_EMAIL;
+			if (legacy) to = legacy;
+		}
+
 		if (!to) return;
 		await getResend().emails.send({ from, to, subject, html: toHtml(body) });
 	} catch (e) {
