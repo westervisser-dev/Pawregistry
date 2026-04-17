@@ -1,2 +1,3 @@
+# Client-only build — skip server (requires bun)
 [phases.build]
 cmds = ["pnpm --filter @paw-registry/client --filter @paw-registry/shared build"]
