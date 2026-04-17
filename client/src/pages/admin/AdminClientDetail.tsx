@@ -63,6 +63,43 @@ function AppSection({ title, fields }: { title: string; fields: { label: string;
 	);
 }
 
+// ─── Collapsible section card ────────────────────────────────────────────────
+
+function SectionCard({
+	id, title, headerRight, children,
+}: {
+	id: string;
+	title: string;
+	headerRight?: React.ReactNode;
+	children: React.ReactNode;
+}) {
+	const [open, setOpen] = useState(false);
+
+	return (
+		<Card id={id} className="mb-6 scroll-mt-6 overflow-hidden">
+			<div className="flex items-center justify-between p-5">
+				<button
+					type="button"
+					onClick={() => setOpen(!open)}
+					className="flex items-center gap-2 text-left hover:opacity-70 transition-opacity flex-1 min-w-0"
+				>
+					<h3 className="font-medium text-warm-900">{title}</h3>
+					<svg
+						className={`w-4 h-4 text-warm-400 transition-transform duration-200 shrink-0 ${open ? 'rotate-180' : ''}`}
+						viewBox="0 0 20 20"
+						fill="currentColor"
+						aria-hidden="true"
+					>
+						<path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+					</svg>
+				</button>
+				{open && headerRight}
+			</div>
+			{open && <div className="px-5 pt-4 pb-5 border-t border-black/[0.04]">{children}</div>}
+		</Card>
+	);
+}
+
 // ─── Activity timeline helpers ─────────────────────────────────────────────────
 
 const ACTIVITY_CONFIG: Record<string, { icon: string; label: string; colour: string }> = {
@@ -423,8 +460,7 @@ export function AdminClientDetail() {
 
 			{/* Litter Interest */}
 			{clientLitterInterests.length > 0 && (
-				<Card className="p-5 mb-6">
-					<h3 className="font-medium text-warm-900 mb-3">Litter Interest</h3>
+				<SectionCard id="litter-interest" title="Litter Interest">
 					<div className="divide-y divide-black/[0.05]">
 						{clientLitterInterests.map((li) => (
 							<div key={li.id} className="py-2.5 flex items-center gap-3">
@@ -444,12 +480,11 @@ export function AdminClientDetail() {
 							</div>
 						))}
 					</div>
-				</Card>
+				</SectionCard>
 			)}
 
 			{/* Application */}
-			<Card className="p-6 mb-6">
-				<h3 className="font-medium text-warm-900 mb-6">Application</h3>
+			<SectionCard id="application" title="Application">
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 					<AppSection title="Personal Details" fields={[
 						{ label: 'Primary caregiver', value: a.primaryCaregiver },
@@ -523,11 +558,10 @@ export function AdminClientDetail() {
 						</dl>
 					</div>
 				</div>
-			</Card>
+			</SectionCard>
 
 			{/* Documents */}
-			<Card id="documents" className="p-5 mb-6 scroll-mt-6">
-				<h3 className="font-medium text-warm-900 mb-4">Documents</h3>
+			<SectionCard id="documents" title="Documents">
 
 				{/* Template checklist */}
 				{templates.length > 0 && (
@@ -580,22 +614,23 @@ export function AdminClientDetail() {
 					</div>
 				)}
 
-			</Card>
+			</SectionCard>
 
 			{/* Payments */}
-			<Card id="payments" className="p-5 mb-6 scroll-mt-6">
-				<div className="flex items-center justify-between mb-4">
-					<h3 className="font-medium text-warm-900">Payments</h3>
-					{client.stage === 'puppy_booked' && !payments.some((p) => p.type === 'final' && p.status !== 'cancelled') && (
+			<SectionCard
+				id="payments"
+				title="Payments"
+				headerRight={
+					client.stage === 'puppy_booked' && !payments.some((p) => p.type === 'final' && p.status !== 'cancelled') ? (
 						<button
 							onClick={() => { setFinalPrice(''); setFinalError(''); setInstalmentMode(false); setInstalmentDueDates([]); setFullPaymentDueDate(''); setShowFinalPaymentModal(true); }}
 							className="px-3 py-1.5 bg-warm-900 hover:bg-warm-700 text-white text-xs font-medium rounded-lg transition-colors"
 						>
 							Request Final Payment
 						</button>
-					)}
-				</div>
-
+					) : undefined
+				}
+			>
 				{/* Payment Summary Card — shown for puppy_booked clients with pricing set */}
 				{client.stage === 'puppy_booked' && paymentSummary && paymentSummary.puppyPriceRands != null && (
 					<div className="mb-5 p-4 bg-warm-50 rounded-xl border border-warm-200">
@@ -692,13 +727,14 @@ export function AdminClientDetail() {
 						})}
 					</div>
 				)}
-			</Card>
+			</SectionCard>
 
 			{/* Invoices */}
-			<Card className="p-5 mb-6">
-				<div className="flex items-center justify-between mb-4">
-					<h3 className="font-medium text-warm-900">Invoices</h3>
-					{client.puppyId && (
+			<SectionCard
+				id="invoices"
+				title="Invoices"
+				headerRight={
+					client.puppyId ? (
 						<button
 							disabled={creatingInvoice}
 							onClick={async () => {
@@ -721,8 +757,9 @@ export function AdminClientDetail() {
 						>
 							{creatingInvoice ? 'Creating...' : 'Create Invoice'}
 						</button>
-					)}
-				</div>
+					) : undefined
+				}
+			>
 
 				{invoiceError && <p role="alert" className="text-red-600 text-xs mb-3">{invoiceError}</p>}
 
@@ -792,7 +829,7 @@ export function AdminClientDetail() {
 						})}
 					</div>
 				)}
-			</Card>
+			</SectionCard>
 
 			{/* Final payment / instalment modal */}
 			{showFinalPaymentModal && (
@@ -1085,8 +1122,7 @@ export function AdminClientDetail() {
 				</div>
 			)}
 
-			<Card className="p-5 mb-6">
-				<h3 className="font-medium text-warm-900 mb-1">Portal Access</h3>
+			<SectionCard id="portal" title="Portal Access">
 				<p className="text-sm text-warm-400 mb-4">Open the portal as this client.</p>
 				<button
 					onClick={openAsClient}
@@ -1095,11 +1131,10 @@ export function AdminClientDetail() {
 				>
 					{impersonating ? 'Opening…' : 'Open portal as client →'}
 				</button>
-			</Card>
+			</SectionCard>
 
 			{/* Email history */}
-			<Card className="p-5 mb-6">
-				<h3 className="font-medium text-warm-900 mb-3">Email History</h3>
+			<SectionCard id="emails" title="Email History">
 				{emailLogs.length === 0 ? (
 					<p className="text-sm text-warm-400">No emails sent yet.</p>
 				) : (
@@ -1119,13 +1154,12 @@ export function AdminClientDetail() {
 						))}
 					</div>
 				)}
-			</Card>
+			</SectionCard>
 
 			{/* Activity timeline */}
-			<Card className="p-5 mb-6">
-				<h3 className="font-medium text-warm-900 mb-3">Activity Timeline</h3>
+			<SectionCard id="activity" title="Activity Timeline">
 				<ActivityTimeline activities={activities} />
-			</Card>
+			</SectionCard>
 
 			<button
 				onClick={() => setDeleteOpen(true)}
