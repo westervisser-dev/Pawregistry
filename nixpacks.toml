@@ -1,11 +1,2 @@
-[phases.setup]
-nixPkgs = ["nodejs_20"]
-
-[phases.install]
-cmds = ["npm install -g pnpm", "cd client && pnpm install --no-frozen-lockfile"]
-
 [phases.build]
-cmds = ["cd client && pnpm build"]
-
-[start]
-cmd = "node client/serve.js"
+cmds = ["pnpm --filter @paw-registry/client --filter @paw-registry/shared build"]
