@@ -211,9 +211,11 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 	// Re-fetch to get the invoiceId (may have been set after initial fetch)
 	const freshPayment = await db.query.payments.findFirst({
 		where: eq(payments.id, paymentId),
-		columns: { invoiceId: true },
+		columns: { invoiceId: true, clientId: true },
 	});
+
 	if (freshPayment?.invoiceId) {
+		// Payment is explicitly linked — sync that invoice from its linked payments only
 		const paidResult = await db
 			.select({ total: sum(payments.amountRands) })
 			.from(payments)
@@ -229,6 +231,28 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 			await db.update(invoices)
 				.set({ paidRands: newPaid, status: newStatus, updatedAt: new Date() })
 				.where(eq(invoices.id, freshPayment.invoiceId));
+		}
+	} else if (freshPayment?.clientId) {
+		// Payment is not linked to an invoice — find the client's open invoice and sync
+		// paidRands from ALL client complete payments (matches invoice creation logic)
+		const openInvoice = await db.query.invoices.findFirst({
+			where: and(
+				eq(invoices.clientId, freshPayment.clientId),
+				ne(invoices.status, 'cancelled'),
+				ne(invoices.status, 'paid'),
+			),
+			columns: { id: true, totalRands: true, status: true },
+		});
+		if (openInvoice) {
+			const paidResult = await db
+				.select({ total: sum(payments.amountRands) })
+				.from(payments)
+				.where(and(eq(payments.clientId, freshPayment.clientId), eq(payments.status, 'complete')));
+			const newPaid = Number(paidResult[0]?.total ?? 0);
+			const newStatus = newPaid >= openInvoice.totalRands ? 'paid' : openInvoice.status;
+			await db.update(invoices)
+				.set({ paidRands: newPaid, status: newStatus, updatedAt: new Date() })
+				.where(eq(invoices.id, openInvoice.id));
 		}
 	}
 }

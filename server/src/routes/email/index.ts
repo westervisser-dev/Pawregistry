@@ -56,6 +56,7 @@ export const emailRoutes = new Elysia({ prefix: '/email' })
 		{
 			body: t.Object({
 				admin_email: t.Optional(t.String()),
+				admin_notification_recipients: t.Optional(t.String()),
 			}),
 		},
 	)

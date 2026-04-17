@@ -57,6 +57,13 @@ const ADMIN_NOTIFICATION_TYPES = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+type Recipient = { email: string; label: string; enabled: boolean };
+
+const DEFAULT_RECIPIENTS: Recipient[] = [
+	{ email: 'westervisser@gmail.com', label: 'Westervisser', enabled: true },
+	{ email: 'teddydoodlersa@gmail.com', label: 'Teddy Doodlers', enabled: true },
+];
+
 export function AdminEmails() {
 	const [tab, setTab] = useState<'client' | 'admin'>('client');
 
@@ -67,9 +74,9 @@ export function AdminEmails() {
 	const [saving, setSaving] = useState(false);
 	const [saved, setSaved] = useState(false);
 
-	// Admin settings state
-	const [adminEmail, setAdminEmail] = useState('');
-	const [adminEmailDraft, setAdminEmailDraft] = useState('');
+	// Admin notification recipients state
+	const [recipientsDraft, setRecipientsDraft] = useState<Recipient[]>(DEFAULT_RECIPIENTS);
+	const [savedRecipients, setSavedRecipients] = useState<Recipient[]>(DEFAULT_RECIPIENTS);
 	const [savingAdmin, setSavingAdmin] = useState(false);
 	const [savedAdmin, setSavedAdmin] = useState(false);
 
@@ -82,9 +89,14 @@ export function AdminEmails() {
 		});
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(api.email as any).settings.get().then(({ data }: { data: Record<string, string> | null }) => {
-			if (data?.admin_email) {
-				setAdminEmail(data.admin_email);
-				setAdminEmailDraft(data.admin_email);
+			if (data?.admin_notification_recipients) {
+				try {
+					const parsed = JSON.parse(data.admin_notification_recipients) as Recipient[];
+					setRecipientsDraft(parsed);
+					setSavedRecipients(parsed);
+				} catch {
+					// use defaults
+				}
 			}
 		});
 	}, []);
@@ -109,13 +121,15 @@ export function AdminEmails() {
 		setSaving(false);
 	};
 
-	const saveAdminEmail = async () => {
+	const saveRecipients = async () => {
 		setSavingAdmin(true);
 		setSavedAdmin(false);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const { data } = await (api.email as any).settings.patch({ admin_email: adminEmailDraft });
+		const { data } = await (api.email as any).settings.patch({
+			admin_notification_recipients: JSON.stringify(recipientsDraft),
+		});
 		if (data) {
-			setAdminEmail((data as Record<string, string>).admin_email ?? adminEmailDraft);
+			setSavedRecipients(recipientsDraft);
 			setSavedAdmin(true);
 		}
 		setSavingAdmin(false);
@@ -252,19 +266,31 @@ export function AdminEmails() {
 					{/* Settings panel */}
 					<div className="md:col-span-1">
 						<Card className="p-6">
-							<h2 className="font-medium text-warm-900 mb-1">Notification email</h2>
-							<p className="text-xs text-warm-400 mb-4">All admin notifications are sent to this address.</p>
-							<input
-								type="email"
-								value={adminEmailDraft}
-								onChange={(e) => { setAdminEmailDraft(e.target.value); setSavedAdmin(false); }}
-								placeholder="you@example.com"
-								className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 mb-3"
-							/>
+							<h2 className="font-medium text-warm-900 mb-1">Notification recipients</h2>
+							<p className="text-xs text-warm-400 mb-4">Toggle who receives admin notification emails.</p>
+							<div className="flex flex-col gap-2 mb-4">
+								{recipientsDraft.map((r) => (
+									<label key={r.email} className="flex items-center justify-between px-3 py-2.5 border border-warm-200 rounded-lg cursor-pointer hover:bg-warm-50">
+										<div>
+											<p className="text-sm font-medium text-warm-900">{r.label}</p>
+											<p className="text-xs text-warm-400">{r.email}</p>
+										</div>
+										<input
+											type="checkbox"
+											checked={r.enabled}
+											onChange={(e) => {
+												setRecipientsDraft((prev) => prev.map((x) => x.email === r.email ? { ...x, enabled: e.target.checked } : x));
+												setSavedAdmin(false);
+											}}
+											className="w-4 h-4 rounded accent-warm-900"
+										/>
+									</label>
+								))}
+							</div>
 							<div className="flex items-center gap-3">
 								<button
-									onClick={saveAdminEmail}
-									disabled={savingAdmin || adminEmailDraft === adminEmail}
+									onClick={saveRecipients}
+									disabled={savingAdmin || JSON.stringify(recipientsDraft) === JSON.stringify(savedRecipients)}
 									className="px-4 py-2 bg-warm-900 text-white text-sm font-medium rounded-lg hover:bg-warm-700 disabled:opacity-50 transition-colors"
 								>
 									{savingAdmin ? 'Saving…' : 'Save'}
