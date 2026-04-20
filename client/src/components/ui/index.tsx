@@ -67,6 +67,178 @@ export function useFocusTrap(isOpen: boolean, onClose?: () => void) {
 	return containerRef;
 }
 
+// ─── Glyph (inline SVG icon set) ─────────────────────────────────────────────
+
+export type GlyphShape =
+	| 'paw' | 'people' | 'coin' | 'inbox' | 'doc' | 'home'
+	| 'calendar' | 'arrow' | 'grip' | 'search' | 'plus' | 'check' | 'bell' | 'dot';
+
+interface GlyphProps {
+	shape?: GlyphShape;
+	color?: string;
+	size?: number;
+	className?: string;
+}
+
+export function Glyph({ shape = 'dot', color = '#c47420', size = 16, className }: GlyphProps) {
+	const stroke = {
+		stroke: color,
+		strokeWidth: 1.6,
+		fill: 'none' as const,
+		strokeLinecap: 'round' as const,
+		strokeLinejoin: 'round' as const,
+	};
+	const common = { width: size, height: size, viewBox: '0 0 24 24', className, 'aria-hidden': true as const };
+
+	switch (shape) {
+		case 'paw':
+			return (
+				<svg {...common} {...stroke}>
+					<circle cx="7" cy="8" r="2" fill={color} stroke="none" />
+					<circle cx="12" cy="6" r="2" fill={color} stroke="none" />
+					<circle cx="17" cy="8" r="2" fill={color} stroke="none" />
+					<circle cx="19.5" cy="13" r="1.6" fill={color} stroke="none" />
+					<path d="M6 17c0-3 2.5-5 6-5s6 2 6 5c0 2-2 3-3 3H9c-1 0-3-1-3-3z" fill={color} stroke="none" />
+				</svg>
+			);
+		case 'people':
+			return (
+				<svg {...common} {...stroke}>
+					<circle cx="9" cy="8" r="3" />
+					<path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+					<circle cx="17" cy="9" r="2.5" />
+					<path d="M15 20c0-2 1-4 3-4.5" />
+				</svg>
+			);
+		case 'coin':
+			return (
+				<svg {...common} {...stroke}>
+					<circle cx="12" cy="12" r="8" />
+					<path d="M12 7v10M15 9.5c0-1.1-1.3-2-3-2s-3 .9-3 2 1.3 1.8 3 2 3 .9 3 2-1.3 2-3 2-3-.9-3-2" />
+				</svg>
+			);
+		case 'inbox':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M4 13l2-7h12l2 7" />
+					<path d="M4 13v5h16v-5" />
+					<path d="M4 13h5l1 2h4l1-2h5" />
+				</svg>
+			);
+		case 'doc':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M6 3h8l4 4v14H6z" />
+					<path d="M14 3v4h4M9 12h6M9 16h6" />
+				</svg>
+			);
+		case 'home':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M4 11l8-7 8 7v9H4z" />
+					<path d="M10 20v-6h4v6" />
+				</svg>
+			);
+		case 'calendar':
+			return (
+				<svg {...common} {...stroke}>
+					<rect x="3.5" y="5" width="17" height="15" rx="2" />
+					<path d="M3.5 10h17M8 3v4M16 3v4" />
+				</svg>
+			);
+		case 'arrow':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M5 12h14M13 6l6 6-6 6" />
+				</svg>
+			);
+		case 'grip':
+			return (
+				<svg {...common}>
+					<circle cx="9" cy="6" r="1.3" fill={color} />
+					<circle cx="15" cy="6" r="1.3" fill={color} />
+					<circle cx="9" cy="12" r="1.3" fill={color} />
+					<circle cx="15" cy="12" r="1.3" fill={color} />
+					<circle cx="9" cy="18" r="1.3" fill={color} />
+					<circle cx="15" cy="18" r="1.3" fill={color} />
+				</svg>
+			);
+		case 'search':
+			return (
+				<svg {...common} {...stroke}>
+					<circle cx="11" cy="11" r="6" />
+					<path d="M20 20l-4.5-4.5" />
+				</svg>
+			);
+		case 'plus':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M12 5v14M5 12h14" />
+				</svg>
+			);
+		case 'check':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M5 12.5l4 4 10-10" />
+				</svg>
+			);
+		case 'bell':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M6 17h12l-1.5-2V11a4.5 4.5 0 00-9 0v4L6 17z" />
+					<path d="M10 20a2 2 0 004 0" />
+				</svg>
+			);
+		default:
+			return (
+				<span
+					className={`inline-block rounded-full ${className ?? ''}`}
+					style={{ width: size, height: size, background: color }}
+					aria-hidden="true"
+				/>
+			);
+	}
+}
+
+// ─── Placeholder (striped image fallback) ───────────────────────────────────
+
+type PlaceholderTone = 'warm' | 'cream' | 'sand' | 'dark';
+
+const PLACEHOLDER_TONES: Record<PlaceholderTone, { a: string; b: string; text: string }> = {
+	warm:  { a: '#ede5d8', b: '#e1d4c0', text: '#8a7560' },
+	cream: { a: '#f5f0e8', b: '#ebe2d3', text: '#9a8871' },
+	sand:  { a: '#e7dcc8', b: '#d9ccb2', text: '#7a6a58' },
+	dark:  { a: '#3d2510', b: '#2a1808', text: '#d6c9b8' },
+};
+
+interface PlaceholderProps {
+	label?: string;
+	className?: string;
+	tone?: PlaceholderTone;
+}
+
+export function Placeholder({ label, className = '', tone = 'warm' }: PlaceholderProps) {
+	const t = PLACEHOLDER_TONES[tone];
+	return (
+		<div
+			className={`relative overflow-hidden flex items-end ${className}`}
+			style={{
+				backgroundImage: `repeating-linear-gradient(135deg, ${t.a} 0, ${t.a} 14px, ${t.b} 14px, ${t.b} 28px)`,
+			}}
+			aria-hidden="true"
+		>
+			{label && (
+				<span
+					className="font-mono text-[10.5px] px-2.5 py-1 m-2 rounded-sm"
+					style={{ background: 'rgba(255,255,255,0.72)', color: t.text, letterSpacing: '0.02em' }}
+				>
+					{label}
+				</span>
+			)}
+		</div>
+	);
+}
+
 // ─── Card ────────────────────────────────────────────────────────────────────
 
 interface CardProps {
@@ -125,32 +297,45 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
 
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 
-type StatAccent = 'brand' | 'brown' | 'green' | 'blue';
+type StatAccent = 'brand' | 'brown' | 'green' | 'blue' | 'plum' | 'rust';
 
-const accentColors: Record<StatAccent, string> = {
-	brand: 'before:bg-brand-500',
-	brown: 'before:bg-[#8B5E3C]',
-	green: 'before:bg-[#4A6741]',
-	blue: 'before:bg-[#1E5B8A]',
+const ACCENT_COLORS: Record<StatAccent, string> = {
+	brand: '#c47420',
+	brown: '#8B5E3C',
+	green:  '#4a6741',
+	blue:   '#1e5b8a',
+	plum:   '#7a47a8',
+	rust:   '#8d2a4a',
 };
 
 interface StatCardProps {
-	icon: string;
-	value: number;
+	icon?: string;
+	value: number | string;
 	label: string;
 	accent?: StatAccent;
 	trend?: { text: string; variant?: 'success' | 'alert' };
+	sub?: string;
 	to?: string;
 }
 
-export function StatCard({ icon, value, label, accent = 'brand', trend, to }: StatCardProps) {
+export function StatCard({ icon, value, label, accent = 'brand', trend, sub, to }: StatCardProps) {
+	const color = ACCENT_COLORS[accent];
 	const content = (
-		<div className={`bg-white rounded-[14px] border border-black/[0.07] p-5 pb-[18px] relative overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:rounded-t-[14px] ${accentColors[accent]} ${to ? 'hover:shadow-card-hover transition-shadow cursor-pointer' : ''}`}>
-			<span className="text-xl block mb-3.5">{icon}</span>
-			<p className="font-serif text-[34px] text-warm-900 leading-none mb-1">{value}</p>
-			<p className="text-xs text-warm-500 uppercase tracking-[0.04em]">{label}</p>
+		<div
+			className={`bg-white border border-black/[0.06] p-5 transition-all ${to ? 'hover:shadow-card-hover cursor-pointer' : ''}`}
+			style={{ borderRadius: 14, boxShadow: 'var(--shadow-card)' }}
+		>
+			<div className="flex items-start justify-between">
+				<div>
+					<div className="text-[11.5px] uppercase tracking-[0.1em] text-warm-500 font-medium">{label}</div>
+					<div className="font-serif text-[38px] leading-[1] text-warm-900 mt-2">{value}</div>
+				</div>
+				<span className="w-1.5 h-6 rounded-full" style={{ background: color }} aria-hidden="true" />
+			</div>
+			{sub && <div className="text-[12px] text-warm-500 mt-3">{sub}</div>}
+			{icon && !sub && <span className="text-[11px] text-warm-400 mt-2 block" aria-hidden="true">{icon}</span>}
 			{trend && (
-				<span className={`absolute top-5 right-4 text-[11px] font-medium px-2 py-[3px] rounded-[20px] ${
+				<span className={`inline-block mt-3 text-[11px] font-medium px-2 py-[3px] rounded-[20px] ${
 					trend.variant === 'alert'
 						? 'bg-[#FEF0E0] text-[#A05A10]'
 						: 'bg-[#EAF3E0] text-[#3A6830]'
@@ -247,14 +432,8 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 
-const avatarBgs: string[] = [
-	'bg-[#FEF0E0] text-[#A05A10]',
-	'bg-[#EAF3E0] text-[#3A6830]',
-	'bg-[#E8F0FE] text-[#1E5B8A]',
-	'bg-[#F3E8FE] text-[#6B3FA0]',
-	'bg-[#FEE8E8] text-[#A03030]',
-	'bg-brand-100 text-brand-700',
-];
+// Warm, deterministic palette matching the admin revamp
+const avatarTones = ['#c47420', '#4a6741', '#1e5b8a', '#8d2a4a', '#7a47a8', '#7a6a58'];
 
 function hashName(name: string): number {
 	let h = 0;
@@ -264,28 +443,35 @@ function hashName(name: string): number {
 
 interface AvatarProps {
 	name: string;
-	size?: 'sm' | 'md' | 'lg';
+	size?: 'sm' | 'md' | 'lg' | number;
 	src?: string | null;
+	tone?: string;
 }
 
-export function Avatar({ name, size = 'sm', src }: AvatarProps) {
-	const sizes = { sm: 'w-7 h-7 text-[10px]', md: 'w-9 h-9 text-xs', lg: 'w-11 h-11 text-sm' };
-	const initials = name
-		.split(' ')
+export function Avatar({ name, size = 'sm', src, tone }: AvatarProps) {
+	const px = typeof size === 'number'
+		? size
+		: size === 'sm' ? 28 : size === 'md' ? 36 : 44;
+	const initials = (name || '?')
+		.split(/\s+/)
 		.map((w) => w[0])
 		.slice(0, 2)
 		.join('')
 		.toUpperCase();
-	const bg = avatarBgs[hashName(name) % avatarBgs.length];
+	const bg = tone ?? avatarTones[hashName(name || 'x') % avatarTones.length];
+	const style = { width: px, height: px, fontSize: px * 0.38, letterSpacing: '0.02em' } as const;
 
 	if (src) {
-		return <img src={src} alt={name} className={`${sizes[size]} rounded-full object-cover shrink-0`} />;
+		return <img src={src} alt={name} style={{ width: px, height: px }} className="rounded-full object-cover shrink-0" />;
 	}
 
 	return (
-		<div className={`${sizes[size]} rounded-full flex items-center justify-center font-medium shrink-0 ${bg}`}>
+		<span
+			className="inline-flex items-center justify-center rounded-full text-white font-medium shrink-0"
+			style={{ ...style, background: bg }}
+		>
 			{initials}
-		</div>
+		</span>
 	);
 }
 
@@ -321,16 +507,32 @@ export function Badge({ children, variant = 'default' }: BadgeProps) {
 
 // ─── Status badges for domain enums ─────────────────────────────────────────
 
-const stageVariant: Record<string, BadgeVariant> = {
-	enquired:       'default',
-	approved:       'blue',
-	rejected:       'red',
-	waitlisted:     'amber',
-	placed:         'green',
-	puppy_reserved: 'purple',
-	puppy_booked:   'purple',
-	puppy_fully_paid: 'green',
+type StagePillStyle = { bg: string; fg: string; dot: string; label: string };
+
+export const STAGE_STYLES: Record<string, StagePillStyle> = {
+	enquired:         { bg: '#fef3e7', fg: '#a35c17', dot: '#d98e3a', label: 'Enquired' },
+	approved:         { bg: '#e8efe5', fg: '#3f5a36', dot: '#4a6741', label: 'Approved' },
+	rejected:         { bg: '#f4e4e1', fg: '#883224', dot: '#a8412e', label: 'Rejected' },
+	waitlisted:       { bg: '#e5ecf2', fg: '#1e5b8a', dot: '#2f78a9', label: 'Waitlisted' },
+	placed:           { bg: '#e4ebe0', fg: '#3e5a2a', dot: '#5a7a3f', label: 'Placed' },
+	puppy_reserved:   { bg: '#f6e5e9', fg: '#8d2a4a', dot: '#b8446a', label: 'Reserved' },
+	puppy_booked:     { bg: '#e8dff0', fg: '#5a2d83', dot: '#7a47a8', label: 'Booked' },
+	puppy_fully_paid: { bg: '#e4ebe0', fg: '#3e5a2a', dot: '#5a7a3f', label: 'Puppy booked & paid' },
 };
+
+export function StageBadge({ stage, size = 'md' }: { stage: string; size?: 'sm' | 'md' }) {
+	const s = STAGE_STYLES[stage] ?? STAGE_STYLES.enquired;
+	const pad = size === 'sm' ? 'px-2 py-[3px] text-[10.5px]' : 'px-2.5 py-[4px] text-[11px]';
+	return (
+		<span
+			className={`inline-flex items-center gap-1.5 rounded-full font-medium ${pad}`}
+			style={{ background: s.bg, color: s.fg }}
+		>
+			<span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} aria-hidden="true" />
+			{s.label}
+		</span>
+	);
+}
 
 const puppyStatusVariant: Record<string, BadgeVariant> = {
 	available: 'green',
@@ -353,10 +555,6 @@ const stageLabel: Record<string, string> = {
 
 function fmtStatus(s: string): string {
 	return stageLabel[s] ?? s.replaceAll('_', ' ').replace(/^\w/, c => c.toUpperCase());
-}
-
-export function StageBadge({ stage }: { stage: string }) {
-	return <Badge variant={stageVariant[stage] ?? 'default'}>{fmtStatus(stage)}</Badge>;
 }
 
 export function PuppyStatusBadge({ status }: { status: string }) {
@@ -465,3 +663,82 @@ export function Button({ children, variant = 'primary', size = 'md', onClick, di
 export const inputCls = "w-full px-3 py-2 bg-white border border-warm-200 rounded-lg text-sm text-warm-900 placeholder:text-warm-400 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300 transition-colors";
 export const selectCls = "w-full px-3 py-2 bg-white border border-warm-200 rounded-lg text-sm text-warm-900 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-300 transition-colors";
 export const labelCls = "block text-xs font-medium text-warm-700 uppercase tracking-wide mb-1.5";
+
+// ─── Segmented (pill tab group with counts) ──────────────────────────────────
+
+export interface SegmentedOption<T extends string = string> {
+	value: T;
+	label: string;
+	count?: number;
+}
+
+interface SegmentedProps<T extends string = string> {
+	options: SegmentedOption<T>[];
+	value: T;
+	onChange: (value: T) => void;
+	ariaLabel?: string;
+}
+
+export function Segmented<T extends string = string>({ options, value, onChange, ariaLabel }: SegmentedProps<T>) {
+	return (
+		<div
+			role="tablist"
+			aria-label={ariaLabel}
+			className="inline-flex bg-warm-100 rounded-[10px] p-1 gap-1 border border-warm-200 flex-wrap"
+		>
+			{options.map((o) => {
+				const active = value === o.value;
+				return (
+					<button
+						key={o.value}
+						role="tab"
+						aria-selected={active}
+						onClick={() => onChange(o.value)}
+						className={`px-3.5 h-8 rounded-[7px] text-[12.5px] font-medium transition-colors ${
+							active ? 'bg-white text-warm-900 shadow-sm' : 'text-warm-600 hover:text-warm-800'
+						}`}
+					>
+						{o.label}
+						{typeof o.count === 'number' && (
+							<span className="ml-1.5 text-warm-400 tabular-nums">{o.count}</span>
+						)}
+					</button>
+				);
+			})}
+		</div>
+	);
+}
+
+// ─── Deposit pill ────────────────────────────────────────────────────────────
+
+type DepositStatus = 'none' | 'pending' | 'paid' | null | undefined;
+type DepositTier = 'r500' | 'r5000' | null | undefined;
+
+export function DepositPill({ status, tier }: { status: DepositStatus; tier: DepositTier }) {
+	if (!status || status === 'none') {
+		return (
+			<span className="inline-block px-2 py-[3px] rounded-full text-[10.5px] font-medium bg-stone-100 text-stone-500">
+				No deposit
+			</span>
+		);
+	}
+	const amount = tier === 'r500' ? '500' : '5,000';
+	if (status === 'pending') {
+		return (
+			<span
+				className="inline-block px-2 py-[3px] rounded-full text-[10.5px] font-medium"
+				style={{ background: '#fef3e7', color: '#a35c17' }}
+			>
+				Pending · R{amount}
+			</span>
+		);
+	}
+	return (
+		<span
+			className="inline-block px-2 py-[3px] rounded-full text-[10.5px] font-medium"
+			style={{ background: '#e4ebe0', color: '#3e5a2a' }}
+		>
+			Paid · R{amount}
+		</span>
+	);
+}

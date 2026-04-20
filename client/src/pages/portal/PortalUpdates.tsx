@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { LoadingPage, Card, Badge } from '@/components/ui';
+import { LoadingPage, Card, Glyph } from '@/components/ui';
 import type { UpdateWithLitter } from '@paw-registry/shared';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
@@ -170,20 +170,23 @@ export function PortalUpdates() {
 	});
 
 	return (
-		<div>
+		<div className="max-w-[900px] mx-auto px-5 md:px-8 pt-6 md:pt-10 pb-8">
 			<div className="mb-8">
-				<h1 className="font-serif text-2xl font-bold text-warm-900">Puppy Updates</h1>
-				<p className="text-warm-600 text-sm mt-1">Your puppy journal from us to you.</p>
+				<div className="text-[11px] uppercase tracking-[0.14em] text-warm-500 mb-2">Journal</div>
+				<h1 className="font-serif text-[30px] md:text-[38px] text-warm-900 leading-[1.05]">Puppy updates</h1>
+				<p className="text-[13.5px] md:text-[14.5px] text-warm-600 mt-2">Your weekly journal from us to you.</p>
 			</div>
 
 			{sections.length === 0 ? (
 				<Card className="p-12 text-center" role="status">
-					<p className="text-4xl mb-4" aria-hidden="true">📷</p>
+					<div className="w-14 h-14 rounded-full bg-warm-100 flex items-center justify-center mx-auto mb-4">
+						<Glyph shape="bell" color="#9e8b78" size={22} />
+					</div>
 					<p className="text-warm-600 font-medium">No updates yet</p>
 					<p className="text-warm-400 text-sm mt-1">We'll post updates here as your puppy grows.</p>
 				</Card>
 			) : (
-				<div className="flex flex-col gap-12">
+				<div className="flex flex-col gap-10">
 					{sections.map(([litterId, sectionUpdates]) => {
 						const litter = sectionUpdates[0]?.litter;
 						const isOptedOut = !!litterId && optOuts.includes(litterId);
@@ -193,10 +196,10 @@ export function PortalUpdates() {
 								{/* Litter heading */}
 								<div className="flex items-center justify-between mb-5 pb-4 border-b border-warm-200">
 									<div>
-										<h2 className="font-serif font-bold text-warm-900 text-xl">
+										<div className="text-[10.5px] uppercase tracking-[0.12em] text-warm-500 font-medium">
 											{litter?.name ?? 'General'}
-										</h2>
-										<p className="text-xs text-warm-400 mt-0.5">
+										</div>
+										<p className="text-xs text-warm-400 mt-1">
 											{sectionUpdates.length} {sectionUpdates.length === 1 ? 'update' : 'updates'}
 										</p>
 									</div>
@@ -212,9 +215,9 @@ export function PortalUpdates() {
 											].join(' ')}
 											title={isOptedOut ? 'Re-enable email notifications' : 'Disable email notifications for this litter'}
 										>
-											<span aria-hidden="true">{isOptedOut ? '🔕' : '🔔'}</span>
+											<Glyph shape="bell" color={isOptedOut ? '#9e8b78' : '#7a6a58'} size={12} />
 											{togglingId === litterId
-												? 'Saving…'
+												? 'Saving'
 												: isOptedOut
 													? 'Notifications off'
 													: 'Notifications on'}
@@ -222,27 +225,30 @@ export function PortalUpdates() {
 									)}
 								</div>
 
-								<div className="flex flex-col gap-6">
+								<div className="flex flex-col gap-5">
 									{sectionUpdates.map((update) => (
-										<Card key={update.id} className="p-6">
-											<div className="flex items-center gap-3 mb-3">
-												{!!update.weekNumber && (
-													<Badge variant="amber">Week {update.weekNumber}</Badge>
-												)}
-												<span className="text-xs text-warm-400">
-													{update.publishedAt
-														? new Date(update.publishedAt).toLocaleDateString()
-														: ''}
-												</span>
+										<article key={update.id} className="bg-white rounded-[16px] border border-black/[0.05] overflow-hidden">
+											<div className="flex items-center justify-between px-5 md:px-6 pt-5">
+												<div>
+													{update.weekNumber != null && (
+														<div className="text-[10.5px] uppercase tracking-[0.12em] text-[#c47420] font-medium">Week {update.weekNumber}</div>
+													)}
+													<div className="text-[11.5px] text-warm-500 mt-0.5">
+														{update.publishedAt
+															? new Date(update.publishedAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
+															: ''}
+													</div>
+												</div>
 											</div>
-											<h3 className="font-serif font-bold text-warm-900 text-lg mb-2">
+											<h3 className="font-serif text-[22px] md:text-[26px] text-warm-900 px-5 md:px-6 mt-2 leading-[1.2]">
 												{update.title}
 											</h3>
-											<p className="text-warm-600 text-sm leading-relaxed whitespace-pre-line">
-												{update.body}
-											</p>
-											<UpdateGallery urls={update.mediaUrls} />
-										</Card>
+											<div className="px-5 md:px-6">
+												<p className="text-[13.5px] text-warm-700 py-4 leading-[1.6] whitespace-pre-line">{update.body}</p>
+												<UpdateGallery urls={update.mediaUrls} />
+											</div>
+											<div className="h-5" />
+										</article>
 									))}
 								</div>
 							</section>

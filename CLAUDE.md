@@ -36,7 +36,7 @@ api.templates.admin.get()
 api.templates.admin({ id }).patch({ ... })
 ```
 
-**Auth middleware:** `authPlugin` (JWT, client routes) | `adminPlugin` (`ADMIN_USER_IDS` env, admin routes)
+**Auth middleware:** `authPlugin` (Supabase JWT, client routes) | `adminPlugin` (`ADMIN_USER_IDS` env or `admins` table, admin routes)
 
 **Auth state (client):**
 - `client/src/stores/authStore.ts` — Zustand, source of truth
@@ -47,7 +47,7 @@ api.templates.admin({ id }).patch({ ... })
 **Database:**
 - Schema: `server/src/db/schema.ts` | Migrations: `server/src/db/migrations/`
 - Routes: `server/src/routes/<feature>/index.ts`, registered in `server/src/index.ts`
-- Active dirs: `auth`, `clients`, `documents`, `dogs`, `litters`, `messages`, `templates`, `updates`, `waitlist`
+- Active dirs: `admins`, `auth`, `clients`, `email`, `invoices`, `litters`, `payments`, `templates`, `updates`
 - Shared types: `shared/src/index.ts` | Breed/size config: `shared/src/breeds.ts` (edit per-breeder instance)
 
 **Adding a page:** Create `client/src/pages/<section>/MyPage.tsx` → add `<Route>` in `main.tsx` → add nav link in `AdminLayout.tsx` or `PortalLayout.tsx`.
@@ -58,10 +58,10 @@ client/src/pages/admin/
 ├── _shared.tsx      # DeleteModal, AdminTable, ClientDndTable, etc.
 ├── index.tsx        # Re-exports only
 ├── AdminDashboard.tsx
-├── AdminDogs.tsx / AdminDogDetail.tsx
 ├── AdminLitters.tsx / AdminLitterDetail.tsx
 ├── AdminClients.tsx / AdminClientDetail.tsx
-├── AdminDocuments.tsx / AdminUpdates.tsx
+├── AdminPayments.tsx
+├── AdminDocuments.tsx / AdminUpdates.tsx / AdminEmails.tsx / AdminAdmins.tsx
 ```
 Same pattern for `portal/`.
 
@@ -78,6 +78,12 @@ Same pattern for `portal/`.
 - Always export `export type App = typeof app;` at end of `server/src/index.ts`.
 - File uploads via `@supabase/supabase-js`. JWT validation server-side via Elysia plugin.
 
+**Payments (Paystack):** `/payments` route — initiation + webhook handling. Types: `deposit` | `booking` | `final`. Statuses: `pending` | `complete` | `failed` | `cancelled`. Each payment auto-generates an invoice.
+
+**Invoices:** Auto-generated, public view via `/invoice/:viewToken`. Statuses: `draft` | `sent` | `viewed` | `paid` | `cancelled`. Line items stored as JSONB.
+
+**Email (Resend):** Trigger-based templates stored in `email_templates` table (unique `trigger` key). Logs in `email_logs`. Managed + previewed via `/email` route.
+
 ## TypeScript Gotchas
 
 - **`unknown &&` in JSX:** Use `!!value && <Component />` (not `value &&`) when typed `unknown`.
@@ -85,7 +91,7 @@ Same pattern for `portal/`.
 - **Eden tsc noise:** `'Please install Elysia before using Eden'` errors are expected when running standalone `tsc`. Build uses `vite build`.
 - **`fetchPriority`:** Not supported on `<img>` in React 18 — remove it.
 - **Drizzle named imports:** Neither `vite build` nor Bun runs tsc, so a missing named import (e.g. `desc`, `asc`, `inArray`) passes build and silently 500s at runtime. Always explicitly import every drizzle-orm function used: `eq`, `asc`, `desc`, `and`, `or`, `inArray`, `notInArray`, `isNull`, `isNotNull`, `count`, `max`, `min`, `sql`, etc.
-- **Drizzle date columns return `Date` objects:** `timestamp` / `date` columns come back as JS `Date` instances, not strings. Never render them directly in JSX — always format: `new Date(value).toLocaleDateString()` or `.toLocaleString()`. Applies to `createdAt`, `updatedAt`, `expectedDate`, `whelpDate`, `sentAt`, `checkedAt`, `signedAt`, and any other date field.
+- **Drizzle date columns return `Date` objects:** `timestamp` / `date` columns come back as JS `Date` instances, not strings. Never render them directly in JSX — always format: `new Date(value).toLocaleDateString()` or `.toLocaleString()`. Applies to `createdAt`, `updatedAt`, `dateOfBirth`, `sentAt`, `checkedAt`, `paidAt`, `issuedAt`, `dueDate`, `viewedAt`, and any other date field.
 
 ## Important Rules
 
@@ -137,7 +143,11 @@ git checkout main && git merge dev --no-edit && git push origin main && git chec
 | Puppy Booked | `puppy_booked` | System (R5000 client reserves, or R500/no-deposit client pays booking) |
 | Puppy Fully Paid | `puppy_fully_paid` | System (final payment received) |
 
-**Deposit Status:** `none` (No Deposit) | `pending` (Pending) | `paid` (Paid)
+**Deposit Tier:** `r5000` (Secured) | `r500` (Standard) | no deposit (Free)
+
+**Deposit Status:** `none` | `pending` | `paid`
+
+**Puppy Statuses:** `available` | `reserved` (24h booking window active) | `booked` | `puppy_fully_paid` | `retained` | `not_for_sale`
 
 **Admin Clients — Four Tables:**
 
@@ -153,7 +163,7 @@ Active queue (`ACTIVE_QUEUE_STAGES`) = `['waitlisted', 'puppy_reserved', 'puppy_
 ## Auth Model
 
 - **Clients:** magic link. Email must pre-exist in `clients` table.
-- **Admins:** Supabase UUID in `ADMIN_USER_IDS` env. Server always re-validates — `VITE_ADMIN_EMAILS` is UI hint only.
+- **Admins:** Supabase UUID in `ADMIN_USER_IDS` env (fallback) or `admins` DB table. Server always re-validates — `VITE_ADMIN_EMAILS` is UI hint only.
 
 ## Deployment
 

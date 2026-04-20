@@ -1,12 +1,45 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Calendar, Home } from 'lucide-react';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { api } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
-import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage, PuppyWithImages } from '@paw-registry/shared';
+import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage, PuppyWithImages, LitterStatus } from '@paw-registry/shared';
 import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
-import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
+import { LoadingPage, PuppyStatusBadge } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
+
+// ─── Header pill + chip ───────────────────────────────────────────────────────
+
+const HEADER_STATUS_STYLE: Record<LitterStatus, { bg: string; fg: string; dot: string; label: string }> = {
+	planned:   { bg: '#e5ecf2', fg: '#1e5b8a', dot: '#2f78a9', label: 'Planned' },
+	available: { bg: '#e8dff0', fg: '#5a2d83', dot: '#7a47a8', label: 'Available' },
+	booked:    { bg: '#fef3e7', fg: '#a35c17', dot: '#d98e3a', label: 'Booked' },
+	completed: { bg: '#e4ebe0', fg: '#3e5a2a', dot: '#5a7a3f', label: 'Completed' },
+};
+
+function HeaderStatusPill({ status }: { status: LitterStatus }) {
+	const s = HEADER_STATUS_STYLE[status];
+	return (
+		<span
+			className="inline-flex items-center gap-1.5 rounded-full font-medium px-3 py-1.5 text-[12px]"
+			style={{ background: s.bg, color: s.fg }}
+		>
+			<span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} aria-hidden="true" />
+			{s.label}
+		</span>
+	);
+}
+
+function HeaderChip({ icon, label, value }: { icon?: ReactNode; label: string; value: string }) {
+	return (
+		<span className="inline-flex items-center gap-1.5 rounded-full bg-warm-100 px-3 py-1.5 text-[12px]">
+			{icon}
+			<span className="text-warm-500">{label}</span>
+			<span className="text-warm-900 font-medium">{value}</span>
+		</span>
+	);
+}
 
 // ─── Match tier presentation ──────────────────────────────────────────────────
 
@@ -397,84 +430,98 @@ export function PortalLitterDetail() {
 	if (loading) return <LoadingPage />;
 	if (!litter) return <div className="text-warm-500 p-4">Litter not found.</div>;
 
-	return (
-		<div>
-			<Link to="/portal/litters" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">
-				← Litters
-			</Link>
+	const shippingRands = lockedPricing ? lockedPricing.shippingRands : litter.shippingRands;
+	const hasCourier = shippingRands != null && shippingRands > 0;
+	const showBorn = litter.status !== 'planned' && !!litter.dateOfBirth;
+	const hasWeight = litter.estimatedAdultWeightKg != null;
+	const hasHeight = litter.estimatedAdultHeightCm != null;
+	const hasSpecs = showBorn || hasWeight || hasHeight;
 
-			{/* Header */}
-			<div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-6">
-				<div>
-					<div className="flex items-center gap-3 mb-1.5">
-						<h1 className="font-serif text-2xl font-bold text-warm-900">{litter.name}</h1>
-						{litter.breed && <Badge variant="default">{formatBreed(litter.breed)}</Badge>}
-					</div>
-					<div className="flex items-center gap-3 text-sm text-warm-500 flex-wrap">
-						<LitterStatusBadge status={litter.status} />
-						<span>Selection {new Date(litter.selectionDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-						{litter.goHomeDate && (
-							<span>· Go home {new Date(litter.goHomeDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+	return (
+		<div className="max-w-[1200px] mx-auto px-5 md:px-8 pt-6 md:pt-8 pb-8">
+			<div className="mb-6 rounded-[16px] border border-black/[0.05] bg-white p-8">
+				<Link to="/portal/litters" className="text-[12.5px] text-warm-500 hover:text-warm-800 mb-4 inline-block">
+					← All litters
+				</Link>
+
+				<div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+					<div className="min-w-0">
+						{litter.breed && (
+							<div className="text-[11px] uppercase tracking-[0.12em] text-warm-500 mb-2">{formatBreed(litter.breed)}</div>
 						)}
-						{(lockedPricing ? lockedPricing.shippingRands : litter.shippingRands) != null && (lockedPricing ? lockedPricing.shippingRands : litter.shippingRands)! > 0 && (
-							<span>· Courier {formatRands(lockedPricing ? lockedPricing.shippingRands : litter.shippingRands!)}</span>
-						)}
+						<h1 className="font-serif text-[32px] md:text-[40px] text-warm-900 leading-[1.05]">{litter.name}</h1>
 					</div>
+
+					{/* Litter interest toggle — shown for all non-rejected clients, active from waitlisted onwards */}
+					{user && clientStage && clientStage !== 'rejected' && (
+						<div className="flex flex-col items-start sm:items-end gap-1 w-full sm:w-auto">
+							<button
+								onClick={canMarkInterest ? toggleLitterInterest : undefined}
+								disabled={litterInterestLoading || !canMarkInterest}
+								className={`flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+									!canMarkInterest
+										? 'bg-warm-100 text-warm-400 border border-warm-200 cursor-not-allowed'
+										: myLitterInterest
+											? 'bg-brand-50 text-brand-600 border border-brand-300 hover:bg-brand-100 disabled:opacity-50'
+											: 'bg-white text-warm-600 border border-warm-300 hover:bg-warm-50 disabled:opacity-50'
+								}`}
+							>
+								<span aria-hidden="true">{myLitterInterest ? '★' : '☆'}</span>
+								{litterInterestLoading ? 'Saving…' : myLitterInterest ? 'Interested' : 'Mark as interested'}
+							</button>
+							{!isWaitlistedOrLater && (
+								<p className="text-xs text-warm-400 text-left sm:text-right">
+									You must be on the waitlist to mark interest
+								</p>
+							)}
+						</div>
+					)}
 				</div>
 
-				{/* Litter interest toggle — shown for all non-rejected clients, active from waitlisted onwards */}
-				{user && clientStage && clientStage !== 'rejected' && (
-					<div className="flex flex-col items-start sm:items-end gap-1 w-full sm:w-auto">
-						<button
-							onClick={canMarkInterest ? toggleLitterInterest : undefined}
-							disabled={litterInterestLoading || !canMarkInterest}
-							className={`flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-								!canMarkInterest
-									? 'bg-warm-100 text-warm-400 border border-warm-200 cursor-not-allowed'
-									: myLitterInterest
-										? 'bg-brand-50 text-brand-600 border border-brand-300 hover:bg-brand-100 disabled:opacity-50'
-										: 'bg-white text-warm-600 border border-warm-300 hover:bg-warm-50 disabled:opacity-50'
-							}`}
-						>
-							<span aria-hidden="true">{myLitterInterest ? '★' : '☆'}</span>
-							{litterInterestLoading ? 'Saving…' : myLitterInterest ? 'Interested' : 'Mark as interested'}
-						</button>
-						{!isWaitlistedOrLater && (
-							<p className="text-xs text-warm-400 text-left sm:text-right">
-								You must be on the waitlist to mark interest
-							</p>
+				{/* Tier 1 — chip row */}
+				<div className="mt-5 flex flex-wrap items-center gap-3">
+					<HeaderStatusPill status={litter.status} />
+					<HeaderChip
+						icon={<Calendar size={12} strokeWidth={1.4} className="text-warm-500" aria-hidden="true" />}
+						label="Selection"
+						value={new Date(litter.selectionDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+					/>
+					{litter.goHomeDate && (
+						<HeaderChip
+							icon={<Home size={12} strokeWidth={1.4} className="text-warm-500" aria-hidden="true" />}
+							label="Go home"
+							value={new Date(litter.goHomeDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })}
+						/>
+					)}
+					{hasCourier && (
+						<HeaderChip label="Courier" value={formatRands(shippingRands!)} />
+					)}
+				</div>
+
+				{/* Tier 2 — spec row */}
+				{hasSpecs && (
+					<div className="mt-4 pt-4 border-t border-black/[0.05] flex flex-wrap gap-x-8 gap-y-2 text-[13px]">
+						{showBorn && (
+							<div>
+								<span className="uppercase text-[10.5px] tracking-[0.14em] text-warm-500 mr-1.5">Born</span>
+								<span className="text-warm-900 font-medium">{new Date(litter.dateOfBirth as string).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+							</div>
+						)}
+						{hasWeight && (
+							<div>
+								<span className="uppercase text-[10.5px] tracking-[0.14em] text-warm-500 mr-1.5">Adult weight</span>
+								<span className="text-warm-900 font-medium">~{litter.estimatedAdultWeightKg} kg</span>
+							</div>
+						)}
+						{hasHeight && (
+							<div>
+								<span className="uppercase text-[10.5px] tracking-[0.14em] text-warm-500 mr-1.5">Adult height</span>
+								<span className="text-warm-900 font-medium">~{litter.estimatedAdultHeightCm} cm</span>
+							</div>
 						)}
 					</div>
 				)}
 			</div>
-
-			{/* Litter details — DOB (only when available+), weight, height */}
-			{(
-				(litter.status !== 'planned' && litter.dateOfBirth) ||
-				litter.estimatedAdultWeightKg != null ||
-				litter.estimatedAdultHeightCm != null
-			) && (
-				<div className="mb-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-warm-600">
-					{litter.status !== 'planned' && litter.dateOfBirth && (
-						<div>
-							<span className="text-warm-400 mr-1.5">Born</span>
-							<span className="font-medium">{new Date(litter.dateOfBirth).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-						</div>
-					)}
-					{litter.estimatedAdultWeightKg != null && (
-						<div>
-							<span className="text-warm-400 mr-1.5">Est. adult weight</span>
-							<span className="font-medium">{litter.estimatedAdultWeightKg} kg</span>
-						</div>
-					)}
-					{litter.estimatedAdultHeightCm != null && (
-						<div>
-							<span className="text-warm-400 mr-1.5">Est. adult height</span>
-							<span className="font-medium">{litter.estimatedAdultHeightCm} cm</span>
-						</div>
-					)}
-				</div>
-			)}
 
 			{/* Match card */}
 			{myMatch && (

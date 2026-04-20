@@ -264,7 +264,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	// ── Paystack webhook (no auth — raw body required) ────────────────────────
 	.post(
 		'/webhook',
-		async ({ body, headers, error }) => {
+		async ({body, headers, status}) => {
 			const rawBody = body as string;
 			const signature = headers['x-paystack-signature'] ?? '';
 
@@ -335,12 +335,12 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	// ── Public: check payment status by reference (for post-Paystack redirect) ──
 	.get(
 		'/status/:reference',
-		async ({ params, error }) => {
+		async ({params, status}) => {
 			const payment = await db.query.payments.findFirst({
 				where: eq(payments.reference, params.reference),
 				columns: { status: true, type: true, amountRands: true },
 			});
-			if (!payment) return error(404, { error: 'NotFound', message: 'Payment not found' });
+			if (!payment) return status(404, { error: 'NotFound', message: 'Payment not found' });
 
 			// Try to verify with Paystack if still pending
 			if (payment.status === 'pending') {
@@ -364,11 +364,11 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	.use(clientPlugin)
 	.post(
 		'/deposit',
-		async ({ body, user, error }) => {
+		async ({body, user, status}) => {
 			const client = await db.query.clients.findFirst({
 				where: eq(clients.userId, user!.id),
 			});
-			if (!client) return error(404, { error: 'NotFound', message: 'Client not found' });
+			if (!client) return status(404, { error: 'NotFound', message: 'Client not found' });
 
 			const tier = body.tier;
 			const amountRands = tier === 'r5000' ? 5000 : 500;
@@ -425,11 +425,11 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	// ── Client: get own payments ──────────────────────────────────────────────
 	// Auto-verifies any pending payments against Paystack so the client always
 	// sees the correct state even if the webhook was delayed or missed.
-	.get('/mine', async ({ user, error }) => {
+	.get('/mine', async ({user, status}) => {
 		const client = await db.query.clients.findFirst({
 			where: eq(clients.userId, user!.id),
 		});
-		if (!client) return error(404, { error: 'NotFound', message: 'Client not found' });
+		if (!client) return status(404, { error: 'NotFound', message: 'Client not found' });
 
 		const clientPayments = await db.query.payments.findMany({
 			where: eq(payments.clientId, client.id),
@@ -468,7 +468,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	.use(adminPlugin)
 	.get(
 		'/client/:clientId',
-		async ({ params }) => {
+		async ({params}) => {
 			return db.query.payments.findMany({
 				where: eq(payments.clientId, params.clientId),
 				orderBy: [desc(payments.createdAt)],
@@ -480,13 +480,13 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	// ── Admin: manual mark-paid ───────────────────────────────────────────────
 	.patch(
 		'/:id/mark-paid',
-		async ({ params, error }) => {
+		async ({params, status}) => {
 			const payment = await db.query.payments.findFirst({
 				where: eq(payments.id, params.id),
 			});
-			if (!payment) return error(404, { error: 'NotFound', message: 'Payment not found' });
+			if (!payment) return status(404, { error: 'NotFound', message: 'Payment not found' });
 			if (payment.status === 'complete') {
-				return error(409, { error: 'Conflict', message: 'Payment already complete' });
+				return status(409, { error: 'Conflict', message: 'Payment already complete' });
 			}
 
 			// For booking payments, ensure we have puppyId in metadata
@@ -508,11 +508,11 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	// ── Admin: payment summary for a client ──────────────────────────────────
 	.get(
 		'/summary/:clientId',
-		async ({ params, error }) => {
+		async ({params, status}) => {
 			const client = await db.query.clients.findFirst({
 				where: eq(clients.id, params.clientId),
 			});
-			if (!client) return error(404, { error: 'NotFound', message: 'Client not found' });
+			if (!client) return status(404, { error: 'NotFound', message: 'Client not found' });
 
 			let puppyPriceRands: number | null = null;
 			let shippingRands: number | null = null;
@@ -634,7 +634,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	// ── Admin: all payments with client info ─────────────────────────────────
 	.get(
 		'/admin/all',
-		async ({ query }) => {
+		async ({query}) => {
 			const conditions = [];
 			if (query.status) conditions.push(eq(payments.status, query.status as 'pending' | 'complete' | 'failed' | 'cancelled'));
 			if (query.type) conditions.push(eq(payments.type, query.type as 'deposit' | 'booking' | 'final'));
@@ -672,7 +672,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				.from(payments)
 				.where(and(
 					eq(payments.status, 'complete'),
-					sql`${payments.paidAt} >= ${startOfMonth}`,
+					sql`${payments.paidAt} >= ${startOfMonth.toISOString()}`,
 				));
 
 			// Total outstanding (all pending payment amounts)
@@ -688,7 +688,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				.where(and(
 					eq(payments.status, 'pending'),
 					isNotNull(payments.dueDate),
-					sql`${payments.dueDate} < ${now}`,
+					sql`${payments.dueDate} < ${now.toISOString()}`,
 				));
 
 			// Needs payment plan count
@@ -753,13 +753,13 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	// ── Admin: trigger final payment ──────────────────────────────────────────
 	.post(
 		'/final/:clientId',
-		async ({ params, body, error }) => {
+		async ({params, body, status}) => {
 			const client = await db.query.clients.findFirst({
 				where: eq(clients.id, params.clientId),
 			});
-			if (!client) return error(404, { error: 'NotFound', message: 'Client not found' });
+			if (!client) return status(404, { error: 'NotFound', message: 'Client not found' });
 			if (!client.puppyId) {
-				return error(400, { error: 'NoPuppy', message: 'Client has no matched puppy' });
+				return status(400, { error: 'NoPuppy', message: 'Client has no matched puppy' });
 			}
 
 			// Always fetch puppy + litter for price snapshot
@@ -775,14 +775,14 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			let totalPriceRands = body.totalPriceRands;
 			if (totalPriceRands == null) {
 				if (!snapshotPuppyPrice) {
-					return error(400, { error: 'NoPrice', message: 'Puppy has no price set. Set the price on the litter page or provide totalPriceRands.' });
+					return status(400, { error: 'NoPrice', message: 'Puppy has no price set. Set the price on the litter page or provide totalPriceRands.' });
 				}
 				totalPriceRands = snapshotPuppyPrice + snapshotShipping;
 			}
 
 			// Validate due date does not exceed go-home date
 			if (body.dueDate && goHomeDate && body.dueDate > goHomeDate) {
-				return error(400, { error: 'DueDateAfterGoHome', message: `Due date cannot be after the puppy's go-home date (${goHomeDate})` });
+				return status(400, { error: 'DueDateAfterGoHome', message: `Due date cannot be after the puppy's go-home date (${goHomeDate})` });
 			}
 
 			// Calculate total already paid
@@ -795,7 +795,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			const finalDue = Math.max(0, totalPriceRands - alreadyPaid);
 
 			if (finalDue <= 0) {
-				return error(400, { error: 'AlreadyPaid', message: 'Client has already paid the full amount' });
+				return status(400, { error: 'AlreadyPaid', message: 'Client has already paid the full amount' });
 			}
 
 			// Cancel any existing pending final payments
@@ -873,13 +873,13 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 	// ── Admin: create instalment plan ─────────────────────────────────────────
 	.post(
 		'/final/:clientId/instalments',
-		async ({ params, body, error }) => {
+		async ({params, body, status}) => {
 			const client = await db.query.clients.findFirst({
 				where: eq(clients.id, params.clientId),
 			});
-			if (!client) return error(404, { error: 'NotFound', message: 'Client not found' });
+			if (!client) return status(404, { error: 'NotFound', message: 'Client not found' });
 			if (!client.puppyId) {
-				return error(400, { error: 'NoPuppy', message: 'Client has no matched puppy' });
+				return status(400, { error: 'NoPuppy', message: 'Client has no matched puppy' });
 			}
 
 			// Always fetch puppy + litter for price snapshot
@@ -895,7 +895,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			let totalPriceRands = body.totalPriceRands;
 			if (totalPriceRands == null) {
 				if (!snapshotPuppyPrice) {
-					return error(400, { error: 'NoPrice', message: 'Puppy has no price set. Set the price on the litter page or provide totalPriceRands.' });
+					return status(400, { error: 'NoPrice', message: 'Puppy has no price set. Set the price on the litter page or provide totalPriceRands.' });
 				}
 				totalPriceRands = snapshotPuppyPrice + snapshotShipping;
 			}
@@ -909,18 +909,18 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 			const balanceDue = Math.max(0, totalPriceRands - alreadyPaid);
 
 			if (balanceDue <= 0) {
-				return error(400, { error: 'AlreadyPaid', message: 'Client has already paid the full amount' });
+				return status(400, { error: 'AlreadyPaid', message: 'Client has already paid the full amount' });
 			}
 
 			// Validate amounts sum to balance due (R1 tolerance for rounding)
 			const amountsSum = body.amounts.reduce((a, b) => a + b, 0);
 			if (Math.abs(amountsSum - balanceDue) > 1) {
-				return error(400, { error: 'AmountMismatch', message: `Instalment amounts (R${amountsSum.toLocaleString()}) do not match balance due (R${balanceDue.toLocaleString()})` });
+				return status(400, { error: 'AmountMismatch', message: `Instalment amounts (R${amountsSum.toLocaleString()}) do not match balance due (R${balanceDue.toLocaleString()})` });
 			}
 
 			// Validate dueDates length matches amounts if provided
 			if (body.dueDates && body.dueDates.length !== body.amounts.length) {
-				return error(400, { error: 'DueDateMismatch', message: 'dueDates array must match amounts array length' });
+				return status(400, { error: 'DueDateMismatch', message: 'dueDates array must match amounts array length' });
 			}
 
 			// Validate no instalment due date exceeds go-home date
@@ -928,7 +928,7 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				const nonNullDates = body.dueDates.filter((d): d is string => !!d);
 				const maxDueDate = nonNullDates.sort().at(-1);
 				if (maxDueDate && maxDueDate > goHomeDate) {
-					return error(400, { error: 'DueDateAfterGoHome', message: `Instalment due dates cannot be after the puppy's go-home date (${goHomeDate})` });
+					return status(400, { error: 'DueDateAfterGoHome', message: `Instalment due dates cannot be after the puppy's go-home date (${goHomeDate})` });
 				}
 			}
 

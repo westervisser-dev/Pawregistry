@@ -1,88 +1,102 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentType, type SVGProps } from 'react';
 import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, PawPrint, Users, Wallet, Bell, FileText, KeyRound, Mail, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { APP_NAME } from '@/config/app';
 
-const adminNav = [
-	{ to: '/admin', label: 'Dashboard', icon: '▪', end: true },
-	{ to: '/admin/litters', label: 'Litters', icon: '🐾', iconFilter: 'brightness(0) invert(1)' },
-	{ to: '/admin/clients', label: 'Clients', icon: '👥' },
-	{ to: '/admin/payments', label: 'Payments', icon: '💰' },
+type LucideIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }>;
+type AdminNavItem = { to: string; label: string; icon: LucideIcon; end?: boolean };
+type AdminNavDivider = { divider: true };
+
+const adminNav: ReadonlyArray<AdminNavItem | AdminNavDivider> = [
+	{ to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+	{ to: '/admin/litters', label: 'Litters', icon: PawPrint },
+	{ to: '/admin/clients', label: 'Clients', icon: Users },
+	{ to: '/admin/payments', label: 'Payments', icon: Wallet },
 	{ divider: true },
-	{ to: '/admin/updates', label: 'Updates', icon: '📋' },
-	{ to: '/admin/documents', label: 'Documents', icon: '📁' },
-	{ to: '/admin/admins', label: 'Admins', icon: '🔑' },
-	{ to: '/admin/emails', label: 'Emails', icon: '✉' },
-] as const;
+	{ to: '/admin/updates', label: 'Updates', icon: Bell },
+	{ to: '/admin/documents', label: 'Documents', icon: FileText },
+	{ to: '/admin/admins', label: 'Admins', icon: KeyRound },
+	{ to: '/admin/emails', label: 'Emails', icon: Mail },
+];
 
 // ─── Sidebar content ─────────────────────────────────────────────────────────
 
 interface AdminSidebarProps {
-	email?: string;
 	signOut: () => void;
 	onLinkClick: () => void;
 }
 
-function AdminSidebar({ email, signOut, onLinkClick }: AdminSidebarProps) {
-	const initials = email
-		? email.split('@')[0].slice(0, 2).toUpperCase()
-		: '??';
+// Hardcoded admin identity for now (see CLAUDE.md plan)
+const ADMIN_DISPLAY_NAME = 'Roxzee';
+const ADMIN_DISPLAY_EMAIL = 'westervisser@gmail.com';
+
+function AdminSidebar({ signOut, onLinkClick }: AdminSidebarProps) {
+	const initials = ADMIN_DISPLAY_NAME.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
 	return (
 		<>
 			{/* Logo area */}
-			<div className="px-5 pb-6 pt-7 border-b border-white/10">
+			<div className="px-5 pb-5 pt-6 border-b border-white/10">
 				<Link to="/" className="flex items-center gap-3" onClick={onLinkClick}>
 					<div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0 p-0.5">
-						<img src="/logo-icon.png" alt="Teddydoodles" className="w-full h-full object-contain" />
+						<img src="/logo-icon.png" alt="" aria-hidden="true" className="w-full h-full object-contain" />
 					</div>
 					<div>
-						<span className="font-serif text-[16px] text-[#F0EDEA] block leading-tight">{APP_NAME}</span>
-						<span className="text-[10.5px] text-white/40 uppercase tracking-[0.06em] mt-0.5 block">Admin Portal</span>
+						<span className="font-serif text-[17px] text-[#F5F0E8] block leading-tight">{APP_NAME}</span>
+						<span className="text-[10px] text-white/40 uppercase tracking-[0.14em] mt-0.5 block">Breeder · Admin</span>
 					</div>
 				</Link>
 			</div>
 
 			{/* Navigation */}
-			<nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
+			<nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
 				{adminNav.map((item, i) => {
 					if ('divider' in item) {
 						return <div key={`div-${i}`} className="h-px bg-white/10 mx-3 my-2.5" />;
 					}
+					const Icon = item.icon;
 					return (
 						<NavLink
 							key={item.to}
 							to={item.to}
-							end={'end' in item ? item.end : undefined}
+							end={item.end}
 							onClick={onLinkClick}
 							className={({ isActive }) =>
-								`flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13.5px] transition-colors ${
+								`flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13px] transition-colors text-left ${
 									isActive
 										? 'bg-brand-500 text-white font-medium'
-										: 'text-white/75 hover:bg-white/[0.06] hover:text-white'
+										: 'text-white/70 hover:bg-white/[0.05] hover:text-white'
 								}`
 							}
 						>
-							<span className="w-4 text-center text-sm" style={'iconFilter' in item ? { filter: item.iconFilter } : undefined}>{item.icon}</span>
-							{item.label}
+							{({ isActive }) => (
+								<>
+									<Icon size={16} strokeWidth={1.6} aria-hidden="true" style={{ color: isActive ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.55)' }} />
+									{item.label}
+								</>
+							)}
 						</NavLink>
 					);
 				})}
 			</nav>
 
-			{/* Footer */}
+			{/* Footer — kennel + sign out */}
 			<div className="px-5 pt-4 pb-5 border-t border-white/10">
 				<div className="flex items-center gap-2.5">
-					<div className="w-[30px] h-[30px] rounded-full bg-brand-500 flex items-center justify-center text-xs font-medium text-white shrink-0">
+					<div className="w-[30px] h-[30px] rounded-full bg-brand-500 flex items-center justify-center text-[11px] font-medium text-white shrink-0">
 						{initials}
 					</div>
-					<p className="text-[11.5px] text-white/60 truncate">{email}</p>
+					<div className="min-w-0">
+						<p className="text-[12.5px] text-white/90 truncate">{ADMIN_DISPLAY_NAME}</p>
+						<p className="text-[11px] text-white/45 truncate">{ADMIN_DISPLAY_EMAIL}</p>
+					</div>
 				</div>
 				<button
 					onClick={signOut}
 					className="flex items-center gap-1.5 mt-2.5 text-xs text-white/50 hover:text-white/80 transition-colors py-1.5"
 				>
-					<span>↩</span> Sign out
+					<LogOut size={12} strokeWidth={1.6} aria-hidden="true" /> Sign out
 				</button>
 			</div>
 		</>
@@ -112,8 +126,8 @@ export function AdminLayout() {
 			</a>
 
 			{/* Sidebar — desktop only */}
-			<aside className="hidden md:flex flex-col w-[220px] bg-sidebar-bg shrink-0">
-				<AdminSidebar email={user?.email} signOut={signOut} onLinkClick={closeSidebar} />
+			<aside className="hidden md:flex flex-col w-[220px] shrink-0" style={{ background: '#2a2520' }}>
+				<AdminSidebar signOut={signOut} onLinkClick={closeSidebar} />
 			</aside>
 
 			{/* Main */}

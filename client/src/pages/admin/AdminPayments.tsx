@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
-import { Card, LoadingPage, PageHeader } from '@/components/ui';
+import { Card, LoadingPage, PageHeader, Segmented, StatCard } from '@/components/ui';
 import { AdminTable, PaymentProgressCell } from './_shared';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Invoice, PaymentSummary, PaymentWithClient } from '@paw-registry/shared';
@@ -21,27 +21,52 @@ interface ClientSummaryRow extends PaymentSummary {
 	clientStage: string;
 }
 
-// ─── Stat Card (supports currency) ───────────────────────────────────────────
-
-function PaymentStatCard({ label, value, accent }: { label: string; value: string; accent: string }) {
-	return (
-		<div className={`bg-white rounded-[14px] border border-black/[0.07] p-5 pb-[18px] relative overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:rounded-t-[14px] ${accent}`}>
-			<p className="font-serif text-[28px] text-warm-900 leading-none mb-1">{value}</p>
-			<p className="text-xs text-warm-500 uppercase tracking-[0.04em]">{label}</p>
-		</div>
-	);
-}
-
 // ─── Status badge ────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-	const cls =
-		status === 'complete' ? 'bg-green-100 text-green-700' :
-		status === 'pending' ? 'bg-amber-100 text-amber-700' :
-		status === 'failed' ? 'bg-red-100 text-red-700' :
-		'bg-warm-100 text-warm-500';
-	const label = status === 'complete' ? 'Paid' : status.charAt(0).toUpperCase() + status.slice(1);
-	return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{label}</span>;
+	if (status === 'complete') {
+		return (
+			<span className="inline-flex items-center gap-1.5 text-[11.5px] px-2 py-[3px] rounded-full font-medium" style={{ background: '#e4ebe0', color: '#3e5a2a' }}>
+				<span className="w-1.5 h-1.5 rounded-full" style={{ background: '#3e5a2a' }} aria-hidden="true" /> Paid
+			</span>
+		);
+	}
+	if (status === 'pending') {
+		return (
+			<span className="inline-flex items-center gap-1.5 text-[11.5px] px-2 py-[3px] rounded-full font-medium" style={{ background: '#fef3e7', color: '#a35c17' }}>
+				<span className="w-1.5 h-1.5 rounded-full" style={{ background: '#c47420' }} aria-hidden="true" /> Pending
+			</span>
+		);
+	}
+	if (status === 'failed') {
+		return (
+			<span className="inline-flex items-center gap-1.5 text-[11.5px] px-2 py-[3px] rounded-full font-medium" style={{ background: '#f4e4e1', color: '#883224' }}>
+				<span className="w-1.5 h-1.5 rounded-full" style={{ background: '#a8412e' }} aria-hidden="true" /> Failed
+			</span>
+		);
+	}
+	return (
+		<span className="inline-flex items-center px-2 py-[3px] rounded-full font-medium text-[11.5px] bg-warm-100 text-warm-500">
+			{status.charAt(0).toUpperCase() + status.slice(1)}
+		</span>
+	);
+}
+
+// ─── Payment type dot ────────────────────────────────────────────────────────
+
+const typeAccent: Record<'deposit' | 'booking' | 'final', string> = {
+	deposit: '#1e5b8a',
+	booking: '#7a47a8',
+	final: '#4a6741',
+};
+
+function TypeTag({ payment }: { payment: PaymentWithClient }) {
+	return (
+		<span className="inline-flex items-center gap-1.5 text-[12px] text-warm-700">
+			<span className="w-1.5 h-1.5 rounded-full" style={{ background: typeAccent[payment.type] }} aria-hidden="true" />
+			{typeLabel(payment)}
+		</span>
+	);
 }
 
 // ─── Payment type label ──────────────────────────────────────────────────────
@@ -196,7 +221,7 @@ function PendingTab({ payments: pendingPayments }: { payments: PaymentWithClient
 									R{p.amountRands.toLocaleString()} · {typeLabel(p)}
 								</p>
 							</td>
-							<td className="hidden md:table-cell py-3 px-4 text-sm text-warm-600">{typeLabel(p)}</td>
+							<td className="hidden md:table-cell py-3 px-4"><TypeTag payment={p} /></td>
 							<td className="hidden md:table-cell py-3 px-4 text-sm text-warm-700 tabular-nums font-medium">
 								R{p.amountRands.toLocaleString()}
 							</td>
@@ -251,7 +276,7 @@ function HistoryTab({ payments: historyPayments }: { payments: PaymentWithClient
 								R{p.amountRands.toLocaleString()} · {p.paidAt ? new Date(p.paidAt).toLocaleDateString() : '—'}
 							</p>
 						</td>
-						<td className="hidden md:table-cell py-3 px-4 text-sm text-warm-600">{typeLabel(p)}</td>
+						<td className="hidden md:table-cell py-3 px-4"><TypeTag payment={p} /></td>
 						<td className="hidden md:table-cell py-3 px-4 text-sm text-warm-700 tabular-nums font-medium">
 							R{p.amountRands.toLocaleString()}
 						</td>
@@ -340,55 +365,48 @@ export function AdminPayments() {
 		setLoading(false);
 	};
 
-	const tabs: { key: Tab; label: string }[] = [
-		{ key: 'by-client', label: 'By Client' },
-		{ key: 'pending', label: `Pending${pendingPayments.length ? ` (${pendingPayments.length})` : ''}` },
-		{ key: 'history', label: 'History' },
+	const segmentedOptions: { value: Tab; label: string; count?: number }[] = [
+		{ value: 'by-client', label: 'By client', count: clientSummaries.length },
+		{ value: 'pending', label: 'Pending', count: pendingPayments.length },
+		{ value: 'history', label: 'History', count: historyPayments.length },
 	];
 
 	return (
-		<div className="p-4 md:p-8">
-			<PageHeader title="Payments" subtitle="Track all client payments and balances." />
+		<div className="p-5 md:p-8 max-w-[1600px]">
+			<PageHeader title="Payments" subtitle="Track deposits, booking payments and final balances." />
 
 			{/* Stat cards */}
 			{stats && (
-				<div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-					<PaymentStatCard
-						label="Collected this month"
+				<div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+					<StatCard
+						label={`${new Date().toLocaleDateString('en-ZA', { month: 'long' })} collected`}
 						value={`R${stats.collectedThisMonth.toLocaleString()}`}
-						accent="before:bg-[#4A6741]"
+						accent="green"
+						sub="Month-to-date"
 					/>
-					<PaymentStatCard
+					<StatCard
 						label="Outstanding"
 						value={`R${stats.outstanding.toLocaleString()}`}
-						accent="before:bg-brand-500"
+						accent="brand"
+						sub={`${pendingPayments.length} pending`}
 					/>
-					<PaymentStatCard
+					<StatCard
 						label="Overdue"
-						value={String(stats.overdueCount)}
-						accent={stats.overdueCount > 0 ? 'before:bg-red-500' : 'before:bg-warm-300'}
+						value={stats.overdueCount}
+						accent="rust"
+						sub={stats.overdueCount > 0 ? 'Immediate follow-up' : 'All caught up'}
 					/>
-					<PaymentStatCard
+					<StatCard
 						label="Needs plan"
-						value={String(stats.needsPlanCount)}
-						accent={stats.needsPlanCount > 0 ? 'before:bg-amber-500' : 'before:bg-warm-300'}
+						value={stats.needsPlanCount}
+						accent="plum"
+						sub={stats.needsPlanCount > 0 ? 'Booked without final plan' : 'All booked clients covered'}
 					/>
 				</div>
 			)}
 
-			{/* Tab pills */}
-			<div className="flex gap-2 mb-6">
-				{tabs.map((t) => (
-					<button
-						key={t.key}
-						onClick={() => setTab(t.key)}
-						className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-							tab === t.key ? 'bg-brand-500 text-white' : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
-						}`}
-					>
-						{t.label}
-					</button>
-				))}
+			<div className="mb-4">
+				<Segmented options={segmentedOptions} value={tab} onChange={setTab} ariaLabel="Payments view" />
 			</div>
 
 			{loading ? <LoadingPage /> : (
