@@ -1,40 +1,61 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Plus, Users } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card, EmptyState, LoadingPage, PageHeader, Segmented } from '@/components/ui';
-import { getBreedSizeLabel, type Litter, type LitterStatus } from '@paw-registry/shared';
+import { parseBreedSize, BREEDS, BREED_SIZES, type LitterWithDogs, type LitterStatus } from '@paw-registry/shared';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
 type Filter = 'active' | 'planned' | 'available' | 'booked' | 'completed';
 
-const STATUS_STYLE: Record<LitterStatus, { bg: string; fg: string; dot: string; label: string }> = {
-	planned:   { bg: '#fef3e7', fg: '#a35c17', dot: '#d98e3a', label: 'Planned' },
-	available: { bg: '#e5ecf2', fg: '#1e5b8a', dot: '#2f78a9', label: 'Available' },
-	booked:    { bg: '#e8dff0', fg: '#5a2d83', dot: '#7a47a8', label: 'Booked' },
-	completed: { bg: '#e4ebe0', fg: '#3e5a2a', dot: '#5a7a3f', label: 'Completed' },
+const statusPillBg: Record<LitterStatus, string> = {
+	available: 'bg-green-50',
+	booked:    'bg-[#FFF3E5]',
+	planned:   'bg-warm-100',
+	completed: 'bg-warm-100',
 };
 
-function LitterStatusPill({ status }: { status: LitterStatus }) {
-	const s = STATUS_STYLE[status];
-	return (
-		<span
-			className="inline-flex items-center gap-1.5 rounded-full font-medium px-2 py-[3px] text-[10.5px]"
-			style={{ background: s.bg, color: s.fg }}
-		>
-			<span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} aria-hidden="true" />
-			{s.label}
-		</span>
-	);
+const statusPillColor: Record<LitterStatus, string> = {
+	available: 'text-green-700',
+	booked:    'text-brand-500',
+	planned:   'text-warm-400',
+	completed: 'text-warm-400',
+};
+
+const statusDotColor: Record<LitterStatus, string> = {
+	available: 'bg-green-600',
+	booked:    'bg-brand-500',
+	planned:   'bg-warm-400',
+	completed: 'bg-warm-400',
+};
+
+const statusBarColor: Record<LitterStatus, string> = {
+	available: 'bg-green-600',
+	booked:    'bg-brand-500',
+	planned:   'bg-warm-200',
+	completed: 'bg-warm-200',
+};
+
+function getBreedLabel(raw: string | null | undefined): string | null {
+	const parsed = parseBreedSize(raw);
+	if (!parsed) return null;
+	return BREEDS.find((b) => b.value === parsed.breed)?.label ?? parsed.breed;
 }
 
-function shortDate(iso: string | null): string {
-	if (!iso) return 'TBD';
-	return new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: '2-digit' });
+function getSizeLabel(raw: string | null | undefined): string | null {
+	const parsed = parseBreedSize(raw);
+	if (!parsed?.size) return null;
+	return BREED_SIZES[parsed.breed]?.find((s) => s.value === parsed.size)?.label ?? parsed.size;
+}
+
+function formatDate(litter: LitterWithDogs): string {
+	const fmt = (d: string) => new Date(d).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+	if (litter.goHomeDate) return `Go home ${fmt(litter.goHomeDate)}`;
+	return `Selection ${fmt(litter.selectionDate)}`;
 }
 
 export function AdminLitters() {
-	const [litters, setLitters] = useState<Litter[]>([]);
+	const [litters, setLitters] = useState<LitterWithDogs[]>([]);
 	const [matchCounts, setMatchCounts] = useState<Record<string, number>>({});
 	const [loading, setLoading] = useState(true);
 	const [filter, setFilter] = useState<Filter>('active');
@@ -43,7 +64,7 @@ export function AdminLitters() {
 
 	useEffect(() => {
 		api.litters.admin.all.get().then(({ data }) => {
-			if (data) setLitters(data as Litter[]);
+			if (data) setLitters(data as LitterWithDogs[]);
 			setLoading(false);
 		});
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -119,69 +140,93 @@ export function AdminLitters() {
 	);
 }
 
-function LitterCard({ litter, matchCount }: { litter: Litter; matchCount: number | undefined }) {
-	const available = litter.availableCount ?? 0;
-	const total = litter.puppyCount ?? 0;
-	const placed = Math.max(0, total - available);
-	const pct = total > 0 ? (placed / total) * 100 : 0;
+function LitterCard({ litter, matchCount }: { litter: LitterWithDogs; matchCount: number | undefined }) {
+	const breedLabel = getBreedLabel(litter.breed);
+	const sizeLabel = getSizeLabel(litter.breed);
+	const availableCount = litter.puppies?.filter((p) => p.status === 'available').length ?? 0;
+	const hasAvailable = availableCount > 0;
+	const isPlanned = litter.status === 'planned';
+
+	const stageDisplay = litter.status.charAt(0).toUpperCase() + litter.status.slice(1);
+
+	const pillBg = hasAvailable ? statusPillBg[litter.status] : 'bg-warm-100';
+	const pillNumColor = hasAvailable ? statusPillColor[litter.status] : 'text-warm-400';
+	const pillWordColor = hasAvailable ? statusPillColor[litter.status] : 'text-warm-400';
 
 	return (
 		<Link
 			to={`/admin/litters/${litter.id}`}
-			className="block text-left bg-white rounded-[14px] border border-black/[0.06] overflow-hidden hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] transition-shadow"
+			className="group bg-white border-[1.5px] border-warm-200 rounded-xl overflow-hidden flex flex-col shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 hover:shadow-[0_6px_24px_rgba(0,0,0,0.10),0_1px_4px_rgba(0,0,0,0.05)] hover:border-brand-500/50 transition-[transform,box-shadow,border-color] duration-[180ms] ease-out"
 		>
-			<div className="aspect-[16/9] bg-warm-100 relative">
-				{litter.coverImageUrl ? (
+			<div className={`h-[3px] w-full ${statusBarColor[litter.status]}`} />
+
+			{litter.coverImageUrl && (
+				<div className="aspect-[16/9] relative">
 					<img src={litter.coverImageUrl} alt="" className="w-full h-full object-cover" />
-				) : (
-					<div className="w-full h-full flex items-center justify-center text-warm-300 text-xs uppercase tracking-wider">
-						No cover image
-					</div>
-				)}
-				{!litter.isPublic && (
-					<span className="absolute top-3 right-3 inline-flex items-center px-2 py-[3px] rounded-full text-[10px] font-medium bg-warm-900/75 text-warm-50 backdrop-blur-sm">
-						Private
-					</span>
-				)}
-			</div>
-			<div className="p-5">
-				<div className="flex items-center justify-between mb-1.5">
-					<LitterStatusPill status={litter.status} />
-					<span className="text-[11px] text-warm-500 tabular-nums truncate ml-2">
-						{getBreedSizeLabel(litter.breed)}
-					</span>
 				</div>
-				<h3 className="font-serif text-[22px] text-warm-900 leading-tight truncate">{litter.name}</h3>
+			)}
 
-				{total > 0 ? (
-					<>
-						<div className="flex items-end justify-between mt-4">
-							<div>
-								<div className="text-[10.5px] uppercase tracking-[0.08em] text-warm-400">Puppies placed</div>
-								<div className="font-serif text-[22px] text-warm-900 leading-none">
-									{placed}<span className="text-warm-400 text-[16px]"> / {total}</span>
-								</div>
-							</div>
-							<div className="text-right">
-								<div className="text-[10.5px] uppercase tracking-[0.08em] text-warm-400">Go home</div>
-								<div className="text-[13px] text-warm-800 font-medium">{shortDate(litter.goHomeDate)}</div>
-							</div>
-						</div>
-						<div className="h-1.5 bg-warm-100 rounded-full overflow-hidden mt-2.5">
-							<div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#c47420' }} />
-						</div>
-					</>
-				) : (
-					<div className="mt-4 flex items-center gap-2 text-[12.5px] text-warm-500">
-						<Calendar size={14} aria-hidden="true" /> Selection {shortDate(litter.selectionDate)}
+			{/* Body */}
+			<div className="px-5 pt-[18px] pb-4 flex-1 flex flex-col">
+
+				{/* Title + badges */}
+				<div className="flex items-start justify-between gap-2.5 mb-1.5">
+					<h3 className="font-serif text-base leading-snug text-warm-900 flex-1">
+						{litter.name}
+					</h3>
+					<div className="flex items-center gap-1.5 flex-shrink-0 ml-2.5 mt-[2px]">
+						{!litter.isPublic && (
+							<span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap bg-warm-900/10 text-warm-700">
+								Private
+							</span>
+						)}
+						{matchCount != null && matchCount > 0 && (
+							<span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap bg-brand-50 text-brand-600">
+								<Users size={11} aria-hidden="true" /> {matchCount}
+							</span>
+						)}
+					</div>
+				</div>
+
+				{/* Breed · Size */}
+				{breedLabel && (
+					<div className="flex items-center gap-[5px] mb-3.5 flex-wrap">
+						<span className="text-xs font-semibold text-brand-500">{breedLabel}</span>
+						{sizeLabel && (
+							<>
+								<span className="text-[11px] text-warm-300" aria-hidden="true">·</span>
+								<span className="text-xs text-warm-400">{sizeLabel}</span>
+							</>
+						)}
 					</div>
 				)}
 
-				{matchCount != null && matchCount > 0 && (
-					<div className="mt-3 inline-flex items-center gap-1.5 text-[11.5px] font-medium px-2 py-[3px] rounded-full bg-brand-50 text-brand-700">
-						<Users size={11} aria-hidden="true" /> {matchCount} matching
+				{/* Availability pill */}
+				<div className="flex items-end justify-start gap-3">
+					<div className={`flex flex-col items-center rounded-[10px] px-3.5 py-[7px] flex-shrink-0 min-w-[66px] ${pillBg}`}>
+						<span className={`font-serif leading-none ${hasAvailable ? 'text-2xl' : 'text-lg'} ${pillNumColor}`}>
+							{hasAvailable ? availableCount : '—'}
+						</span>
+						<span className={`mt-[3px] leading-none ${pillWordColor} ${hasAvailable ? 'text-[9px] font-semibold tracking-[0.05em] uppercase' : 'text-[9.5px] normal-case tracking-normal font-normal'}`}>
+							{hasAvailable ? 'available' : isPlanned ? 'expected soon' : 'fully reserved'}
+						</span>
 					</div>
-				)}
+				</div>
+
+			</div>
+
+			{/* Footer: stage chip · date · view link */}
+			<div className="px-5 py-[11px] border-t border-warm-100 flex items-center gap-2.5 mt-0">
+				<div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border-[1.5px] border-warm-200">
+					<span className={`w-[7px] h-[7px] rounded-full flex-shrink-0 ${statusDotColor[litter.status]}`} aria-hidden="true" />
+					<span className="text-[11.5px] font-semibold text-warm-800">{stageDisplay}</span>
+				</div>
+
+				<span className="text-[11px] text-warm-400 truncate">{formatDate(litter)}</span>
+
+				<span className="text-xs font-semibold text-brand-500 inline-flex items-center gap-[3px] group-hover:gap-[7px] transition-[gap] duration-150 ml-auto whitespace-nowrap flex-shrink-0">
+					View litter <span aria-hidden="true">→</span>
+				</span>
 			</div>
 		</Link>
 	);

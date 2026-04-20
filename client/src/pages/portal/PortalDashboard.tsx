@@ -511,12 +511,17 @@ function StagesModal({ currentStage, onClose }: { currentStage: string; onClose:
 function PortalJourney({ stage }: { stage: string }) {
 	const cur = Math.max(0, stageIdx(stage));
 	const progressPct = cur / (JOURNEY_STEPS.length - 1);
+	// Track spans from first bubble center to last bubble center.
+	// Grid: 6 columns with 4px gap. Column width = (100% - 20px) / 6.
+	// Column k center = k*(colW + 4px) + colW/2; so first = (100% - 20px)/12, last = 100% - (100% - 20px)/12.
+	const trackInset = 'calc((100% - 20px) / 12)';
+	const fullTrackWidth = `calc(5 * (100% - 20px) / 6 + 20px)`;
 	return (
 		<div className="relative">
-			<div className="absolute left-[14px] right-[14px] top-[13px] h-[2px] bg-warm-200 rounded-full" />
+			<div className="absolute top-[13px] h-[2px] bg-warm-200 rounded-full" style={{ left: trackInset, right: trackInset }} />
 			<div
-				className="absolute left-[14px] top-[13px] h-[2px] rounded-full transition-all duration-500"
-				style={{ width: `calc((100% - 28px) * ${progressPct})`, background: '#c47420' }}
+				className="absolute top-[13px] h-[2px] rounded-full transition-all duration-500"
+				style={{ left: trackInset, width: `calc(${fullTrackWidth} * ${progressPct})`, background: '#c47420' }}
 			/>
 			<div className="relative grid grid-cols-6 gap-1">
 				{JOURNEY_STEPS.map((s, i) => {
@@ -687,6 +692,34 @@ function ApprovedHero({ templates }: { templates: TemplateItem[] | null }) {
 	const total = templates?.length ?? 0;
 	const uploaded = templates?.filter((t) => t.uploadedFileUrl !== null).length ?? 0;
 	const pct = total ? Math.round((uploaded / total) * 100) : 0;
+	const allUploaded = total > 0 && uploaded === total;
+
+	if (allUploaded) {
+		return (
+			<div className="rounded-[16px] border border-black/[0.05] bg-white p-6 md:p-8">
+				<div className="text-[11px] uppercase tracking-[0.14em] text-[#3f5a36] mb-2">Under review</div>
+				<h2 className="font-serif text-[28px] md:text-[34px] leading-[1.1] text-warm-900">Documents submitted.</h2>
+				<p className="text-[13.5px] text-warm-600 mt-3 max-w-[520px]">
+					Thanks — everything's in. Our breeder will review your paperwork and move you onto the waitlist once it's approved. No further action needed for now.
+				</p>
+				<div className="mt-5">
+					<div className="flex items-center justify-between text-[12px] text-warm-500 mb-2">
+						<span>{uploaded} of {total} uploaded</span>
+						<span>{pct}%</span>
+					</div>
+					<div className="h-2 bg-warm-100 rounded-full overflow-hidden">
+						<div className="h-full rounded-full" style={{ width: pct + '%', background: 'linear-gradient(90deg,#d98e3a,#c47420)' }} />
+					</div>
+				</div>
+				<div className="mt-5">
+					<Link to="/portal/documents" className="text-[13px] font-medium text-brand-500 hover:text-brand-600 transition-colors">
+						View documents →
+					</Link>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="rounded-[16px] border border-black/[0.05] bg-white p-6 md:p-8">
 			<div className="text-[11px] uppercase tracking-[0.14em] text-[#3f5a36] mb-2">Approved</div>

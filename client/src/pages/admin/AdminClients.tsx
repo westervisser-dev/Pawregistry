@@ -50,16 +50,34 @@ export function AdminClients() {
 		rejected: clients.filter((c) => c.stage === 'rejected').length,
 	}), [clients]);
 
+	const TIER_RANK: Record<string, number> = { r5000: 0, r500: 1 };
+	const tierRank = (c: Client) => TIER_RANK[c.depositTier ?? ''] ?? 2;
+
+	const waitlistRankById = useMemo(() => {
+		const inQueue = clients.filter((c) => (WAITLIST_STAGES as string[]).includes(c.stage));
+		const ordered = [...inQueue].sort((a, b) => {
+			const t = tierRank(a) - tierRank(b);
+			if (t !== 0) return t;
+			return (a.priority ?? 0) - (b.priority ?? 0);
+		});
+		return new Map(ordered.map((c, i) => [c.id, i + 1]));
+	}, [clients]);
+
 	const sorted = useMemo(() => {
 		const filtered = filter === 'all'
 			? clients
 			: clients.filter((c) => c.stage === filter);
 		return [...filtered].sort((a, b) => {
+			const aRank = waitlistRankById.get(a.id);
+			const bRank = waitlistRankById.get(b.id);
+			if (aRank !== undefined && bRank !== undefined) return aRank - bRank;
+			if (aRank !== undefined) return -1;
+			if (bRank !== undefined) return 1;
 			const rankDiff = (STAGE_RANK[a.stage] ?? 99) - (STAGE_RANK[b.stage] ?? 99);
 			if (rankDiff !== 0) return rankDiff;
 			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 		});
-	}, [clients, filter]);
+	}, [clients, filter, waitlistRankById]);
 
 	const options: { value: Filter; label: string; count: number }[] = [
 		{ value: 'all', label: 'All', count: counts.all },
@@ -100,7 +118,7 @@ export function AdminClients() {
 							</thead>
 							<tbody>
 								{sorted.map((c) => (
-									<ClientRow key={c.id} client={c} />
+									<ClientRow key={c.id} client={c} rank={waitlistRankById.get(c.id)} />
 								))}
 							</tbody>
 						</table>
@@ -111,7 +129,7 @@ export function AdminClients() {
 	);
 }
 
-function ClientRow({ client: c }: { client: Client }) {
+function ClientRow({ client: c, rank }: { client: Client; rank?: number }) {
 	const isWaitlist = (WAITLIST_STAGES as string[]).includes(c.stage);
 	const name = `${c.firstName} ${c.lastName}`;
 	return (
@@ -136,9 +154,9 @@ function ClientRow({ client: c }: { client: Client }) {
 				{new Date(c.createdAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: '2-digit' })}
 			</td>
 			<td className="hidden md:table-cell px-4 py-3">
-				{isWaitlist ? (
+				{isWaitlist && rank !== undefined ? (
 					<span className="inline-block text-[11.5px] font-mono text-warm-600 bg-warm-100 rounded px-2 py-1 tabular-nums">
-						#{String(c.priority).padStart(2, '0')}
+						#{String(rank).padStart(2, '0')}
 					</span>
 				) : (
 					<span className="text-warm-300">—</span>

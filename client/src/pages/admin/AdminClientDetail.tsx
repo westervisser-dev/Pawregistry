@@ -72,14 +72,21 @@ function StageTracker({
 	onUnreject: () => void;
 }) {
 	const currentIdx = STAGE_STEPS.findIndex((s) => s.key === current);
-	const progress = currentIdx >= 0 ? (currentIdx / (STAGE_STEPS.length - 1)) * 100 : 0;
+	const progressPct = currentIdx >= 0 ? currentIdx / (STAGE_STEPS.length - 1) : 0;
+	const nextActionIdx = isRejected
+		? -1
+		: STAGE_STEPS.findIndex((s, i) => i > currentIdx && s.clickable);
+	// Bubbles are left-aligned (items-start) in a 6-column grid with 8px gap.
+	// Bubble k center = column k left + 14px (half of 28px bubble). Track spans first → last center.
+	const trackStart = '14px';
+	const fullTrackWidth = `calc((5 * 100% + 40px) / 6)`;
 
 	return (
 		<div className="relative">
-			<div className="absolute left-0 right-0 top-[13px] h-[2px] bg-warm-200 rounded-full" />
+			<div className="absolute top-[13px] h-[2px] bg-warm-200 rounded-full" style={{ left: trackStart, width: fullTrackWidth }} />
 			<div
-				className="absolute left-0 top-[13px] h-[2px] rounded-full transition-all duration-500"
-				style={{ width: `${progress}%`, background: isRejected ? '#a8412e' : '#c47420' }}
+				className="absolute top-[13px] h-[2px] rounded-full transition-all duration-500"
+				style={{ left: trackStart, width: `calc(${fullTrackWidth} * ${progressPct})`, background: isRejected ? '#a8412e' : '#c47420' }}
 			/>
 			<div className="relative grid grid-cols-6 gap-2">
 				{STAGE_STEPS.map((s, i) => {
@@ -87,6 +94,7 @@ function StageTracker({
 					const active = i === currentIdx;
 					const busy = busyStage === s.key;
 					const disabled = !s.clickable || busy;
+					const isNextAction = i === nextActionIdx;
 					return (
 						<button
 							key={s.key}
@@ -96,12 +104,12 @@ function StageTracker({
 							className={`flex flex-col items-start text-left ${s.clickable ? 'cursor-pointer' : 'cursor-default'} disabled:opacity-100`}
 						>
 							<span
-								className="w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all mb-2"
+								className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all mb-2 ${isNextAction ? 'stage-next-glow' : ''}`}
 								style={{
 									background: isRejected ? '#fff' : (done || active ? '#c47420' : '#fff'),
-									borderColor: isRejected ? '#d6c9b8' : (done || active ? '#c47420' : '#d6c9b8'),
+									borderColor: isRejected ? '#d6c9b8' : (done || active || isNextAction ? '#c47420' : '#d6c9b8'),
 									color: '#fff',
-									boxShadow: active && !isRejected ? '0 0 0 4px rgba(196,116,32,0.18)' : 'none',
+									boxShadow: active && !isRejected && !isNextAction ? '0 0 0 4px rgba(196,116,32,0.18)' : undefined,
 								}}
 							>
 								{busy ? (
