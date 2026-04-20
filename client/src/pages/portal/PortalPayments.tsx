@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { LoadingPage } from '@/components/ui';
+import { LoadingPage, Glyph } from '@/components/ui';
 import type { Payment, Invoice } from '@paw-registry/shared';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -184,15 +184,57 @@ export function PortalPayments() {
 	const hasPendingBooking = pending.some((p) => p.type === 'booking');
 	const depositNotPaid = !successRef && !hasPendingDeposit && client?.depositStatus !== 'paid';
 
+	const puppyPrice = client?.puppy?.priceRands ?? null;
+	const shippingRands = client?.litter?.shippingRands ?? 0;
+	const totalRands = puppyPrice != null ? puppyPrice + shippingRands : null;
+	const paidRands = payments.filter((p) => p.status === 'complete').reduce((s, p) => s + p.amountRands, 0);
+	const remainingRands = totalRands != null ? Math.max(0, totalRands - paidRands) : null;
+	const hasPuppyTotals = client?.stage === 'puppy_booked' && totalRands != null;
+	const pct = hasPuppyTotals && totalRands! > 0 ? Math.min(100, Math.round((paidRands / totalRands!) * 100)) : 0;
+
 	return (
-		<div className="max-w-2xl mx-auto px-4 sm:px-6 py-8" id="main-content">
-			<h1 className="font-serif text-2xl font-bold text-warm-900 mb-6">Payments</h1>
+		<div className="max-w-[900px] mx-auto px-5 md:px-8 pt-6 md:pt-10 pb-8">
+			<div className="mb-8">
+				<div className="text-[11px] uppercase tracking-[0.14em] text-warm-500 mb-2">Money & invoices</div>
+				<h1 className="font-serif text-[30px] md:text-[38px] text-warm-900 leading-[1.05]">Payments</h1>
+				<p className="text-[13.5px] md:text-[14.5px] text-warm-600 mt-2">Your deposits, booking payment and final balance.</p>
+			</div>
 
 			{/* ── Success banner after Paystack redirect ── */}
 			{!!successRef && (
-				<div role="status" className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800 flex items-center gap-3">
-					<span className="text-lg">✓</span>
+				<div role="status" className="mb-6 px-4 py-3.5 bg-[#e4ebe0] border border-[#b6c9ae] rounded-xl text-[13px] text-[#2a3f22] flex items-center gap-3">
+					<Glyph shape="check" color="#3e5a2a" size={14} />
 					<span>Payment received — your record has been updated. Thank you!</span>
+				</div>
+			)}
+
+			{/* ── Editorial total hero (booked clients) ── */}
+			{hasPuppyTotals && (
+				<div className="mb-8 rounded-[16px] border border-black/[0.05] p-6 md:p-8" style={{ background: 'linear-gradient(180deg,#fff 0%,#fdf6ee 100%)' }}>
+					<div className="text-[11px] uppercase tracking-[0.14em] text-warm-500">
+						Total for {client?.puppy?.collarColour ? `${client.puppy.collarColour} collar` : 'your puppy'}
+					</div>
+					<div className="flex items-baseline gap-3 mt-2">
+						<div className="font-serif text-[48px] md:text-[56px] leading-none text-warm-900">{formatRands(paidRands)}</div>
+						<div className="text-[14px] text-warm-500">of {formatRands(totalRands!)}</div>
+					</div>
+					<div className="h-2 bg-warm-100 rounded-full overflow-hidden mt-4">
+						<div className="h-full rounded-full transition-all duration-700" style={{ width: pct + '%', background: 'linear-gradient(90deg,#d98e3a,#c47420)' }} />
+					</div>
+					<div className="grid grid-cols-3 gap-3 mt-5">
+						<div>
+							<div className="text-[10.5px] uppercase tracking-[0.08em] text-warm-400">Paid</div>
+							<div className="font-serif text-[20px] text-warm-900 mt-0.5">{formatRands(paidRands)}</div>
+						</div>
+						<div>
+							<div className="text-[10.5px] uppercase tracking-[0.08em] text-warm-400">Remaining</div>
+							<div className="font-serif text-[20px] text-warm-900 mt-0.5">{formatRands(remainingRands ?? 0)}</div>
+						</div>
+						<div>
+							<div className="text-[10.5px] uppercase tracking-[0.08em] text-warm-400">Shipping</div>
+							<div className="font-serif text-[20px] text-warm-900 mt-0.5">{shippingRands > 0 ? formatRands(shippingRands) : '—'}</div>
+						</div>
+					</div>
 				</div>
 			)}
 
@@ -246,47 +288,6 @@ export function PortalPayments() {
 				</section>
 			)}
 
-			{/* ── Payment breakdown for booked clients ── */}
-			{client?.stage === 'puppy_booked' && client.puppy?.priceRands != null && (() => {
-				const puppyPrice = client.puppy!.priceRands!;
-				const shipping = client.litter?.shippingRands ?? 0;
-				const total = puppyPrice + shipping;
-				const paid = payments.filter((p) => p.status === 'complete').reduce((s, p) => s + p.amountRands, 0);
-				const remaining = Math.max(0, total - paid);
-
-				return (
-					<section className="mb-8">
-						<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Payment Breakdown</h2>
-						<div className="bg-white border border-warm-200 rounded-xl p-5">
-							<div className="space-y-2 text-sm">
-								<div className="flex justify-between">
-									<span className="text-warm-600">Puppy price</span>
-									<span className="font-medium text-warm-900">{formatRands(puppyPrice)}</span>
-								</div>
-								{shipping > 0 && (
-									<div className="flex justify-between">
-										<span className="text-warm-600">Shipping</span>
-										<span className="font-medium text-warm-900">{formatRands(shipping)}</span>
-									</div>
-								)}
-								<div className="flex justify-between border-t border-warm-100 pt-2">
-									<span className="font-medium text-warm-700">Total</span>
-									<span className="font-bold text-warm-900">{formatRands(total)}</span>
-								</div>
-								<div className="flex justify-between text-warm-500">
-									<span>Paid so far</span>
-									<span>-{formatRands(paid)}</span>
-								</div>
-								<div className="flex justify-between border-t border-warm-100 pt-2">
-									<span className="font-semibold text-warm-700">Remaining</span>
-									<span className={`font-bold ${remaining === 0 ? 'text-green-700' : 'text-warm-900'}`}>{formatRands(remaining)}</span>
-								</div>
-							</div>
-						</div>
-					</section>
-				);
-			})()}
-
 			{/* ── Deposit management ── */}
 			{depositNotPaid && (
 				<section className="mb-8">
@@ -327,23 +328,33 @@ export function PortalPayments() {
 
 			{/* ── Payment history ── */}
 			{history.length > 0 && (
-				<section>
-					<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Payment History</h2>
-					<div className="bg-white border border-warm-200 rounded-xl overflow-hidden">
-						{history.map((p, i) => (
-							<div key={p.id} className={`flex items-center justify-between px-5 py-4 gap-4 ${i > 0 ? 'border-t border-warm-100' : ''}`}>
-								<div>
-									<p className="text-sm font-medium text-warm-900">{paymentTypeLabel(p)}</p>
-									<p className="text-xs text-warm-400 mt-0.5">
+				<section className="mb-8">
+					<h2 className="font-serif text-[22px] text-warm-900 mb-3">History</h2>
+					<div className="bg-white rounded-[14px] border border-black/[0.05] divide-y divide-black/[0.04]">
+						{history.map((p) => (
+							<div key={p.id} className="flex items-center gap-4 px-5 py-4">
+								<div
+									className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+									style={{ background: p.status === 'complete' ? '#e4ebe0' : '#fef3e7' }}
+								>
+									<Glyph
+										shape={p.status === 'complete' ? 'check' : 'coin'}
+										color={p.status === 'complete' ? '#3e5a2a' : '#a35c17'}
+										size={14}
+									/>
+								</div>
+								<div className="flex-1 min-w-0">
+									<div className="text-[13.5px] font-medium text-warm-900 truncate">{paymentTypeLabel(p)}</div>
+									<div className="text-[11.5px] text-warm-500">
 										{p.paidAt ? formatDate(p.paidAt) : formatDate(p.createdAt)}
 										{p.dueDate && p.status === 'complete' && (
-											<span className="text-warm-300 ml-1">(was due {formatDate(p.dueDate)})</span>
+											<span className="text-warm-300 ml-1">· was due {formatDate(p.dueDate)}</span>
 										)}
-									</p>
+									</div>
 								</div>
-								<div className="flex items-center gap-3">
-									<span className="text-sm font-semibold text-warm-900">{formatRands(p.amountRands)}</span>
-									<StatusBadge status={p.status} />
+								<div className="text-right flex-shrink-0">
+									<div className="text-[13.5px] font-medium text-warm-900 tabular-nums">{formatRands(p.amountRands)}</div>
+									<div className="text-[11px] text-warm-500 capitalize">{p.status === 'complete' ? 'Paid' : p.status}</div>
 								</div>
 							</div>
 						))}
@@ -354,30 +365,41 @@ export function PortalPayments() {
 			{/* ── Invoices ── */}
 			{clientInvoices.length > 0 && (
 				<section>
-					<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Invoices</h2>
-					<div className="bg-white border border-warm-200 rounded-xl overflow-hidden">
-						{clientInvoices.map((inv, i) => {
+					<h2 className="font-serif text-[22px] text-warm-900 mb-3">Invoices</h2>
+					<div className="bg-white rounded-[14px] border border-black/[0.05] divide-y divide-black/[0.04]">
+						{clientInvoices.map((inv) => {
 							const balanceDue = Math.max(0, inv.totalRands - inv.paidRands);
-							const statusLabel = inv.status === 'paid' ? 'Paid' : inv.status === 'cancelled' ? 'Cancelled' : balanceDue > 0 ? 'Outstanding' : 'Paid';
-							const statusCls = inv.status === 'paid' || balanceDue === 0 ? 'bg-green-100 text-green-700' : inv.status === 'cancelled' ? 'bg-warm-100 text-warm-400' : 'bg-amber-100 text-amber-700';
+							const isPaid = inv.status === 'paid' || balanceDue === 0;
+							const isCancelled = inv.status === 'cancelled';
+							const statusLabel = isPaid ? 'Paid' : isCancelled ? 'Cancelled' : 'Outstanding';
 							return (
-								<div key={inv.id} className={`flex items-center justify-between px-5 py-4 gap-4 ${i > 0 ? 'border-t border-warm-100' : ''}`}>
-									<div>
-										<p className="text-sm font-medium text-warm-900">{inv.invoiceNumber}</p>
-										<p className="text-xs text-warm-400 mt-0.5">
-											{formatRands(inv.totalRands)} total
-											{balanceDue > 0 && <span className="text-amber-600 ml-1">· {formatRands(balanceDue)} due</span>}
-										</p>
+								<div key={inv.id} className="flex items-center gap-4 px-5 py-4">
+									<div
+										className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+										style={{ background: isPaid ? '#e4ebe0' : isCancelled ? '#f5f0e8' : '#fef3e7' }}
+									>
+										<Glyph
+											shape="doc"
+											color={isPaid ? '#3e5a2a' : isCancelled ? '#9e8b78' : '#a35c17'}
+											size={14}
+										/>
 									</div>
-									<div className="flex items-center gap-3">
-										<span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusCls}`}>{statusLabel}</span>
+									<div className="flex-1 min-w-0">
+										<div className="text-[13.5px] font-medium text-warm-900 truncate">{inv.invoiceNumber}</div>
+										<div className="text-[11.5px] text-warm-500">
+											{formatRands(inv.totalRands)} total
+											{balanceDue > 0 && <span className="text-[#a35c17] ml-1">· {formatRands(balanceDue)} due</span>}
+										</div>
+									</div>
+									<div className="flex items-center gap-3 flex-shrink-0">
+										<span className="text-[11px] text-warm-500">{statusLabel}</span>
 										<a
 											href={`/invoices/${inv.viewToken}`}
 											target="_blank"
 											rel="noopener noreferrer"
-											className="text-sm text-brand-600 hover:underline"
+											className="text-[12.5px] text-[#c47420] font-medium"
 										>
-											View →
+											View
 										</a>
 									</div>
 								</div>
@@ -389,7 +411,7 @@ export function PortalPayments() {
 
 			{/* ── Empty state ── */}
 			{pending.length === 0 && history.length === 0 && !depositNotPaid && clientInvoices.length === 0 && (
-				<div className="text-center py-16 text-warm-400 text-sm">
+				<div className="text-center py-16 text-warm-400 text-[13px]">
 					No payment records yet.
 				</div>
 			)}

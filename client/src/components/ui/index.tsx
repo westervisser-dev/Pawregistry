@@ -67,6 +67,178 @@ export function useFocusTrap(isOpen: boolean, onClose?: () => void) {
 	return containerRef;
 }
 
+// ─── Glyph (inline SVG icon set) ─────────────────────────────────────────────
+
+export type GlyphShape =
+	| 'paw' | 'people' | 'coin' | 'inbox' | 'doc' | 'home'
+	| 'calendar' | 'arrow' | 'grip' | 'search' | 'plus' | 'check' | 'bell' | 'dot';
+
+interface GlyphProps {
+	shape?: GlyphShape;
+	color?: string;
+	size?: number;
+	className?: string;
+}
+
+export function Glyph({ shape = 'dot', color = '#c47420', size = 16, className }: GlyphProps) {
+	const stroke = {
+		stroke: color,
+		strokeWidth: 1.6,
+		fill: 'none' as const,
+		strokeLinecap: 'round' as const,
+		strokeLinejoin: 'round' as const,
+	};
+	const common = { width: size, height: size, viewBox: '0 0 24 24', className, 'aria-hidden': true as const };
+
+	switch (shape) {
+		case 'paw':
+			return (
+				<svg {...common} {...stroke}>
+					<circle cx="7" cy="8" r="2" fill={color} stroke="none" />
+					<circle cx="12" cy="6" r="2" fill={color} stroke="none" />
+					<circle cx="17" cy="8" r="2" fill={color} stroke="none" />
+					<circle cx="19.5" cy="13" r="1.6" fill={color} stroke="none" />
+					<path d="M6 17c0-3 2.5-5 6-5s6 2 6 5c0 2-2 3-3 3H9c-1 0-3-1-3-3z" fill={color} stroke="none" />
+				</svg>
+			);
+		case 'people':
+			return (
+				<svg {...common} {...stroke}>
+					<circle cx="9" cy="8" r="3" />
+					<path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+					<circle cx="17" cy="9" r="2.5" />
+					<path d="M15 20c0-2 1-4 3-4.5" />
+				</svg>
+			);
+		case 'coin':
+			return (
+				<svg {...common} {...stroke}>
+					<circle cx="12" cy="12" r="8" />
+					<path d="M12 7v10M15 9.5c0-1.1-1.3-2-3-2s-3 .9-3 2 1.3 1.8 3 2 3 .9 3 2-1.3 2-3 2-3-.9-3-2" />
+				</svg>
+			);
+		case 'inbox':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M4 13l2-7h12l2 7" />
+					<path d="M4 13v5h16v-5" />
+					<path d="M4 13h5l1 2h4l1-2h5" />
+				</svg>
+			);
+		case 'doc':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M6 3h8l4 4v14H6z" />
+					<path d="M14 3v4h4M9 12h6M9 16h6" />
+				</svg>
+			);
+		case 'home':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M4 11l8-7 8 7v9H4z" />
+					<path d="M10 20v-6h4v6" />
+				</svg>
+			);
+		case 'calendar':
+			return (
+				<svg {...common} {...stroke}>
+					<rect x="3.5" y="5" width="17" height="15" rx="2" />
+					<path d="M3.5 10h17M8 3v4M16 3v4" />
+				</svg>
+			);
+		case 'arrow':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M5 12h14M13 6l6 6-6 6" />
+				</svg>
+			);
+		case 'grip':
+			return (
+				<svg {...common}>
+					<circle cx="9" cy="6" r="1.3" fill={color} />
+					<circle cx="15" cy="6" r="1.3" fill={color} />
+					<circle cx="9" cy="12" r="1.3" fill={color} />
+					<circle cx="15" cy="12" r="1.3" fill={color} />
+					<circle cx="9" cy="18" r="1.3" fill={color} />
+					<circle cx="15" cy="18" r="1.3" fill={color} />
+				</svg>
+			);
+		case 'search':
+			return (
+				<svg {...common} {...stroke}>
+					<circle cx="11" cy="11" r="6" />
+					<path d="M20 20l-4.5-4.5" />
+				</svg>
+			);
+		case 'plus':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M12 5v14M5 12h14" />
+				</svg>
+			);
+		case 'check':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M5 12.5l4 4 10-10" />
+				</svg>
+			);
+		case 'bell':
+			return (
+				<svg {...common} {...stroke}>
+					<path d="M6 17h12l-1.5-2V11a4.5 4.5 0 00-9 0v4L6 17z" />
+					<path d="M10 20a2 2 0 004 0" />
+				</svg>
+			);
+		default:
+			return (
+				<span
+					className={`inline-block rounded-full ${className ?? ''}`}
+					style={{ width: size, height: size, background: color }}
+					aria-hidden="true"
+				/>
+			);
+	}
+}
+
+// ─── Placeholder (striped image fallback) ───────────────────────────────────
+
+type PlaceholderTone = 'warm' | 'cream' | 'sand' | 'dark';
+
+const PLACEHOLDER_TONES: Record<PlaceholderTone, { a: string; b: string; text: string }> = {
+	warm:  { a: '#ede5d8', b: '#e1d4c0', text: '#8a7560' },
+	cream: { a: '#f5f0e8', b: '#ebe2d3', text: '#9a8871' },
+	sand:  { a: '#e7dcc8', b: '#d9ccb2', text: '#7a6a58' },
+	dark:  { a: '#3d2510', b: '#2a1808', text: '#d6c9b8' },
+};
+
+interface PlaceholderProps {
+	label?: string;
+	className?: string;
+	tone?: PlaceholderTone;
+}
+
+export function Placeholder({ label, className = '', tone = 'warm' }: PlaceholderProps) {
+	const t = PLACEHOLDER_TONES[tone];
+	return (
+		<div
+			className={`relative overflow-hidden flex items-end ${className}`}
+			style={{
+				backgroundImage: `repeating-linear-gradient(135deg, ${t.a} 0, ${t.a} 14px, ${t.b} 14px, ${t.b} 28px)`,
+			}}
+			aria-hidden="true"
+		>
+			{label && (
+				<span
+					className="font-mono text-[10.5px] px-2.5 py-1 m-2 rounded-sm"
+					style={{ background: 'rgba(255,255,255,0.72)', color: t.text, letterSpacing: '0.02em' }}
+				>
+					{label}
+				</span>
+			)}
+		</div>
+	);
+}
+
 // ─── Card ────────────────────────────────────────────────────────────────────
 
 interface CardProps {

@@ -226,7 +226,7 @@ function Section({ label, litters, matches, interestedIds, myLitterId }: { label
 					{litters.length} {litters.length === 1 ? 'litter' : 'litters'}
 				</span>
 			</div>
-			<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 				{litters.map((l) => <LitterCard key={l.id} litter={l} match={matches[l.id]} interested={interestedIds.has(l.id)} isMyLitter={l.id === myLitterId} />)}
 			</div>
 		</div>
@@ -298,11 +298,12 @@ export function PortalLitters() {
 	const upcoming = filtered.filter((l) => l.status === 'planned');
 
 	return (
-		<div>
+		<div className="max-w-[1200px] mx-auto px-5 md:px-8 pt-6 md:pt-10 pb-8">
 			{/* Header */}
 			<div className="mb-7">
-				<h1 className="font-serif text-[34px] text-warm-900 leading-[1.05] mb-[5px]">Litters</h1>
-				<p className="text-[13.5px] text-warm-500">Our current and upcoming litters, matched to your preferences.</p>
+				<div className="text-[11px] uppercase tracking-[0.14em] text-warm-500 mb-2">Breeding programme</div>
+				<h1 className="font-serif text-[30px] md:text-[38px] text-warm-900 leading-[1.05]">Current & upcoming litters</h1>
+				<p className="text-[13.5px] md:text-[14.5px] text-warm-600 mt-2 max-w-[560px]">Our current and upcoming litters, matched to your preferences.</p>
 			</div>
 
 			{litters.length === 0 ? (

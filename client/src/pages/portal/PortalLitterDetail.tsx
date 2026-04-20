@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import type { LitterWithDogs, LitterMatchResult, LitterMatchTier, ClientStage, PuppyWithImages } from '@paw-registry/shared';
 import { parseBreedSize, BREEDS, BREED_SIZES } from '@paw-registry/shared';
-import { LoadingPage, LitterStatusBadge, PuppyStatusBadge, Badge } from '@/components/ui';
+import { LoadingPage, LitterStatusBadge, PuppyStatusBadge } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 
 // ─── Match tier presentation ──────────────────────────────────────────────────
@@ -398,19 +398,19 @@ export function PortalLitterDetail() {
 	if (!litter) return <div className="text-warm-500 p-4">Litter not found.</div>;
 
 	return (
-		<div>
-			<Link to="/portal/litters" className="text-sm text-warm-400 hover:text-warm-600 mb-6 inline-block">
-				← Litters
+		<div className="max-w-[1200px] mx-auto px-5 md:px-8 pt-6 md:pt-8 pb-8">
+			<Link to="/portal/litters" className="text-[12.5px] text-warm-500 hover:text-warm-800 mb-4 inline-block">
+				← All litters
 			</Link>
 
 			{/* Header */}
 			<div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-6">
 				<div>
-					<div className="flex items-center gap-3 mb-1.5">
-						<h1 className="font-serif text-2xl font-bold text-warm-900">{litter.name}</h1>
-						{litter.breed && <Badge variant="default">{formatBreed(litter.breed)}</Badge>}
-					</div>
-					<div className="flex items-center gap-3 text-sm text-warm-500 flex-wrap">
+					{litter.breed && (
+						<div className="text-[11px] uppercase tracking-[0.12em] text-warm-500 mb-2">{formatBreed(litter.breed)}</div>
+					)}
+					<h1 className="font-serif text-[32px] md:text-[40px] text-warm-900 leading-[1.05]">{litter.name}</h1>
+					<div className="flex items-center gap-3 text-[13px] text-warm-500 flex-wrap mt-3">
 						<LitterStatusBadge status={litter.status} />
 						<span>Selection {new Date(litter.selectionDate).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
 						{litter.goHomeDate && (

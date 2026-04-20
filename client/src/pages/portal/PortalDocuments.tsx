@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
-import { LoadingPage, Card } from '@/components/ui';
+import { LoadingPage, Card, Glyph } from '@/components/ui';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Client, DocumentTemplateWithChecklist } from '@paw-registry/shared';
 
@@ -109,12 +109,13 @@ export function PortalDocuments() {
 	const handleDismissPopup = () => setShowPopup(false);
 
 	return (
-		<div>
+		<div className="max-w-[900px] mx-auto px-5 md:px-8 pt-6 md:pt-10 pb-8">
 			{showPopup && <DocsCompletePopup onClose={handleDismissPopup} />}
 
 			<div className="mb-8">
-				<h1 className="font-serif text-2xl font-bold text-warm-900">Documents</h1>
-				<p className="text-warm-600 text-sm mt-1">Your contracts, health records, and go-home documents.</p>
+				<div className="text-[11px] uppercase tracking-[0.14em] text-warm-500 mb-2">Paperwork</div>
+				<h1 className="font-serif text-[30px] md:text-[38px] text-warm-900 leading-[1.05]">Documents</h1>
+				<p className="text-[13.5px] md:text-[14.5px] text-warm-600 mt-2">Your contracts, health records, and go-home documents.</p>
 			</div>
 
 			{/* Under-review banner — shown after popup dismissed, until client is waitlisted */}
@@ -253,7 +254,9 @@ export function PortalDocuments() {
 			{/* Empty state */}
 			{templates.length === 0 && (
 				<Card className="p-12 text-center">
-					<p className="text-4xl mb-4" aria-hidden="true">📄</p>
+					<div className="w-14 h-14 rounded-full bg-warm-100 flex items-center justify-center mx-auto mb-4">
+						<Glyph shape="doc" color="#9e8b78" size={22} />
+					</div>
 					<p className="text-warm-600 font-medium">No documents yet</p>
 					<p className="text-warm-400 text-sm mt-1">Documents will appear here when shared by your breeder.</p>
 				</Card>

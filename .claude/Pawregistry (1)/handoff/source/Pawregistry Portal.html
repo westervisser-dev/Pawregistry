@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pawregistry — Client portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['"DM Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['"DM Serif Display"', 'ui-serif', 'Georgia', 'serif'],
+      },
+      colors: {
+        brand: { 50:'#fdf6ee',100:'#f8e8d0',200:'#f0cfa0',300:'#e4ae68',400:'#d98e3a',500:'#c47420',600:'#a35c17',700:'#824614',800:'#633310',900:'#45220a' },
+        warm:  { 50:'#faf8f5',100:'#f5f0e8',200:'#ede5d8',300:'#d6c9b8',400:'#b5a090',500:'#9e8b78',600:'#7a6a58',700:'#5a3e28',800:'#3d2510',900:'#1e0e04' },
+      },
+    },
+  },
+};
+</script>
+<style>
+:root { --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif; --font-serif: "DM Serif Display", ui-serif, Georgia, serif; }
+html, body { background: #f5f0e8; color: #1e0e04; font-family: var(--font-sans); letter-spacing: -0.005em; -webkit-font-smoothing: antialiased; }
+body { margin: 0; }
+h1, h2, h3 { font-family: var(--font-serif); font-weight: 400; letter-spacing: 0; }
+.font-serif { font-family: var(--font-serif); }
+::selection { background: #f8e8d0; color: #45220a; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #d6c9b8; border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+.tweaks-panel { position: fixed; bottom: 84px; right: 16px; z-index: 60; background: white; border: 1px solid #ede5d8; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); padding: 14px 16px; width: 260px; display: none; }
+@media (min-width: 768px) { .tweaks-panel { bottom: 20px; right: 20px; } }
+.tweaks-panel.open { display: block; }
+.tweaks-panel h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #7a6a58; margin: 0 0 10px; }
+.tweaks-panel label { display: block; font-size: 12px; color: #3d2510; margin-bottom: 8px; }
+.tweaks-panel select { width: 100%; padding: 6px 8px; border: 1px solid #ede5d8; border-radius: 8px; font-size: 12px; background: #faf8f5; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="./data.js"></script>
+<script type="text/babel" src="./components/ui.jsx"></script>
+<script type="text/babel" src="./screens/portal.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect } = React;
+
+const TWEAKS_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "persona": "waitlisted",
+  "background": "#f5f0e8"
+}/*EDITMODE-END*/;
+
+// Persona map — which demo client we're logged in as
+const PERSONAS = {
+  booked:      { clientId: 'c-002', label: 'Thandi · Booked, 3 weeks to go' },
+  waitlisted:  { clientId: 'c-004', label: 'Priya · Waitlisted #4' },
+  pickup_week: { clientId: 'c-001', label: 'Hannah · Pickup week' },
+};
+
+function App() {
+  const saved = (() => { try { return JSON.parse(localStorage.getItem('paw-portal-nav') || 'null'); } catch(e) { return null; } })();
+  const [route, setRoute] = useState(saved?.route || 'home');
+  const [openLitter, setOpenLitter] = useState(saved?.openLitter || null);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [tweaks, setTweaks] = useState(TWEAKS_DEFAULTS);
+
+  useEffect(() => {
+    localStorage.setItem('paw-portal-nav', JSON.stringify({ route, openLitter }));
+  }, [route, openLitter]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      const t = e.data?.type;
+      if (t === '__activate_edit_mode') setTweaksOpen(true);
+      if (t === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.background = tweaks.background;
+  }, [tweaks]);
+
+  const persona = PERSONAS[tweaks.persona] || PERSONAS.booked;
+  const client = window.PAW_DATA.clients.find(c => c.id === persona.clientId);
+
+  function navigate(r) {
+    setRoute(r);
+    setOpenLitter(null);
+    window.scrollTo({ top: 0 });
+  }
+
+  let content;
+  if (route === 'home') content = <PortalDashboard client={client} persona={tweaks.persona} onNavigate={navigate} />;
+  else if (route === 'litters' && openLitter) content = <PortalLitterDetail litterId={openLitter} onBack={() => setOpenLitter(null)} />;
+  else if (route === 'litters') content = <PortalLitters onOpenLitter={setOpenLitter} />;
+  else if (route === 'updates') content = <PortalUpdates />;
+  else if (route === 'payments') content = <PortalPayments client={client} />;
+  else if (route === 'documents') content = <PortalDocuments />;
+
+  return (
+    <>
+      <PortalShell client={client} route={route} onNavigate={navigate}>{content}</PortalShell>
+      <div className={`tweaks-panel ${tweaksOpen ? 'open' : ''}`}>
+        <h4>Tweaks</h4>
+        <label>Persona (dashboard adapts)
+          <select value={tweaks.persona}
+                  onChange={e => { const v = e.target.value; setTweaks(t => ({ ...t, persona: v })); window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { persona: v } }, '*'); }}>
+            <option value="booked">Thandi · Booked, 3 weeks to go</option>
+            <option value="waitlisted">Priya · Waitlisted #4</option>
+            <option value="pickup_week">Hannah · Pickup week</option>
+          </select>
+        </label>
+        <label>Background
+          <select value={tweaks.background}
+                  onChange={e => { const v = e.target.value; setTweaks(t => ({ ...t, background: v })); window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { background: v } }, '*'); }}>
+            <option value="#f5f0e8">Warm cream (default)</option>
+            <option value="#faf8f5">Soft ivory</option>
+            <option value="#fdf6ee">Peach wash</option>
+          </select>
+        </label>
+        <label>Jump to screen
+          <select value={route}
+                  onChange={e => navigate(e.target.value)}>
+            <option value="home">Home (dashboard)</option>
+            <option value="litters">Litters</option>
+            <option value="updates">Updates</option>
+            <option value="payments">Payments</option>
+            <option value="documents">Documents</option>
+          </select>
+        </label>
+        <p style={{ fontSize: 11, color: '#9e8b78', marginTop: 10, marginBottom: 0 }}>Mobile-first — resize window to see desktop.</p>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

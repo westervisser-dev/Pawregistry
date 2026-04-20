@@ -1,196 +1,218 @@
-import { useState } from 'react';
-import { Outlet, NavLink, Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Outlet, NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { APP_NAME } from '@/config/app';
+import { Glyph, type GlyphShape, Avatar } from '@/components/ui';
 
-const portalNav = [
-	{ to: '/portal', label: 'Dashboard', icon: '▪', end: true },
-	{ to: '/portal/litters', label: 'Litters', icon: '🐾', iconFilter: 'brightness(0) invert(1)' },
-	{ to: '/portal/updates', label: 'Updates', icon: '📋' },
-	{ to: '/portal/documents', label: 'Documents', icon: '📁', requiresApproval: true },
-	{ to: '/portal/payments', label: 'Payments', icon: '💳' },
+type PortalTab = {
+	to: string;
+	label: string;
+	shortLabel?: string;
+	glyph: GlyphShape;
+	end?: boolean;
+	requiresApproval?: boolean;
+};
+
+const PORTAL_TABS: PortalTab[] = [
+	{ to: '/portal',           label: 'Home',      glyph: 'home',     end: true },
+	{ to: '/portal/litters',   label: 'Litters',   glyph: 'paw' },
+	{ to: '/portal/updates',   label: 'Updates',   glyph: 'bell' },
+	{ to: '/portal/payments',  label: 'Payments',  glyph: 'coin' },
+	{ to: '/portal/documents', label: 'Documents', shortLabel: 'Docs', glyph: 'doc', requiresApproval: true },
 ];
 
-// ─── Sidebar content extracted so it never remounts on parent re-renders ──────
+// ─── Account menu (avatar dropdown, shared mobile + desktop) ─────────────────
 
-interface SidebarProps {
-	email?: string;
-	clientStage: string | null;
-	signOut: () => void;
-	onLinkClick: () => void;
-}
+function AccountMenu({ email, signOut, size = 32 }: { email: string; signOut: () => void; size?: number }) {
+	const [open, setOpen] = useState(false);
+	const ref = useRef<HTMLDivElement>(null);
 
-function PortalSidebar({ email, clientStage, signOut, onLinkClick }: SidebarProps) {
-	const initials = (email ?? '')
-		.split('@')[0]
-		.slice(0, 2)
-		.toUpperCase();
+	useEffect(() => {
+		if (!open) return;
+		function onClick(e: MouseEvent) {
+			if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+		}
+		function onKey(e: KeyboardEvent) {
+			if (e.key === 'Escape') setOpen(false);
+		}
+		document.addEventListener('mousedown', onClick);
+		document.addEventListener('keydown', onKey);
+		return () => {
+			document.removeEventListener('mousedown', onClick);
+			document.removeEventListener('keydown', onKey);
+		};
+	}, [open]);
 
 	return (
-		<>
-			{/* Logo area */}
-			<div className="px-5 pt-7 pb-6 border-b border-white/10">
-				<Link to="/" className="flex items-center gap-3" onClick={onLinkClick}>
-					<div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0 p-0.5">
-						<img src="/logo-icon.png" alt="Teddydoodles" className="w-full h-full object-contain" />
-					</div>
-					<div>
-						<div className="font-serif text-[16px] text-[#F0EDEA] tracking-[0.01em]">{APP_NAME}</div>
-						<div className="text-[10.5px] text-[rgba(240,237,234,0.4)] mt-0.5 tracking-[0.06em] uppercase">Client Portal</div>
-					</div>
-				</Link>
-			</div>
-
-			{/* Navigation */}
-			<nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
-				{portalNav.map(({ to, label, icon, end, iconFilter, requiresApproval }) => {
-					const locked = requiresApproval && clientStage === 'enquired';
-					if (locked) {
-						return (
-							<span
-								key={to}
-								title="Available once your application is approved"
-								className="flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13.5px] text-[rgba(240,237,234,0.3)] cursor-not-allowed select-none"
-							>
-								<span className="w-4 text-center text-sm opacity-40" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
-								{label}
-							</span>
-						);
-					}
-					return (
-						<NavLink
-							key={to}
-							to={to}
-							end={end}
-							onClick={onLinkClick}
-							className={({ isActive }) =>
-								`flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13.5px] transition-colors ${
-									isActive
-										? 'bg-brand-500 text-white font-medium'
-										: 'text-[rgba(240,237,234,0.75)] hover:bg-white/[0.06] hover:text-[rgba(240,237,234,1)]'
-								}`
-							}
-						>
-							<span className="w-4 text-center text-sm" style={iconFilter ? { filter: iconFilter } : undefined}>{icon}</span>
-							{label}
-						</NavLink>
-					);
-				})}
-			</nav>
-
-			{/* Footer */}
-			<div className="px-5 pt-4 pb-5 border-t border-white/10">
-				<div className="flex items-center gap-2.5">
-					<div className="w-[30px] h-[30px] rounded-full bg-brand-500 flex items-center justify-center text-xs font-medium text-white shrink-0">
-						{initials}
-					</div>
-					<p className="text-[11.5px] text-[rgba(240,237,234,0.6)] truncate">{email}</p>
-				</div>
-				<button
-					onClick={signOut}
-					className="flex items-center gap-1.5 mt-2.5 text-xs text-[rgba(240,237,234,0.5)] hover:text-[rgba(240,237,234,0.8)] transition-colors cursor-pointer py-1.5"
+		<div className="relative" ref={ref}>
+			<button
+				type="button"
+				onClick={() => setOpen((o) => !o)}
+				aria-haspopup="menu"
+				aria-expanded={open}
+				aria-label="Account menu"
+				className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+			>
+				<Avatar name={email} size={size} />
+			</button>
+			{open && (
+				<div
+					role="menu"
+					className="absolute right-0 mt-2 w-[220px] bg-white rounded-[12px] border border-black/[0.06] shadow-[0_6px_20px_rgba(0,0,0,0.08)] py-1.5 z-40"
 				>
-					↩ Sign out
-				</button>
-			</div>
-		</>
+					<div className="px-3.5 py-2 border-b border-black/[0.05]">
+						<p className="text-[11px] text-warm-500">Signed in as</p>
+						<p className="text-[12.5px] text-warm-900 truncate">{email}</p>
+					</div>
+					<Link
+						to="/portal/preferences"
+						role="menuitem"
+						onClick={() => setOpen(false)}
+						className="flex items-center gap-2 px-3.5 py-2 text-[13px] text-warm-700 hover:bg-warm-50"
+					>
+						Puppy preferences
+					</Link>
+					<button
+						role="menuitem"
+						onClick={() => { setOpen(false); signOut(); }}
+						className="w-full text-left flex items-center gap-2 px-3.5 py-2 text-[13px] text-warm-700 hover:bg-warm-50"
+					>
+						Sign out
+					</button>
+				</div>
+			)}
+		</div>
 	);
 }
 
-// ─── Layout ───────────────────────────────────────────────────────────────────
+// ─── Layout ──────────────────────────────────────────────────────────────────
 
 export function PortalLayout() {
 	const { user, signOut, clientStage } = useAuthStore();
-	const [sidebarOpen, setSidebarOpen] = useState(false);
-
-	const closeSidebar = () => setSidebarOpen(false);
+	const location = useLocation();
+	const email = user?.email ?? '';
+	const isLocked = (tab: PortalTab) => tab.requiresApproval && clientStage === 'enquired';
 
 	return (
-		<div className="min-h-screen bg-warm-100 flex">
+		<div className="min-h-screen bg-warm-100 pb-20 md:pb-0">
 			<a
 				href="#main-content"
 				className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-warm-900 focus:rounded-lg focus:shadow-lg focus:ring-2 focus:ring-brand-500 focus:outline-none text-sm font-medium"
 			>
 				Skip to content
 			</a>
-			{/* Sidebar — desktop only */}
-			<aside className="hidden md:flex flex-col w-[220px] bg-sidebar-bg shrink-0">
-				<PortalSidebar email={user?.email} clientStage={clientStage} signOut={signOut} onLinkClick={closeSidebar} />
-			</aside>
 
-			{/* Main */}
-			<div className="flex-1 flex flex-col min-w-0">
-				{/* Mobile header — public style */}
-				<div className="md:hidden sticky top-0 z-30 bg-white border-b border-warm-200">
-					<div className="h-16 flex items-center justify-between px-6">
-						<Link to="/" className="flex items-center gap-3" onClick={closeSidebar}>
-							<img src="/logo-icon.png" alt="" className="h-10 w-auto" aria-hidden="true" />
-							<div>
-								<span className="font-sans font-light uppercase tracking-[0.22em] text-sm text-warm-800 block">{APP_NAME}</span>
-								<span className="text-[10px] text-warm-400 uppercase tracking-wider">Client Portal</span>
-							</div>
-						</Link>
-						<button
-							onClick={() => setSidebarOpen((o) => !o)}
-							className="flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-warm-100 transition-colors"
-							aria-label="Toggle menu"
-							aria-expanded={sidebarOpen}
-						>
-							<span className={`block h-0.5 w-5 bg-warm-700 transition-transform duration-200 origin-center ${sidebarOpen ? 'rotate-45 translate-y-2' : ''}`} />
-							<span className={`block h-0.5 w-5 bg-warm-700 transition-opacity duration-200 ${sidebarOpen ? 'opacity-0' : ''}`} />
-							<span className={`block h-0.5 w-5 bg-warm-700 transition-transform duration-200 origin-center ${sidebarOpen ? '-rotate-45 -translate-y-2' : ''}`} />
-						</button>
-					</div>
-					<div
-						className="overflow-hidden transition-[grid-template-rows] duration-200 ease-out"
-						style={{ display: 'grid', gridTemplateRows: sidebarOpen ? '1fr' : '0fr' }}
-					>
-						<div className="min-h-0 border-t border-warm-100">
-							<div className="px-6 py-4 flex flex-col gap-1">
-								{portalNav.map(({ to, label, requiresApproval }) => {
-									const locked = requiresApproval && clientStage === 'enquired';
-									if (locked) {
-										return (
-											<span
-												key={to}
-												title="Available once your application is approved"
-												className="py-3 text-sm font-medium border-b border-warm-50 last:border-0 text-warm-300 cursor-not-allowed select-none"
-											>
-												{label}
-											</span>
-										);
-									}
-									return (
-										<NavLink
-											key={to}
-											to={to}
-											end={to === '/portal'}
-											onClick={closeSidebar}
-											className={({ isActive }) =>
-												`py-3 text-sm font-medium border-b border-warm-50 last:border-0 transition-colors ${
-													isActive ? 'text-brand-600' : 'text-warm-700'
-												}`
-											}
-										>
-											{label}
-										</NavLink>
-									);
-								})}
-								<div className="pt-3 mt-1 border-t border-warm-100 flex items-center justify-between">
-									<p className="text-xs text-warm-400 truncate">{user?.email}</p>
-									<button onClick={signOut} className="text-sm text-warm-500 hover:text-warm-700 transition-colors shrink-0 ml-4">
-										Sign out
-									</button>
-								</div>
-							</div>
+			{/* ── Desktop topbar ── */}
+			<div className="hidden md:block sticky top-0 z-30 bg-white/85 backdrop-blur border-b border-black/[0.05]">
+				<div className="max-w-[1280px] mx-auto h-[62px] flex items-center justify-between px-6 lg:px-8">
+					<Link to="/portal" className="flex items-center gap-3 shrink-0">
+						<div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center p-0.5 border border-warm-200">
+							<img src="/logo-icon.png" alt="" className="w-full h-full object-contain" aria-hidden="true" />
 						</div>
-					</div>
+						<div>
+							<div className="font-serif text-[18px] text-warm-900 leading-tight">{APP_NAME}</div>
+							<div className="text-[10px] uppercase tracking-[0.14em] text-warm-500">Client portal</div>
+						</div>
+					</Link>
+					<nav className="flex items-center gap-1" aria-label="Portal">
+						{PORTAL_TABS.map((tab) => {
+							const locked = isLocked(tab);
+							if (locked) {
+								return (
+									<span
+										key={tab.to}
+										title="Available once your application is approved"
+										aria-disabled="true"
+										className="px-3 h-9 inline-flex items-center rounded-[9px] text-[13px] text-warm-300 cursor-not-allowed select-none"
+									>
+										{tab.label}
+									</span>
+								);
+							}
+							return (
+								<NavLink
+									key={tab.to}
+									to={tab.to}
+									end={tab.end}
+									className={({ isActive }) =>
+										`px-3 h-9 inline-flex items-center rounded-[9px] text-[13px] transition-colors ${
+											isActive
+												? 'text-warm-900 font-medium bg-warm-100'
+												: 'text-warm-500 hover:text-warm-800 hover:bg-warm-50'
+										}`
+									}
+								>
+									{tab.label}
+								</NavLink>
+							);
+						})}
+						<div className="w-px h-5 bg-warm-200 mx-2" aria-hidden="true" />
+						<AccountMenu email={email} signOut={signOut} size={32} />
+					</nav>
 				</div>
+			</div>
 
-				{/* Page content */}
-				<main id="main-content" className="flex-1 p-5 md:p-8 lg:p-9">
-					<Outlet />
-				</main>
+			{/* ── Mobile header ── */}
+			<div className="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-black/[0.05]">
+				<div className="h-14 flex items-center justify-between px-5">
+					<Link to="/portal" className="flex items-center gap-2.5">
+						<div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center p-0.5 border border-warm-200">
+							<img src="/logo-icon.png" alt="" className="w-full h-full object-contain" aria-hidden="true" />
+						</div>
+						<span className="font-serif text-[16px] text-warm-900">{APP_NAME}</span>
+					</Link>
+					<AccountMenu email={email} signOut={signOut} size={30} />
+				</div>
+			</div>
+
+			{/* ── Main ── */}
+			<main id="main-content">
+				<Outlet />
+			</main>
+
+			{/* ── Mobile bottom tabs ── */}
+			<div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-black/[0.06]">
+				<nav className="grid grid-cols-5 h-16" aria-label="Portal">
+					{PORTAL_TABS.map((tab) => {
+						const locked = isLocked(tab);
+						const active = tab.end
+							? location.pathname === tab.to
+							: location.pathname === tab.to || location.pathname.startsWith(tab.to + '/');
+						const label = tab.shortLabel ?? tab.label;
+
+						if (locked) {
+							return (
+								<span
+									key={tab.to}
+									title="Available once your application is approved"
+									aria-disabled="true"
+									className="flex flex-col items-center justify-center gap-1 text-warm-300 cursor-not-allowed select-none"
+								>
+									<Glyph shape={tab.glyph} color="#d6c9b8" size={18} />
+									<span className="text-[10.5px]">{label}</span>
+								</span>
+							);
+						}
+
+						return (
+							<NavLink
+								key={tab.to}
+								to={tab.to}
+								end={tab.end}
+								className="flex flex-col items-center justify-center gap-1"
+								aria-current={active ? 'page' : undefined}
+							>
+								<Glyph shape={tab.glyph} color={active ? '#c47420' : '#9e8b78'} size={18} />
+								<span
+									className="text-[10.5px]"
+									style={{ color: active ? '#c47420' : '#9e8b78', fontWeight: active ? 600 : 400 }}
+								>
+									{label}
+								</span>
+							</NavLink>
+						);
+					})}
+				</nav>
 			</div>
 		</div>
 	);
