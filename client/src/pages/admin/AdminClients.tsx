@@ -12,7 +12,7 @@ import {
 	StageBadge,
 } from '@/components/ui';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import type { Client, ClientStage } from '@paw-registry/shared';
+import type { Client, ClientStage, PaymentSummary } from '@paw-registry/shared';
 
 type Filter = 'all' | 'approved' | 'waitlisted' | 'rejected';
 
@@ -31,6 +31,7 @@ const WAITLIST_STAGES: ClientStage[] = ['waitlisted', 'puppy_reserved', 'puppy_b
 
 export function AdminClients() {
 	const [clients, setClients] = useState<Client[]>([]);
+	const [paymentSummaries, setPaymentSummaries] = useState<Record<string, PaymentSummary>>({});
 	const [filter, setFilter] = useState<Filter>('all');
 	const [loading, setLoading] = useState(true);
 
@@ -40,6 +41,13 @@ export function AdminClients() {
 		api.clients.admin.get({ query: {} }).then(({ data }) => {
 			if (data) setClients(data as Client[]);
 			setLoading(false);
+		});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		(api.payments.admin as any).summaries.get().then(({ data }: { data: PaymentSummary[] | null }) => {
+			if (!data) return;
+			const map: Record<string, PaymentSummary> = {};
+			for (const s of data) map[s.clientId] = s;
+			setPaymentSummaries(map);
 		});
 	}, []);
 
@@ -106,10 +114,10 @@ export function AdminClients() {
 						<table className="w-full">
 							<thead>
 								<tr>
-									{['Client', 'Stage', 'Deposit', 'City', 'Applied', 'Priority', ''].map((h, i) => (
+									{['Client', 'Stage', 'Deposit', 'Payment', 'City', 'Applied', 'Priority', ''].map((h, i) => (
 										<th
 											key={i}
-											className={`text-[10.5px] uppercase tracking-[0.08em] text-warm-400 font-medium px-4 py-3 text-left border-b border-black/[0.06] whitespace-nowrap ${i >= 2 && i <= 5 ? 'hidden md:table-cell' : ''}`}
+											className={`text-[10.5px] uppercase tracking-[0.08em] text-warm-400 font-medium px-4 py-3 text-left border-b border-black/[0.06] whitespace-nowrap ${i >= 2 && i <= 6 ? 'hidden md:table-cell' : ''}`}
 										>
 											{h}
 										</th>
@@ -118,7 +126,7 @@ export function AdminClients() {
 							</thead>
 							<tbody>
 								{sorted.map((c) => (
-									<ClientRow key={c.id} client={c} rank={waitlistRankById.get(c.id)} />
+									<ClientRow key={c.id} client={c} rank={waitlistRankById.get(c.id)} summary={paymentSummaries[c.id]} />
 								))}
 							</tbody>
 						</table>
@@ -129,7 +137,7 @@ export function AdminClients() {
 	);
 }
 
-function ClientRow({ client: c, rank }: { client: Client; rank?: number }) {
+function ClientRow({ client: c, rank, summary }: { client: Client; rank?: number; summary?: PaymentSummary }) {
 	const isWaitlist = (WAITLIST_STAGES as string[]).includes(c.stage);
 	const name = `${c.firstName} ${c.lastName}`;
 	return (
@@ -146,6 +154,9 @@ function ClientRow({ client: c, rank }: { client: Client; rank?: number }) {
 			<td className="px-4 py-3"><StageBadge stage={c.stage} size="sm" /></td>
 			<td className="hidden md:table-cell px-4 py-3">
 				<DepositPill status={c.depositStatus} tier={c.depositTier} />
+			</td>
+			<td className="hidden md:table-cell px-4 py-3">
+				<PaymentProgressCell summary={summary} stage={c.stage} />
 			</td>
 			<td className="hidden md:table-cell px-4 py-3 text-[12.5px] text-warm-700">
 				{c.city ?? <span className="text-warm-300">—</span>}
@@ -168,5 +179,34 @@ function ClientRow({ client: c, rank }: { client: Client; rank?: number }) {
 				</Link>
 			</td>
 		</tr>
+	);
+}
+
+function PaymentProgressCell({ summary, stage }: { summary?: PaymentSummary; stage: string }) {
+	if (!summary || summary.totalPriceRands == null) {
+		return <span className="text-warm-300 text-xs">—</span>;
+	}
+	if (stage === 'puppy_fully_paid') {
+		return <span className="text-[11.5px] font-medium text-green-700">Paid in full</span>;
+	}
+	const paid = summary.alreadyPaid;
+	const total = summary.totalPriceRands;
+	const pct = total > 0 ? Math.min(100, (paid / total) * 100) : 0;
+	return (
+		<div className="min-w-[110px]">
+			<p className="text-[11.5px] text-warm-700 tabular-nums whitespace-nowrap">
+				R{paid.toLocaleString()}{' '}
+				<span className="text-warm-400">/ R{total.toLocaleString()}</span>
+				{summary.overdueCount > 0 && (
+					<span
+						className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 ml-1.5 align-middle"
+						title={`${summary.overdueCount} overdue`}
+					/>
+				)}
+			</p>
+			<div className="mt-1 h-[3px] rounded-full bg-warm-200 overflow-hidden">
+				<div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
+			</div>
+		</div>
 	);
 }
