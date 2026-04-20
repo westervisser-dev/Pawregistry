@@ -219,6 +219,42 @@ export function AdminDashboard() {
 		tone: string;
 	};
 
+	const hoursLeft = (exp: string | null | undefined) =>
+		exp ? Math.max(0, Math.ceil((new Date(exp).getTime() - Date.now()) / 3_600_000)) : null;
+
+	const reservationItems = allClients
+		.filter((c) => c.stage === 'puppy_reserved')
+		.map((c) => {
+			const payment = awaitingPayment.find((a) => a.clientId === c.id);
+			const h = hoursLeft(payment?.bookingExpiresAt);
+			const name = `${c.firstName} ${c.lastName}`;
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const puppy = c.puppyId ? allLitters.flatMap((l) => (l as any).puppies ?? []).find((p: any) => p.id === c.puppyId) : null;
+			const collar = puppy?.collarColour
+				? `${puppy.collarColour[0].toUpperCase()}${puppy.collarColour.slice(1)} collar`
+				: null;
+			const detail = collar ?? payment?.litterName ?? null;
+			const timeSuffix = h !== null ? ` — ${h}h left` : '';
+			return {
+				id: c.id,
+				name: `${name}${detail ? ' · ' + detail : ''}${timeSuffix}`,
+				link: `/admin/clients/${c.id}#stage`,
+				hoursLeft: h,
+				detail,
+				clientName: name,
+				litterId: payment?.litterId ?? null,
+			};
+		});
+
+	// Drop the litter-level roll-up when it's fully covered by the merged reservation chip.
+	const reservationsByLitter = new Map<string, number>();
+	for (const r of reservationItems) {
+		if (r.litterId) reservationsByLitter.set(r.litterId, (reservationsByLitter.get(r.litterId) ?? 0) + 1);
+	}
+	const uncoveredPendingReservations = pendingReservations.filter(
+		(l) => (reservationsByLitter.get(l.id) ?? 0) < l.pendingCount
+	);
+
 	const attentionGroups: AttentionGroup[] = [
 		{
 			key: 'review_application',
@@ -233,16 +269,20 @@ export function AdminDashboard() {
 			tone: '#1e5b8a',
 		},
 		{
-			key: 'puppy_reserved',
-			items: allClients.filter((c) => c.stage === 'puppy_reserved').map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName}`, link: `/admin/clients/${c.id}#stage` })),
-			label: (n) => `${n} ${n === 1 ? 'puppy reserved awaiting' : 'puppies reserved awaiting'} booking`,
+			key: 'reservations_in_window',
+			items: reservationItems.map(({ id, name, link }) => ({ id, name, link })),
+			label: (n) => {
+				if (n === 1) {
+					const item = reservationItems[0];
+					const h = item?.hoursLeft;
+					const parenthetical = item?.clientName
+						? ` (${item.clientName}${item.detail ? ' · ' + item.detail : ''})`
+						: '';
+					return `1 reservation awaiting payment${h !== null ? ` — ${h}h left` : ''}${parenthetical}`;
+				}
+				return `${n} reservations awaiting payment`;
+			},
 			tone: '#8d2a4a',
-		},
-		{
-			key: 'awaiting_payment',
-			items: awaitingPayment.map((a) => ({ id: a.clientId, name: `${a.clientName} — ${a.litterName}`, link: `/admin/litters/${a.litterId}` })),
-			label: (n) => `${n} ${n === 1 ? 'booking payment due' : 'booking payments due'}`,
-			tone: '#c47420',
 		},
 		{
 			key: 'needs_payment_plan',
@@ -252,7 +292,7 @@ export function AdminDashboard() {
 		},
 		{
 			key: 'pending_reservations',
-			items: pendingReservations.map((l) => ({ id: l.id, name: `${l.name} (${l.pendingCount} pending)`, link: `/admin/litters/${l.id}` })),
+			items: uncoveredPendingReservations.map((l) => ({ id: l.id, name: `${l.name} (${l.pendingCount} pending)`, link: `/admin/litters/${l.id}` })),
 			label: (n) => `${n} ${n === 1 ? 'litter has' : 'litters have'} pending reservations`,
 			tone: '#4a6741',
 		},

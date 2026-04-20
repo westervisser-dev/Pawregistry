@@ -113,30 +113,17 @@ function ClientActionCenter({
 	pendingNotifications,
 	pendingBookingPayment,
 	pendingDepositPayment,
+	dismissed,
+	dismiss,
 }: {
 	client: Client;
 	templates: TemplateItem[] | null;
 	pendingNotifications: PendingNotification[];
 	pendingBookingPayment: { amountRands: number; expiresAt: string | null; authorizationUrl: string | null; paymentType: 'booking' | 'final'; isInstalment: boolean; instalmentIndex: number | null; instalmentTotal: number | null; dueDate: string | null } | null;
 	pendingDepositPayment: { amountRands: number; authorizationUrl: string | null } | null;
+	dismissed: Set<string>;
+	dismiss: (key: string) => void;
 }) {
-	const [dismissed, setDismissed] = useState<Set<string>>(() => {
-		try {
-			const raw = localStorage.getItem('dismissed_litter_notifications');
-			return new Set(raw ? JSON.parse(raw) : []);
-		} catch {
-			return new Set();
-		}
-	});
-
-	function dismiss(key: string) {
-		setDismissed((prev) => {
-			const next = new Set(prev);
-			next.add(key);
-			try { localStorage.setItem('dismissed_litter_notifications', JSON.stringify([...next])); } catch { /* ignore */ }
-			return next;
-		});
-	}
 
 	const actions: Action[] = [];
 
@@ -579,13 +566,16 @@ function greetingTitle(stage: string, firstName: string, daysLeft: number | null
 	return `Welcome back, ${firstName}.`;
 }
 
-function greetingSubtitle(stage: string, daysLeft: number | null, position: number | null): string {
+function greetingSubtitle(stage: string, daysLeft: number | null, position: number | null, activeLitterNotification: PendingNotification | null): string {
 	if (stage === 'puppy_fully_paid' || (stage === 'puppy_booked' && daysLeft !== null && daysLeft <= 7)) {
 		return 'Bring the items from the go-home checklist. We\'ll be in touch to confirm the exact time.';
 	}
 	if (stage === 'puppy_booked') return 'Everything is on track. Here\'s where your booking stands and the latest from the litter.';
 	if (stage === 'puppy_reserved') return 'Complete your booking payment within 24 hours to secure your selection.';
 	if (stage === 'waitlisted') {
+		if (activeLitterNotification) {
+			return `A matching litter is ready — pick your puppy from ${activeLitterNotification.litterName}.`;
+		}
 		return position
 			? `You're #${position} on the waitlist. We'll let you know as soon as a matching puppy is available.`
 			: 'You\'re on the waitlist. We\'ll let you know as soon as a matching puppy is available.';
@@ -672,7 +662,7 @@ function ReservedHero({ puppy, expiresAt }: { puppy: PuppyWithImages | null; exp
 	);
 }
 
-function WaitlistedHero({ client, position, total }: { client: Client; position: number | null; total: number | null }) {
+function WaitlistedHero({ client, position, total, activeLitterNotification }: { client: Client; position: number | null; total: number | null; activeLitterNotification: PendingNotification | null }) {
 	const displayPos = position ?? client.priority;
 	return (
 		<div className="rounded-[16px] border border-black/[0.05] bg-white p-6 md:p-8">
@@ -682,7 +672,9 @@ function WaitlistedHero({ client, position, total }: { client: Client; position:
 				{total !== null && <div className="text-[13px] text-warm-500">of {total} on the waitlist</div>}
 			</div>
 			<p className="text-[13.5px] text-warm-600 mt-4 max-w-[480px] leading-relaxed">
-				We'll invite you to a selection day as soon as a matching litter becomes available.
+				{activeLitterNotification
+					? <>A matching litter is ready! <Link to={`/portal/litters/${activeLitterNotification.litterId}`} className="text-[#c47420] font-medium hover:underline">Pick your puppy from {activeLitterNotification.litterName} →</Link></>
+					: 'We\'ll invite you to a selection day as soon as a matching litter becomes available.'}
 			</p>
 		</div>
 	);
@@ -982,6 +974,23 @@ export function PortalDashboard() {
 
 	usePageTitle('Dashboard');
 
+	const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(() => {
+		try {
+			const raw = localStorage.getItem('dismissed_litter_notifications');
+			return new Set(raw ? JSON.parse(raw) : []);
+		} catch {
+			return new Set();
+		}
+	});
+	const dismissNotification = useCallback((key: string) => {
+		setDismissedNotifications((prev) => {
+			const next = new Set(prev);
+			next.add(key);
+			try { localStorage.setItem('dismissed_litter_notifications', JSON.stringify([...next])); } catch { /* ignore */ }
+			return next;
+		});
+	}, []);
+
 	const loadClient = useCallback((isInitial = false) => {
 		api.clients.me.get().then(({ data }) => {
 			if (!mountedRef.current) return;
@@ -1112,6 +1121,8 @@ export function PortalDashboard() {
 		if (!client.puppyId || !assignedLitter) return null;
 		return assignedLitter.puppies.find((p) => p.id === client.puppyId) ?? null;
 	})();
+	const activeLitterNotification = pendingNotifications.find((n) => !dismissedNotifications.has(n.litterId)) ?? null;
+
 	const litter: Litter | null = assignedLitter;
 	const daysLeft = daysUntil(litter?.goHomeDate);
 	const isPickupWeek =
@@ -1130,7 +1141,7 @@ export function PortalDashboard() {
 					{greetingTitle(client.stage, client.firstName, isPickupWeek ? daysLeft : daysLeft, puppy?.collarColour ?? null)}
 				</h1>
 				<p className="text-[13.5px] md:text-[14.5px] text-warm-600 mt-2 max-w-[560px]">
-					{greetingSubtitle(client.stage, daysLeft, waitlistPosition?.position ?? client.priority ?? null)}
+					{greetingSubtitle(client.stage, daysLeft, waitlistPosition?.position ?? client.priority ?? null, activeLitterNotification)}
 				</p>
 			</div>
 
@@ -1142,6 +1153,8 @@ export function PortalDashboard() {
 					pendingNotifications={pendingNotifications}
 					pendingBookingPayment={pendingBookingPayment}
 					pendingDepositPayment={pendingDepositPayment}
+					dismissed={dismissedNotifications}
+					dismiss={dismissNotification}
 				/>
 			</div>
 
@@ -1165,6 +1178,7 @@ export function PortalDashboard() {
 								client={client}
 								position={waitlistPosition?.position ?? null}
 								total={waitlistPosition?.total ?? null}
+								activeLitterNotification={activeLitterNotification}
 							/>
 						)}
 						{client.stage === 'approved' && <ApprovedHero templates={templates} />}
