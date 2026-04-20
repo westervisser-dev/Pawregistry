@@ -568,7 +568,7 @@ function greetingTitle(stage: string, firstName: string, daysLeft: number | null
 
 function greetingSubtitle(stage: string, daysLeft: number | null, position: number | null, activeLitterNotification: PendingNotification | null): string {
 	if (stage === 'puppy_fully_paid' || (stage === 'puppy_booked' && daysLeft !== null && daysLeft <= 7)) {
-		return 'Bring the items from the go-home checklist. We\'ll be in touch to confirm the exact time.';
+		return 'Bring the items from the go-home checklist. We\'ll be in touch to confirm the exact details.';
 	}
 	if (stage === 'puppy_booked') return 'Everything is on track. Here\'s where your booking stands and the latest from the litter.';
 	if (stage === 'puppy_reserved') return 'Complete your booking payment within 24 hours to secure your selection.';
@@ -636,7 +636,7 @@ function PickupWeekHero({ puppy, litter }: { puppy: PuppyWithImages | null; litt
 				{litter.goHomeDate ? `${longDate(litter.goHomeDate)} is go-home day.` : 'Pickup week is here.'}
 			</div>
 			<p className="text-[13.5px] text-[#3f5a36] mt-3 max-w-[520px]">
-				{puppy ? `${puppy.collarColour} collar is ready.` : 'Your puppy is ready.'} We'll be in touch to confirm the exact time.
+				Your pup is ready. We'll be in touch to confirm the exact details.
 			</p>
 		</div>
 	);

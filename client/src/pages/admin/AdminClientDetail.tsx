@@ -1563,7 +1563,7 @@ function FinalPaymentModal(props: FinalPaymentModalProps) {
 									// eslint-disable-next-line @typescript-eslint/no-explicit-any
 									const { error: apiErr } = await (api.payments as any).final({ clientId: client.id }).instalments.post({
 										amounts,
-										dueDates: instalmentDueDates.map((d) => d || null),
+										dueDates: Array.from({ length: amounts.length }, (_, i) => instalmentDueDates[i] || null),
 										...(paymentSummary?.totalPriceRands == null && finalPrice ? { totalPriceRands: Number(finalPrice) } : {}),
 									});
 									if (apiErr) setFinalError('Failed to create instalment plan. Please try again.');

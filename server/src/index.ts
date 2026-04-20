@@ -85,6 +85,7 @@ const app = new Elysia()
 		// Don't report 4xx client errors — only unexpected server faults
 		const status = error instanceof Error && 'status' in error ? (error as { status: number }).status : 500;
 		if (status >= 500) {
+			console.error(`[onError] ${request.method} ${request.url}`, error);
 			Sentry.captureException(error, {
 				extra: { url: request.url, method: request.method },
 			});
