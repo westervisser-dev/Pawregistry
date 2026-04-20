@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { api } from '@/lib/api';
-import { LoadingPage, Card, PageHeader, Badge, PuppyStatusBadge, EmptyState } from '@/components/ui';
+import { LoadingPage, Card, PageHeader, Badge, PuppyStatusBadge, EmptyState, Segmented } from '@/components/ui';
 import type { Litter, LitterImage, LitterStatus, MatchingClient, PuppyImage, PaymentSummary } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES, buildBreedSize, parseBreedSize, getBreedSizeLabel } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
@@ -10,6 +11,26 @@ const COLLAR_COLOURS = [
 	'aqua', 'black', 'blue', 'gray', 'green', 'lime', 'maroon', 'navy',
 	'olive', 'orange', 'pink', 'purple', 'red', 'silver', 'white', 'yellow',
 ];
+
+const LITTER_STATUS_STYLE: Record<LitterStatus, { bg: string; fg: string; dot: string; label: string }> = {
+	planned:   { bg: '#fef3e7', fg: '#a35c17', dot: '#d98e3a', label: 'Planned' },
+	available: { bg: '#e5ecf2', fg: '#1e5b8a', dot: '#2f78a9', label: 'Available' },
+	booked:    { bg: '#e8dff0', fg: '#5a2d83', dot: '#7a47a8', label: 'Booked' },
+	completed: { bg: '#e4ebe0', fg: '#3e5a2a', dot: '#5a7a3f', label: 'Completed' },
+};
+
+function LitterStatusPill({ status }: { status: LitterStatus }) {
+	const s = LITTER_STATUS_STYLE[status];
+	return (
+		<span
+			className="inline-flex items-center gap-1.5 rounded-full font-medium px-2.5 py-[4px] text-[11px]"
+			style={{ background: s.bg, color: s.fg }}
+		>
+			<span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} aria-hidden="true" />
+			{s.label}
+		</span>
+	);
+}
 
 function NotifyTimer({ since, variant = 'blue', label }: { since: string; variant?: 'blue' | 'amber'; label?: string }) {
 	const [elapsed, setElapsed] = useState(() => Date.now() - new Date(since).getTime());
@@ -933,25 +954,37 @@ export function AdminLitterDetail() {
 	const statuses = ['planned', 'available', 'completed'];
 
 	return (
-		<div className="p-4 md:p-8 max-w-4xl">
-			<PageHeader
-				title={litter.name}
-				subtitle={[
-					`${(litter as typeof litter & { sire: Dog }).sire?.name ?? '—'} × ${(litter as typeof litter & { dam: Dog }).dam?.name ?? '—'}`,
-					litter.breed ? getBreedSizeLabel(litter.breed) : null,
-				].filter(Boolean).join(' · ')}
-				action={
-					<button onClick={() => navigate('/admin/litters')} className="text-sm text-warm-500 hover:text-warm-700">
-						← Back
-					</button>
-				}
-			/>
+		<div className="p-5 md:p-8 max-w-[1440px]">
+			<Link to="/admin/litters" className="inline-flex items-center gap-1.5 text-[12.5px] text-warm-500 hover:text-warm-800 mb-4">
+				<ArrowLeft size={13} aria-hidden="true" /> All litters
+			</Link>
+
+			<div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+				<div className="min-w-0">
+					<div className="flex items-center gap-3 mb-2">
+						<LitterStatusPill status={litter.status} />
+						{!litter.isPublic && (
+							<span className="inline-flex items-center px-2 py-[3px] rounded-full text-[10.5px] font-medium bg-warm-900/10 text-warm-700">
+								Private
+							</span>
+						)}
+					</div>
+					<h1 className="font-serif text-[30px] text-warm-900 leading-tight truncate">{litter.name}</h1>
+					<p className="text-[13px] text-warm-500 mt-1">
+						{[
+							`${(litter as typeof litter & { sire: Dog }).sire?.name ?? '—'} × ${(litter as typeof litter & { dam: Dog }).dam?.name ?? '—'}`,
+							litter.breed ? getBreedSizeLabel(litter.breed) : null,
+						].filter(Boolean).join(' · ')}
+					</p>
+				</div>
+			</div>
+
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
 				<Card className="p-6 md:col-span-2">
 					<div className="flex items-center justify-between mb-4">
-						<h3 className="font-semibold text-warm-800">Gallery</h3>
+						<h3 className="font-serif text-[15px] text-warm-900">Gallery</h3>
 						<span className="text-xs text-warm-400">{galleryImages.length}/30 photos</span>
 					</div>
 					<div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
@@ -1019,23 +1052,13 @@ export function AdminLitterDetail() {
 				</Card>
 
 				<Card className="p-6">
-					<h3 className="font-semibold text-warm-800 mb-4">Status</h3>
-					<div className="flex flex-wrap gap-2">
-						{statuses.map((s) => (
-							<button
-								key={s}
-								onClick={() => updateStatus(s)}
-								disabled={saving}
-								className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-									litter.status === s
-										? 'bg-brand-500 text-white'
-										: 'bg-warm-100 text-warm-600 hover:bg-warm-200'
-								}`}
-							>
-								{s.charAt(0).toUpperCase() + s.slice(1)}
-							</button>
-						))}
-					</div>
+					<h3 className="font-serif text-[15px] text-warm-900 mb-3">Status</h3>
+					<Segmented
+						options={statuses.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+						value={litter.status}
+						onChange={(v) => !saving && updateStatus(v)}
+						ariaLabel="Litter status"
+					/>
 					<div className="mt-4 pt-4 border-t border-black/[0.05]">
 						<label className="flex items-center gap-3 cursor-pointer select-none">
 							<input
@@ -1050,7 +1073,7 @@ export function AdminLitterDetail() {
 				</Card>
 
 				<Card className="p-6">
-					<h3 className="font-semibold text-warm-800 mb-4">Details</h3>
+					<h3 className="font-serif text-[15px] text-warm-900 mb-4">Details</h3>
 					<div className="space-y-2 text-sm">
 						<div className="flex justify-between items-start">
 							<span className="text-warm-500 pt-1">Reserve date<span className="text-red-400 ml-0.5">*</span></span>
@@ -1206,7 +1229,7 @@ export function AdminLitterDetail() {
 			</div>
 
 			<Card className="p-6 mb-6">
-				<h3 className="font-semibold text-warm-800 mb-4">Puppies ({litter.puppies.length})</h3>
+				<h3 className="font-serif text-[15px] text-warm-900 mb-4">Puppies ({litter.puppies.length})</h3>
 				{litter.puppies.length === 0 ? (
 					<EmptyState icon="🐶" title="No puppies recorded yet" />
 				) : (
@@ -1519,7 +1542,7 @@ export function AdminLitterDetail() {
 			{/* Potential Clients */}
 			<Card className="p-6 mb-6">
 				<div className="flex items-center justify-between mb-3">
-					<h3 className="text-base font-bold text-warm-900">Potential Clients</h3>
+					<h3 className="font-serif text-[15px] text-warm-900">Potential Clients</h3>
 					{(litterInterested.length > 0 || matchingClients.length > 0 || masterListClients.length > 0) && (
 						<span className="text-xs font-medium text-warm-500">{litterInterested.length + dedupedMatchingClients.length + dedupedMasterListClients.length} match{litterInterested.length + dedupedMatchingClients.length + dedupedMasterListClients.length !== 1 ? 'es' : ''}</span>
 					)}

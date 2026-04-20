@@ -1,177 +1,154 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { api } from '@/lib/api';
-import { LoadingPage, PageHeader } from '@/components/ui';
-import type { Client, ClientStage, PaymentSummary } from '@paw-registry/shared';
-import { ClientDndTable, ClientReadTable, type ClientAction } from './_shared';
+import {
+	Avatar,
+	Card,
+	DepositPill,
+	LoadingPage,
+	PageHeader,
+	Segmented,
+	StageBadge,
+} from '@/components/ui';
 import { usePageTitle } from '@/hooks/usePageTitle';
+import type { Client, ClientStage } from '@paw-registry/shared';
 
-const PRE_WAITLIST_STAGES: ClientStage[] = ['enquired', 'approved', 'rejected'];
+type Filter = 'all' | 'approved' | 'waitlisted' | 'rejected';
+
+// Stage order: new work at top → finished → rejected last
+const STAGE_RANK: Record<ClientStage, number> = {
+	enquired: 0,
+	approved: 1,
+	waitlisted: 2,
+	puppy_reserved: 3,
+	puppy_booked: 4,
+	puppy_fully_paid: 5,
+	rejected: 6,
+};
+
+const WAITLIST_STAGES: ClientStage[] = ['waitlisted', 'puppy_reserved', 'puppy_booked'];
 
 export function AdminClients() {
 	const [clients, setClients] = useState<Client[]>([]);
-	const [stage, setStage] = useState('');
+	const [filter, setFilter] = useState<Filter>('all');
 	const [loading, setLoading] = useState(true);
-	const [actionMap, setActionMap] = useState<Record<string, ClientAction>>({});
-	const [paymentSummaries, setPaymentSummaries] = useState<Record<string, PaymentSummary>>({});
 
 	usePageTitle('Clients');
 
-	const load = (s: string) => {
-		setLoading(true);
-		api.clients.admin.get({ query: s ? { stage: s as Client['stage'] } : {} }).then(({ data }) => {
-			if (data) setClients((data as Client[]).sort((a, b) => a.priority - b.priority));
-			setLoading(false);
-		});
-	};
-
-	// Fetch attention flags + payment summaries once on mount
 	useEffect(() => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(api.clients.admin as any).attention.get().then(({ data }: { data: { docsCompleteIds: string[] } | null }) => {
-			if (!data) return;
-			const map: Record<string, ClientAction> = {};
-			for (const id of data.docsCompleteIds) map[id] = 'review_documents';
-			setActionMap(map);
-		});
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(api.payments.admin as any).summaries.get().then(({ data }: { data: PaymentSummary[] | null }) => {
-			if (!data) return;
-			const map: Record<string, PaymentSummary> = {};
-			for (const s of data) map[s.clientId] = s;
-			setPaymentSummaries(map);
+		api.clients.admin.get({ query: {} }).then(({ data }) => {
+			if (data) setClients(data as Client[]);
+			setLoading(false);
 		});
 	}, []);
 
-	useEffect(() => { load(''); }, []);
+	const counts = useMemo(() => ({
+		all: clients.length,
+		approved: clients.filter((c) => c.stage === 'approved').length,
+		waitlisted: clients.filter((c) => c.stage === 'waitlisted').length,
+		rejected: clients.filter((c) => c.stage === 'rejected').length,
+	}), [clients]);
 
-	const stages: Array<Client['stage'] | ''> = [
-		'', 'enquired', 'approved', 'rejected',
-		'waitlisted', 'puppy_reserved', 'puppy_booked', 'puppy_fully_paid',
+	const sorted = useMemo(() => {
+		const filtered = filter === 'all'
+			? clients
+			: clients.filter((c) => c.stage === filter);
+		return [...filtered].sort((a, b) => {
+			const rankDiff = (STAGE_RANK[a.stage] ?? 99) - (STAGE_RANK[b.stage] ?? 99);
+			if (rankDiff !== 0) return rankDiff;
+			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+		});
+	}, [clients, filter]);
+
+	const options: { value: Filter; label: string; count: number }[] = [
+		{ value: 'all', label: 'All', count: counts.all },
+		{ value: 'approved', label: 'Approved', count: counts.approved },
+		{ value: 'waitlisted', label: 'Waitlisted', count: counts.waitlisted },
+		{ value: 'rejected', label: 'Rejected', count: counts.rejected },
 	];
 
-	const stageLabels: Record<string, string> = {
-		'': 'All',
-		enquired: 'Enquired',
-		approved: 'Approved',
-		rejected: 'Rejected',
-		waitlisted: 'Waitlisted',
-		puppy_reserved: 'Puppy Reserved',
-		puppy_booked: 'Puppy Booked',
-		puppy_fully_paid: 'Puppy Booked & Paid',
-	};
-
-	// Derive per-client action badge — priority: review_documents > review_application
-	const getAction = (c: Client): ClientAction | undefined => {
-		if (actionMap[c.id] === 'review_documents') return 'review_documents';
-		if (c.stage === 'enquired') return 'review_application';
-		return undefined;
-	};
-
-	const computedActionMap = Object.fromEntries(
-		clients.flatMap((c) => {
-			const a = getAction(c);
-			return a ? [[c.id, a]] : [];
-		}),
-	) as Record<string, ClientAction>;
-
-	// Active queue: all stages from waitlisted through puppy_booked (position persists until puppy_fully_paid)
-	const ACTIVE_QUEUE_STAGES = ['waitlisted', 'puppy_reserved', 'puppy_booked'];
-	const queueClients = clients.filter((c) => (ACTIVE_QUEUE_STAGES as string[]).includes(c.stage));
-	const depositQueueClients = queueClients
-		.filter((c) => c.depositStatus === 'paid')
-		.sort((a, b) => {
-			// R5000 before R500
-			if (a.depositTier !== b.depositTier) {
-				if (a.depositTier === 'r5000') return -1;
-				if (b.depositTier === 'r5000') return 1;
-			}
-			// Within same tier: oldest depositChosenAt first
-			const aTime = a.depositChosenAt ? new Date(a.depositChosenAt).getTime() : new Date(a.createdAt).getTime();
-			const bTime = b.depositChosenAt ? new Date(b.depositChosenAt).getTime() : new Date(b.createdAt).getTime();
-			return aTime - bTime;
-		});
-	const noDepositQueueClients = queueClients.filter((c) => !c.depositStatus || c.depositStatus === 'none');
-	const notYetWaitlistedClients = clients.filter((c) => (PRE_WAITLIST_STAGES as string[]).includes(c.stage));
-	const completedClients = clients.filter((c) => c.stage === 'puppy_fully_paid');
-
-	const handleDepositReorder = async (newOrder: Client[]) => {
-		const waitlistOnly = [...newOrder, ...noDepositQueueClients];
-		setClients([...waitlistOnly, ...notYetWaitlistedClients]);
-		await api.clients.admin.waitlist.reorder.patch({
-			order: waitlistOnly.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
-		});
-	};
-
-	const handleNoDepositReorder = async (newOrder: Client[]) => {
-		const waitlistOnly = [...depositQueueClients, ...newOrder];
-		setClients([...waitlistOnly, ...notYetWaitlistedClients]);
-		await api.clients.admin.waitlist.reorder.patch({
-			order: waitlistOnly.map((c, i) => ({ id: c.id, priority: (i + 1) * 10 })),
-		});
-	};
-
 	return (
-		<div className="p-4 md:p-8">
-			<PageHeader title="Clients" subtitle="All applications and client relationships." />
+		<div className="p-5 md:p-8 max-w-[1600px]">
+			<PageHeader title="Clients" subtitle="All enquiries, applicants, and placed families." />
 
-			{/* Mobile: dropdown */}
-			<div className="md:hidden relative z-10 mb-6">
-				<select
-					className="w-full px-3 py-2.5 rounded-lg border border-warm-200 bg-white text-sm text-warm-700 focus:outline-none focus:ring-2 focus:ring-brand-300 appearance-none"
-					value={stage}
-					onChange={(e) => { const s = e.target.value; setStage(s); load(s); }}
-				>
-					{stages.map((s) => (
-						<option key={s || 'all'} value={s}>{stageLabels[s]}</option>
-					))}
-				</select>
-			</div>
-			{/* Desktop: pills */}
-			<div className="hidden md:flex gap-2 mb-6 flex-wrap">
-				{stages.map((s) => (
-					<button
-						key={s || 'all'}
-						onClick={() => { setStage(s); load(s); }}
-						className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-							stage === s ? 'bg-brand-500 text-white' : 'bg-warm-100 text-warm-600 hover:bg-warm-200'
-						}`}
-					>
-						{stageLabels[s]}
-					</button>
-				))}
+			<div className="mb-4">
+				<Segmented options={options} value={filter} onChange={setFilter} ariaLabel="Filter clients by stage" />
 			</div>
 
-			{loading ? <LoadingPage /> : (
-				<div className="flex flex-col gap-8">
-					<ClientDndTable
-						title="Waitlisted — Deposit"
-						clients={depositQueueClients}
-						onReorder={handleDepositReorder}
-						actionMap={computedActionMap}
-						paymentSummaries={paymentSummaries}
-					/>
-					<ClientDndTable
-						title="Waitlisted — No Deposit"
-						clients={noDepositQueueClients}
-						onReorder={handleNoDepositReorder}
-						startIndex={depositQueueClients.length}
-						actionMap={computedActionMap}
-						paymentSummaries={paymentSummaries}
-					/>
-					<ClientReadTable
-						title="Not Yet Waitlisted"
-						clients={notYetWaitlistedClients}
-						actionMap={computedActionMap}
-						paymentSummaries={paymentSummaries}
-					/>
-					<ClientReadTable
-						title="Completed"
-						clients={completedClients}
-						actionMap={computedActionMap}
-						paymentSummaries={paymentSummaries}
-					/>
-				</div>
+			{loading ? (
+				<LoadingPage />
+			) : sorted.length === 0 ? (
+				<Card>
+					<p className="px-[22px] py-10 text-center text-sm text-warm-400">No clients match this filter.</p>
+				</Card>
+			) : (
+				<Card>
+					<div className="overflow-x-auto">
+						<table className="w-full">
+							<thead>
+								<tr>
+									{['Client', 'Stage', 'Deposit', 'City', 'Applied', 'Priority', ''].map((h, i) => (
+										<th
+											key={i}
+											className={`text-[10.5px] uppercase tracking-[0.08em] text-warm-400 font-medium px-4 py-3 text-left border-b border-black/[0.06] whitespace-nowrap ${i >= 2 && i <= 5 ? 'hidden md:table-cell' : ''}`}
+										>
+											{h}
+										</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{sorted.map((c) => (
+									<ClientRow key={c.id} client={c} />
+								))}
+							</tbody>
+						</table>
+					</div>
+				</Card>
 			)}
 		</div>
+	);
+}
+
+function ClientRow({ client: c }: { client: Client }) {
+	const isWaitlist = (WAITLIST_STAGES as string[]).includes(c.stage);
+	const name = `${c.firstName} ${c.lastName}`;
+	return (
+		<tr className="border-b border-black/[0.04] last:border-0 hover:bg-warm-50 transition-colors">
+			<td className="px-4 py-3">
+				<Link to={`/admin/clients/${c.id}`} className="flex items-center gap-3">
+					<Avatar name={name} size={34} />
+					<div className="min-w-0">
+						<div className="text-[13.5px] font-medium text-warm-900 truncate">{name}</div>
+						<div className="text-[11.5px] text-warm-500 truncate">{c.email}</div>
+					</div>
+				</Link>
+			</td>
+			<td className="px-4 py-3"><StageBadge stage={c.stage} size="sm" /></td>
+			<td className="hidden md:table-cell px-4 py-3">
+				<DepositPill status={c.depositStatus} tier={c.depositTier} />
+			</td>
+			<td className="hidden md:table-cell px-4 py-3 text-[12.5px] text-warm-700">
+				{c.city ?? <span className="text-warm-300">—</span>}
+			</td>
+			<td className="hidden md:table-cell px-4 py-3 text-[12.5px] text-warm-500 tabular-nums whitespace-nowrap">
+				{new Date(c.createdAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: '2-digit' })}
+			</td>
+			<td className="hidden md:table-cell px-4 py-3">
+				{isWaitlist ? (
+					<span className="inline-block text-[11.5px] font-mono text-warm-600 bg-warm-100 rounded px-2 py-1 tabular-nums">
+						#{String(c.priority).padStart(2, '0')}
+					</span>
+				) : (
+					<span className="text-warm-300">—</span>
+				)}
+			</td>
+			<td className="px-4 py-3 text-right">
+				<Link to={`/admin/clients/${c.id}`} className="inline-flex items-center text-[12px] font-medium" style={{ color: '#c47420' }}>
+					Open <ChevronRight size={14} aria-hidden="true" />
+				</Link>
+			</td>
+		</tr>
 	);
 }
