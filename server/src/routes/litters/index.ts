@@ -4,7 +4,7 @@ import { db } from '../../db';
 import { litters, puppies, litterImages, puppyImages, clients, puppyInterests, clientActivity, litterNotifications, litterInterests, payments } from '../../db/schema';
 import { adminPlugin, authPlugin } from '../../lib/auth';
 import { supabase, uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
-import { sendLitterNotificationEmail, sendClientEmailWithVars, sendAdminNotification } from '../../lib/email';
+import { sendLitterNotificationEmail, sendClientEmailWithVars, sendAdminNotificationByTrigger } from '../../lib/email';
 import { initializeTransaction, generateReference } from '../../lib/paystack';
 import { parseBreedSize } from '@paw-registry/shared';
 
@@ -171,10 +171,12 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 					payment_type: 'booking',
 				}).catch(console.error);
 
-				sendAdminNotification(
-					`Puppy booked — ${client.firstName} ${client.lastName}`,
-					`${client.firstName} ${client.lastName} expressed interest in ${puppyName}. Puppy auto-booked as R5,000 deposit was already on file.\n\nView client: ${CLIENT_URL}/admin/clients/${client.id}`,
-				).catch(console.error);
+				sendAdminNotificationByTrigger('admin_puppy_auto_booked', {
+					first_name: client.firstName,
+					full_name: `${client.firstName} ${client.lastName}`,
+					puppy_name: puppyName,
+					admin_link: `${CLIENT_URL}/admin/clients/${client.id}`,
+				}).catch(console.error);
 
 				await syncLitterBookedStatus(puppy.litterId);
 
@@ -250,10 +252,13 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				credit_applied: alreadyPaidRands > 0 ? `R${alreadyPaidRands} deposit credit applied.` : '',
 			}).catch(console.error);
 
-			sendAdminNotification(
-				`Puppy interest — ${client.firstName} ${client.lastName}`,
-				`${client.firstName} ${client.lastName} has expressed interest in ${puppyName}.\n\nBooking payment of R${bookingAmountRands.toLocaleString()} required within 24h.\n\nView client: ${CLIENT_URL}/admin/clients/${client.id}`,
-			).catch(console.error);
+			sendAdminNotificationByTrigger('admin_puppy_interest', {
+				first_name: client.firstName,
+				full_name: `${client.firstName} ${client.lastName}`,
+				puppy_name: puppyName,
+				booking_amount: `R${bookingAmountRands.toLocaleString()}`,
+				admin_link: `${CLIENT_URL}/admin/clients/${client.id}`,
+			}).catch(console.error);
 
 			return { interest, requiresPayment: true, authorizationUrl, amountRands: bookingAmountRands };
 		}

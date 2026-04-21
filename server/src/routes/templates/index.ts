@@ -5,7 +5,7 @@ import { documentTemplates, clientTemplateChecklist, clients } from '../../db/sc
 import { adminPlugin, clientPlugin } from '../../lib/auth';
 import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
 import { logActivity } from '../../lib/activity';
-import { sendAdminNotification, sendClientEmail } from '../../lib/email';
+import { sendAdminNotificationByTrigger, sendClientEmail } from '../../lib/email';
 
 // Fires admin notification + client confirmation when all active templates have been uploaded
 async function checkAllDocsUploaded(
@@ -32,10 +32,12 @@ async function checkAllDocsUploaded(
 		);
 
 	if (Number(uploaded) >= Number(total)) {
-		sendAdminNotification(
-			`Documents ready to review — ${firstName} ${lastName}`,
-			`${firstName} ${lastName} (${email}) has uploaded all required documents and is ready for review.\n\nReview here: ${process.env.CLIENT_URL}/admin/clients/${clientId}`,
-		).catch(console.error);
+		sendAdminNotificationByTrigger('admin_documents_uploaded', {
+			first_name: firstName,
+			full_name: `${firstName} ${lastName}`,
+			email,
+			admin_link: `${process.env.CLIENT_URL}/admin/clients/${clientId}`,
+		}).catch(console.error);
 		sendClientEmail(clientId, 'docs_received').catch(console.error);
 	}
 }

@@ -132,11 +132,11 @@ export function AdminDashboard() {
 		return map;
 	}, [allClients]);
 
-	// ── Revenue last 6 months ──
+	// ── Revenue last 8 months ──
 	const revenueSeries = useMemo(() => {
 		const now = new Date();
 		const months: { label: string; ts: Date; total: number }[] = [];
-		for (let i = 5; i >= 0; i--) {
+		for (let i = 7; i >= 0; i--) {
 			const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
 			months.push({
 				label: d.toLocaleDateString('en-ZA', { month: 'short' }),
@@ -485,14 +485,14 @@ export function AdminDashboard() {
 					</Card>
 
 					<Card>
-						<CardHeader title="Revenue — last 6 months" />
+						<CardHeader title="Revenue — last 8 months" />
 						<div className="px-[22px] pb-5">
 							<RevenueChart series={revenueSeries} />
 							<div className="flex items-baseline justify-between mt-4">
 								<div>
 									<div className="font-serif text-[22px] text-warm-900">{formatRands(revenueTotal)}</div>
 									<div className="text-[11.5px] text-warm-500">
-										collected {revenueSeries[0]?.ts.toLocaleDateString('en-ZA', { month: 'short', year: '2-digit' })} – {revenueSeries[5]?.ts.toLocaleDateString('en-ZA', { month: 'short', year: '2-digit' })}
+										collected {revenueSeries[0]?.ts.toLocaleDateString('en-ZA', { month: 'short', year: '2-digit' })} – {revenueSeries[7]?.ts.toLocaleDateString('en-ZA', { month: 'short', year: '2-digit' })}
 									</div>
 								</div>
 							</div>

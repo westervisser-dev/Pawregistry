@@ -3,7 +3,7 @@ import { eq, asc, desc, max, sql, inArray, count, and, isNotNull } from 'drizzle
 import { db } from '../../db';
 import { clients, clientActivity, documentTemplates, clientTemplateChecklist, puppies, puppyInterests, litterInterests, litters, payments } from '../../db/schema';
 import { adminPlugin, clientPlugin } from '../../lib/auth';
-import { sendStageEmail, sendClientEmail, sendAdminNotification } from '../../lib/email';
+import { sendStageEmail, sendClientEmail, sendAdminNotificationByTrigger } from '../../lib/email';
 import { logActivity } from '../../lib/activity';
 import { initializeTransaction, generateReference } from '../../lib/paystack';
 
@@ -94,10 +94,13 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 			}).returning();
 
 			sendStageEmail(client.id, 'enquired').catch(console.error);
-			sendAdminNotification(
-				`New application — ${client.firstName} ${client.lastName}`,
-				`${client.firstName} ${client.lastName} (${client.email}) has submitted a new application.\n\nReview it here: ${process.env.CLIENT_URL}/admin/clients/${client.id}`,
-			).catch(console.error);
+			sendAdminNotificationByTrigger('admin_new_application', {
+				first_name: client.firstName,
+				full_name: `${client.firstName} ${client.lastName}`,
+				email: client.email,
+				city: client.city ?? '',
+				admin_link: `${process.env.CLIENT_URL}/admin/clients/${client.id}`,
+			}).catch(console.error);
 			logActivity(client.id, 'application_submitted', 'Application submitted', 'client');
 
 			// No deposit chosen — return without Paystack redirect
@@ -400,10 +403,12 @@ export const clientsRoutes = new Elysia({ prefix: '/clients' })
 				logActivity(params.id, 'stage_changed', `Stage changed from ${current.stage} to ${body.stage}`, 'admin', { from: current.stage, to: body.stage });
 				// Notify admin when a client has booked a puppy
 				if (body.stage === 'puppy_booked') {
-					sendAdminNotification(
-						`Puppy booked — ${updated.firstName} ${updated.lastName}`,
-						`${updated.firstName} ${updated.lastName} (${updated.email}) has booked a puppy.\n\nView client: ${process.env.CLIENT_URL}/admin/clients/${params.id}`,
-					).catch(console.error);
+					sendAdminNotificationByTrigger('admin_puppy_booked_stage', {
+						first_name: updated.firstName,
+						full_name: `${updated.firstName} ${updated.lastName}`,
+						email: updated.email,
+						admin_link: `${process.env.CLIENT_URL}/admin/clients/${params.id}`,
+					}).catch(console.error);
 				}
 			}
 			if (body.adminNotes !== undefined && current && body.adminNotes !== current.adminNotes) {
