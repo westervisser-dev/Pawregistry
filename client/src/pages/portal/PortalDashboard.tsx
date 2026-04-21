@@ -20,7 +20,7 @@ import type {
 	PuppyWithImages,
 	UpdateWithLitter,
 } from '@paw-registry/shared';
-import { BREEDS, BREED_SIZES, getBreedSizeLabel } from '@paw-registry/shared';
+import { BREEDS, BREED_SIZES, getBreedSizeLabel, parseBreedSize } from '@paw-registry/shared';
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -896,8 +896,57 @@ function WaitlistDepositCard({ client, paidRands }: { client: Client; paidRands:
 	);
 }
 
-function UpcomingLittersCard({ litters }: { litters: Litter[] }) {
-	if (litters.length === 0) {
+type ScoredLitter = Litter & { _score: number; _reason: string | null; _matched: boolean };
+
+function UpcomingLitterRow({ l }: { l: ScoredLitter }) {
+	const img = l.coverImageUrl;
+	const isLaunchedOpen = !!l.launchedAt && (l.availableCount ?? 0) > 0;
+	const isAvailable = l.status === 'available';
+	const statusLabel = isLaunchedOpen
+		? `Open · ${l.availableCount} available`
+		: isAvailable
+			? 'Opening soon'
+			: l.status === 'planned'
+				? `Planned · ${shortDate(l.selectionDate)}`
+				: 'Booked';
+	const statusStyle = isLaunchedOpen
+		? { background: '#c47420', color: '#ffffff' }
+		: { background: '#f5f0e8', color: '#7a6a58' };
+	return (
+		<Link to={`/portal/litters/${l.id}`} className="flex items-center gap-3 group">
+			{img
+				? <img src={img} alt="" className="w-11 h-11 rounded-[9px] object-cover flex-shrink-0" />
+				: <Placeholder className="w-11 h-11 rounded-[9px] flex-shrink-0" tone="warm" />}
+			<div className="min-w-0 flex-1">
+				{l._reason && (
+					<div className="text-[10.5px] uppercase tracking-[0.08em] text-[#c47420] font-semibold mb-[2px]">{l._reason}</div>
+				)}
+				<div className="text-[13px] font-medium text-warm-900 truncate group-hover:text-[#c47420] transition-colors">{l.name}</div>
+				<div className="text-[11.5px] text-warm-500 truncate">
+					{l.breed ? getBreedSizeLabel(l.breed) : 'TBD'}
+					{' · '}
+					{l.goHomeDate ? 'home ' + shortDate(l.goHomeDate) : 'selection ' + shortDate(l.selectionDate)}
+				</div>
+			</div>
+			<span
+				className="text-[11px] px-2 py-1 rounded-full flex-shrink-0 whitespace-nowrap"
+				style={statusStyle}
+			>
+				{statusLabel}
+			</span>
+		</Link>
+	);
+}
+
+function UpcomingLittersCard({ litters }: { litters: ScoredLitter[] }) {
+	const matched = litters.filter((l) => l._matched).slice(0, 3);
+	const unmatched = litters.filter((l) => !l._matched);
+	// If we have matches, fill with unmatched only if under 3
+	// If no matches, show up to 2 unmatched as a fallback
+	const showMatched = matched;
+	const showOther = matched.length === 0 ? unmatched.slice(0, 2) : [];
+
+	if (showMatched.length === 0 && showOther.length === 0) {
 		return (
 			<Card>
 				<div className="px-5 md:px-[22px] py-5">
@@ -917,38 +966,19 @@ function UpcomingLittersCard({ litters }: { litters: Litter[] }) {
 					<h3 className="text-[14px] font-medium text-warm-900">Litters to watch</h3>
 					<Link to="/portal/litters" className="text-[12.5px] text-[#c47420] font-medium">Browse →</Link>
 				</div>
-				<div className="space-y-3">
-					{litters.slice(0, 3).map((l) => {
-						const img = l.coverImageUrl;
-						const statusLabel = l.status === 'available'
-							? (l.availableCount ? `${l.availableCount} open` : 'Open')
-							: l.status === 'planned' ? 'Planned' : 'Booked';
-						const statusStyle = l.status === 'available'
-							? { background: '#e4ebe0', color: '#3e5a2a' }
-							: { background: '#f5f0e8', color: '#7a6a58' };
-						return (
-							<Link key={l.id} to={`/portal/litters/${l.id}`} className="flex items-center gap-3 group">
-								{img
-									? <img src={img} alt="" className="w-11 h-11 rounded-[9px] object-cover flex-shrink-0" />
-									: <Placeholder className="w-11 h-11 rounded-[9px] flex-shrink-0" tone="warm" />}
-								<div className="min-w-0 flex-1">
-									<div className="text-[13px] font-medium text-warm-900 truncate group-hover:text-[#c47420] transition-colors">{l.name}</div>
-									<div className="text-[11.5px] text-warm-500 truncate">
-										{l.breed ? getBreedSizeLabel(l.breed) : 'TBD'}
-										{' · '}
-										{l.goHomeDate ? 'home ' + shortDate(l.goHomeDate) : 'selection ' + shortDate(l.selectionDate)}
-									</div>
-								</div>
-								<span
-									className="text-[11px] px-2 py-1 rounded-full flex-shrink-0"
-									style={statusStyle}
-								>
-									{statusLabel}
-								</span>
-							</Link>
-						);
-					})}
-				</div>
+				{showMatched.length > 0 && (
+					<div className="space-y-3">
+						{showMatched.map((l) => <UpcomingLitterRow key={l.id} l={l} />)}
+					</div>
+				)}
+				{showOther.length > 0 && (
+					<div className={showMatched.length > 0 ? 'mt-5 pt-4 border-t border-warm-200' : ''}>
+						<div className="text-[11px] uppercase tracking-[0.08em] text-warm-500 font-semibold mb-3">Other upcoming litters</div>
+						<div className="space-y-3">
+							{showOther.map((l) => <UpcomingLitterRow key={l.id} l={l} />)}
+						</div>
+					</div>
+				)}
 			</div>
 		</Card>
 	);
@@ -967,7 +997,7 @@ export function PortalDashboard() {
 	const [pendingDepositPayment, setPendingDepositPayment] = useState<{ amountRands: number; authorizationUrl: string | null } | null>(null);
 	const [assignedLitter, setAssignedLitter] = useState<LitterWithDogs | null>(null);
 	const [latestUpdate, setLatestUpdate] = useState<UpdateWithLitter | null>(null);
-	const [upcomingLitters, setUpcomingLitters] = useState<Litter[]>([]);
+	const [upcomingLitters, setUpcomingLitters] = useState<ScoredLitter[]>([]);
 	const [paidRands, setPaidRands] = useState(0);
 	const setClientStage = useAuthStore((s) => s.setClientStage);
 	const mountedRef = useRef(true);
@@ -1084,13 +1114,53 @@ export function PortalDashboard() {
 				}
 
 				// Upcoming litters shortlist (for clients without a matched puppy)
+				// Scored: ranks by breed/size match, launch state, imminence.
 				if (!c.puppyId && ['enquired', 'approved', 'waitlisted'].includes(c.stage)) {
 					api.litters.get().then(({ data: lits }) => {
 						if (!mountedRef.current || !lits) return;
-						const upcoming = (lits as Litter[])
+						const app = c.applicationData as unknown as ClientApplication | undefined;
+						const prefBreed = parseBreedSize(app?.preferredBreedSize ?? null);
+						const secondBreed = parseBreedSize(app?.secondChoiceBreedSize ?? null);
+						const now = Date.now();
+						const scored: ScoredLitter[] = (lits as Litter[])
+							// Only future-relevant litters
 							.filter((l) => l.status === 'available' || l.status === 'planned')
-							.slice(0, 3);
-						setUpcomingLitters(upcoming);
+							// Drop if go-home date has already passed
+							.filter((l) => !(l.goHomeDate && new Date(l.goHomeDate).getTime() < now))
+							// Drop available litters where every puppy is already taken
+							.filter((l) => !(l.status === 'available' && (l.puppyCount ?? 0) > 0 && (l.availableCount ?? 0) === 0))
+							.map((l) => {
+								const litBreed = parseBreedSize(l.breed);
+								const isFirstExact = !!(prefBreed && litBreed && prefBreed.breed === litBreed.breed && prefBreed.size === litBreed.size);
+								const isFirstBreed = !!(prefBreed && litBreed && prefBreed.breed === litBreed.breed);
+								const isSecondBreed = !!(secondBreed && litBreed && secondBreed.breed === litBreed.breed);
+								const isSizeMatch = !!(prefBreed && litBreed && prefBreed.size && prefBreed.size === litBreed.size);
+								const isLaunchedOpen = !!l.launchedAt && (l.availableCount ?? 0) > 0;
+
+								let reason: string | null = null;
+								if (isFirstExact) reason = 'Matches your first choice';
+								else if (isFirstBreed) reason = 'Matches your preferred breed';
+								else if (isSecondBreed) reason = 'Matches your second choice';
+								else if (isSizeMatch) reason = 'Matches your size preference';
+								else if (isLaunchedOpen) reason = 'Open for reservations';
+
+								const keyDate = l.selectionDate ?? l.goHomeDate ?? l.dateOfBirth;
+								const days = keyDate ? Math.max(0, (new Date(keyDate).getTime() - now) / 86400000) : 365;
+
+								const score =
+									(isFirstBreed ? 100 : 0) +
+									(isSecondBreed ? 60 : 0) +
+									(isSizeMatch ? 20 : 0) +
+									(l.status === 'available' ? 30 : 0) +
+									(l.launchedAt ? 15 : 0) +
+									((l.availableCount ?? 0) > 0 ? 10 : 0) -
+									days * 0.1;
+
+								return { ...l, _score: score, _reason: reason, _matched: isFirstBreed || isSecondBreed || isSizeMatch };
+							})
+							.sort((a, b) => b._score - a._score);
+
+						setUpcomingLitters(scored);
 					}).catch(() => {});
 				}
 			}

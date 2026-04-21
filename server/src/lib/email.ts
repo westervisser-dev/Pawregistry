@@ -221,6 +221,82 @@ export async function sendLitterNotificationEmail(clientId: string, litterId: st
 	});
 }
 
+// ─── Public: segmented recipient candidates for the admin recipients picker ──
+
+export type LitterUpdateSegmentKey = 'interested' | 'matched' | 'direct' | 'notified';
+
+export type LitterUpdateCandidate = {
+	id: string;
+	firstName: string;
+	lastName: string;
+	email: string;
+	city: string | null;
+	depositStatus: string;
+	waitlistPosition: number | null;
+	segments: LitterUpdateSegmentKey[];
+	optedOut: boolean;
+};
+
+export async function getLitterUpdateRecipientCandidates(litterId: string): Promise<LitterUpdateCandidate[]> {
+	const [interestRows, notifRows, directRows, puppyRows, optOutRows] = await Promise.all([
+		db.select({ clientId: litterInterests.clientId })
+			.from(litterInterests).where(eq(litterInterests.litterId, litterId)),
+		db.select({ clientId: litterNotifications.clientId })
+			.from(litterNotifications).where(eq(litterNotifications.litterId, litterId)),
+		db.select({ id: clients.id }).from(clients).where(eq(clients.litterId, litterId)),
+		db.select({ id: clients.id }).from(clients)
+			.innerJoin(puppies, eq(clients.puppyId, puppies.id))
+			.where(eq(puppies.litterId, litterId)),
+		db.select({ clientId: litterUpdateOptOuts.clientId })
+			.from(litterUpdateOptOuts).where(eq(litterUpdateOptOuts.litterId, litterId)),
+	]);
+
+	const bySegment = {
+		interested: new Set(interestRows.map((r) => r.clientId)),
+		notified: new Set(notifRows.map((r) => r.clientId)),
+		direct: new Set(directRows.map((r) => r.id)),
+		matched: new Set(puppyRows.map((r) => r.id)),
+	} as const;
+	const optOutSet = new Set(optOutRows.map((r) => r.clientId));
+
+	const allIds = new Set<string>([
+		...bySegment.interested, ...bySegment.notified, ...bySegment.direct, ...bySegment.matched,
+	]);
+	if (allIds.size === 0) return [];
+
+	const rows = await db
+		.select({
+			id: clients.id,
+			firstName: clients.firstName,
+			lastName: clients.lastName,
+			email: clients.email,
+			city: clients.city,
+			depositStatus: clients.depositStatus,
+			priority: clients.priority,
+		})
+		.from(clients)
+		.where(inArray(clients.id, [...allIds]));
+
+	return rows.map((r) => {
+		const segs: LitterUpdateSegmentKey[] = [];
+		if (bySegment.interested.has(r.id)) segs.push('interested');
+		if (bySegment.matched.has(r.id)) segs.push('matched');
+		if (bySegment.direct.has(r.id)) segs.push('direct');
+		if (bySegment.notified.has(r.id)) segs.push('notified');
+		return {
+			id: r.id,
+			firstName: r.firstName,
+			lastName: r.lastName,
+			email: r.email,
+			city: r.city ?? null,
+			depositStatus: r.depositStatus ?? 'none',
+			waitlistPosition: r.priority ?? null,
+			segments: segs,
+			optedOut: optOutSet.has(r.id),
+		};
+	});
+}
+
 // ─── Public: send litter update emails to all subscribed clients ─────────────
 
 export async function sendLitterUpdateEmails(params: {
@@ -230,44 +306,26 @@ export async function sendLitterUpdateEmails(params: {
 	title: string;
 	body: string;
 	weekNumber: number | null;
+	targetedClientIds?: string[] | null;
 }): Promise<number> {
-	// Collect client IDs from all 4 association sources in parallel
-	const [interestRows, notifRows] = await Promise.all([
-		db.select({ clientId: litterInterests.clientId })
-			.from(litterInterests)
-			.where(eq(litterInterests.litterId, params.litterId)),
-		db.select({ clientId: litterNotifications.clientId })
-			.from(litterNotifications)
-			.where(eq(litterNotifications.litterId, params.litterId)),
-	]);
+	let targetIds: string[];
 
-	// Direct client.litterId associations
-	const directClients = await db.select({ id: clients.id })
-		.from(clients)
-		.where(eq(clients.litterId, params.litterId));
+	if (params.targetedClientIds && params.targetedClientIds.length > 0) {
+		// Admin-chosen audience — still filter opt-outs
+		const optOuts = await db.select({ clientId: litterUpdateOptOuts.clientId })
+			.from(litterUpdateOptOuts)
+			.where(eq(litterUpdateOptOuts.litterId, params.litterId));
+		const optOutSet = new Set(optOuts.map((r) => r.clientId));
+		targetIds = params.targetedClientIds.filter((id) => !optOutSet.has(id));
+	} else if (params.targetedClientIds) {
+		// Explicit empty selection
+		return 0;
+	} else {
+		// Default audience: union of 4 association sources minus opt-outs
+		const candidates = await getLitterUpdateRecipientCandidates(params.litterId);
+		targetIds = candidates.filter((c) => !c.optedOut).map((c) => c.id);
+	}
 
-	// Clients matched to a puppy in this litter
-	const puppyRows = await db.select({ id: clients.id })
-		.from(clients)
-		.innerJoin(puppies, eq(clients.puppyId, puppies.id))
-		.where(eq(puppies.litterId, params.litterId));
-
-	const allClientIds = new Set([
-		...interestRows.map((r) => r.clientId),
-		...notifRows.map((r) => r.clientId),
-		...directClients.map((r) => r.id),
-		...puppyRows.map((r) => r.id),
-	]);
-
-	if (allClientIds.size === 0) return 0;
-
-	// Filter out opted-out clients
-	const optOuts = await db.select({ clientId: litterUpdateOptOuts.clientId })
-		.from(litterUpdateOptOuts)
-		.where(eq(litterUpdateOptOuts.litterId, params.litterId));
-	const optOutSet = new Set(optOuts.map((r) => r.clientId));
-
-	const targetIds = [...allClientIds].filter((id) => !optOutSet.has(id));
 	if (targetIds.length === 0) return 0;
 
 	// Fetch client contact details

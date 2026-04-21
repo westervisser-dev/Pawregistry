@@ -1,0 +1,1 @@
+ALTER TABLE "updates" ADD COLUMN "targeted_client_ids" jsonb;
