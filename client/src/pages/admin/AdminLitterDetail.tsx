@@ -1580,7 +1580,13 @@ export function AdminLitterDetail() {
 										</button>
 									)
 								) : (
-									<span className="text-xs text-warm-400 italic">Notifications available once litter is born</span>
+									<span className="text-xs text-warm-400 italic">
+										{litter.status === 'booked'
+											? 'All puppies booked \u2014 no notifications needed'
+											: litter.status === 'completed'
+												? 'Litter completed'
+												: 'Notifications available once litter is born'}
+									</span>
 								)}
 								{notifyOpen && (
 									<button
