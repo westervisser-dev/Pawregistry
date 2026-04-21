@@ -6,7 +6,7 @@ Expert full-stack developer. High-quality, production-ready code. Favour simplic
 
 **Frontend:** React 18, Vite, Tailwind CSS v4, Eden treaty | **Backend:** ElysiaJS, Bun, TypeScript | **DB:** Supabase Postgres + Drizzle ORM | **Auth:** Supabase Auth | **Deploy:** Railway + Supabase | **Tooling:** pnpm, Prettier, ESLint, Sentry (optional)
 
-```
+``
 paw-registry/
 ├── client/   # React SPA (:5173)
 ├── server/   # ElysiaJS API (:3000)
