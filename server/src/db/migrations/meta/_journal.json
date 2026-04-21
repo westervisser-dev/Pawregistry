@@ -127,6 +127,13 @@
       "when": 1776760593046,
       "tag": "0017_red_warpath",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1776780761855,
+      "tag": "0018_rare_stark_industries",
+      "breakpoints": true
     }
   ]
 }

@@ -103,6 +103,15 @@ function formatRands(amount: number): string {
 	return `R${amount.toLocaleString('en-ZA')}`;
 }
 
+function formatRange(min: number | null, max: number | null, unit: string): string {
+	if (min != null && max != null) {
+		return min === max ? `${min} ${unit}` : `${min}–${max} ${unit}`;
+	}
+	if (max != null) return `~${max} ${unit}`;
+	if (min != null) return `${min}+ ${unit}`;
+	return '';
+}
+
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
 function Lightbox({ urls, index, onClose, onPrev, onNext }: {
@@ -433,8 +442,10 @@ export function PortalLitterDetail() {
 	const shippingRands = lockedPricing ? lockedPricing.shippingRands : litter.shippingRands;
 	const hasCourier = shippingRands != null && shippingRands > 0;
 	const showBorn = litter.status !== 'planned' && !!litter.dateOfBirth;
-	const hasWeight = litter.estimatedAdultWeightKg != null;
-	const hasHeight = litter.estimatedAdultHeightCm != null;
+	const hasWeight = litter.estimatedAdultWeightMinKg != null || litter.estimatedAdultWeightMaxKg != null;
+	const hasHeight = litter.estimatedAdultHeightMinCm != null || litter.estimatedAdultHeightMaxCm != null;
+	const weightText = formatRange(litter.estimatedAdultWeightMinKg, litter.estimatedAdultWeightMaxKg, 'kg');
+	const heightText = formatRange(litter.estimatedAdultHeightMinCm, litter.estimatedAdultHeightMaxCm, 'cm');
 	const hasSpecs = showBorn || hasWeight || hasHeight;
 
 	return (
@@ -510,13 +521,13 @@ export function PortalLitterDetail() {
 						{hasWeight && (
 							<div>
 								<span className="uppercase text-[10.5px] tracking-[0.14em] text-warm-500 mr-1.5">Adult weight</span>
-								<span className="text-warm-900 font-medium">~{litter.estimatedAdultWeightKg} kg</span>
+								<span className="text-warm-900 font-medium">{weightText}</span>
 							</div>
 						)}
 						{hasHeight && (
 							<div>
 								<span className="uppercase text-[10.5px] tracking-[0.14em] text-warm-500 mr-1.5">Adult height</span>
-								<span className="text-warm-900 font-medium">~{litter.estimatedAdultHeightCm} cm</span>
+								<span className="text-warm-900 font-medium">{heightText}</span>
 							</div>
 						)}
 					</div>
