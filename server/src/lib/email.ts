@@ -430,32 +430,51 @@ function buildUpdateEmailHtml(params: {
 </html>`;
 }
 
+// ─── Shared: resolve admin recipients ────────────────────────────────────────
+
+async function getAdminRecipients(): Promise<string | string[] | null> {
+	const [recipientsSetting] = await db.select().from(appSettings).where(eq(appSettings.key, 'admin_notification_recipients'));
+	if (recipientsSetting?.value) {
+		try {
+			const parsed = JSON.parse(recipientsSetting.value) as Array<{ email: string; enabled: boolean }>;
+			const enabled = parsed.filter((r) => r.enabled).map((r) => r.email);
+			if (enabled.length > 0) return enabled;
+		} catch { /* fall through */ }
+	}
+	const [legacySetting] = await db.select().from(appSettings).where(eq(appSettings.key, 'admin_email'));
+	const legacy = legacySetting?.value || ADMIN_EMAIL;
+	return legacy || null;
+}
+
+// ─── Public: send admin notification via DB template ─────────────────────────
+
+export async function sendAdminNotificationByTrigger(
+	trigger: string,
+	vars: Record<string, string>,
+): Promise<void> {
+	try {
+		const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.trigger, trigger));
+		if (!template?.enabled) return;
+
+		const subject = interpolate(template.subject, vars);
+		const body = interpolate(template.body, vars);
+		const to = await getAdminRecipients();
+		if (!to) return;
+
+		const from = process.env.RESEND_FROM_EMAIL ?? 'Paw Registry <onboarding@resend.dev>';
+		await getResend().emails.send({ from, to, subject, html: toHtml(body) });
+	} catch (e) {
+		console.error('Admin notification failed:', e);
+	}
+}
+
 // ─── Public: send a plain notification email to the admin ────────────────────
 
 export async function sendAdminNotification(subject: string, body: string): Promise<void> {
 	try {
-		const from = process.env.RESEND_FROM_EMAIL ?? 'Paw Registry <onboarding@resend.dev>';
-
-		const [recipientsSetting] = await db.select().from(appSettings).where(eq(appSettings.key, 'admin_notification_recipients'));
-		let to: string | string[] | null = null;
-
-		if (recipientsSetting?.value) {
-			try {
-				const parsed = JSON.parse(recipientsSetting.value) as Array<{ email: string; enabled: boolean }>;
-				const enabled = parsed.filter((r) => r.enabled).map((r) => r.email);
-				if (enabled.length > 0) to = enabled;
-			} catch {
-				// fall through to legacy
-			}
-		}
-
-		if (!to) {
-			const [legacySetting] = await db.select().from(appSettings).where(eq(appSettings.key, 'admin_email'));
-			const legacy = legacySetting?.value || ADMIN_EMAIL;
-			if (legacy) to = legacy;
-		}
-
+		const to = await getAdminRecipients();
 		if (!to) return;
+		const from = process.env.RESEND_FROM_EMAIL ?? 'Paw Registry <onboarding@resend.dev>';
 		await getResend().emails.send({ from, to, subject, html: toHtml(body) });
 	} catch (e) {
 		console.error('Admin notification failed:', e);

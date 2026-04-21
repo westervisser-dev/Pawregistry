@@ -4,7 +4,7 @@ import { db } from '../../db';
 import { payments, clients, puppies, litters, puppyInterests, invoices } from '../../db/schema';
 import { adminPlugin, clientPlugin } from '../../lib/auth';
 import { logActivity } from '../../lib/activity';
-import { sendClientEmailWithVars, sendAdminNotification } from '../../lib/email';
+import { sendClientEmailWithVars, sendAdminNotificationByTrigger } from '../../lib/email';
 import {
 	initializeTransaction,
 	verifyWebhookSignature,
@@ -52,10 +52,13 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 			payment_type: 'deposit',
 		});
 
-		await sendAdminNotification(
-			`Deposit received — ${payment.client.firstName} ${payment.client.lastName}`,
-			`${payment.client.firstName} ${payment.client.lastName} has paid their ${tier === 'r5000' ? 'R5,000 secured' : 'R500 standard'} deposit.\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
-		);
+		await sendAdminNotificationByTrigger('admin_deposit_received', {
+			first_name: payment.client.firstName,
+			full_name: `${payment.client.firstName} ${payment.client.lastName}`,
+			amount: `R${payment.amountRands.toLocaleString()}`,
+			deposit_tier: tier === 'r5000' ? 'R5,000 secured' : 'R500 standard',
+			admin_link: `${CLIENT_URL}/admin/clients/${payment.clientId}`,
+		});
 	}
 
 	if (payment.type === 'booking') {
@@ -134,10 +137,13 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 			payment_type: 'booking',
 		});
 
-		await sendAdminNotification(
-			`Puppy booked — ${payment.client.firstName} ${payment.client.lastName}`,
-			`${payment.client.firstName} ${payment.client.lastName} has paid their booking deposit (R${payment.amountRands.toLocaleString()}).\n\n${puppyName} is now booked.\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
-		);
+		await sendAdminNotificationByTrigger('admin_booking_payment_received', {
+			first_name: payment.client.firstName,
+			full_name: `${payment.client.firstName} ${payment.client.lastName}`,
+			amount: `R${payment.amountRands.toLocaleString()}`,
+			puppy_name: puppyName,
+			admin_link: `${CLIENT_URL}/admin/clients/${payment.clientId}`,
+		});
 	}
 
 	if (payment.type === 'final') {
@@ -176,10 +182,12 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 				payment_type: 'final',
 			});
 
-			await sendAdminNotification(
-				`Final payment received — ${payment.client.firstName} ${payment.client.lastName}`,
-				`${payment.client.firstName} ${payment.client.lastName} has made their final payment of R${payment.amountRands.toLocaleString()}.\n\nThey are ready to collect their puppy!\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
-			);
+			await sendAdminNotificationByTrigger('admin_final_payment_received', {
+				first_name: payment.client.firstName,
+				full_name: `${payment.client.firstName} ${payment.client.lastName}`,
+				amount: `R${payment.amountRands.toLocaleString()}`,
+				admin_link: `${CLIENT_URL}/admin/clients/${payment.clientId}`,
+			});
 		} else {
 			// Partial / instalment payment — do NOT transition to fully paid yet
 			const isInstalment = !!meta.isInstalment;
@@ -200,10 +208,15 @@ async function handlePaymentSuccess(paymentId: string): Promise<void> {
 				payment_type: 'instalment',
 			});
 
-			await sendAdminNotification(
-				`${instalmentLabel} received — ${payment.client.firstName} ${payment.client.lastName}`,
-				`${payment.client.firstName} ${payment.client.lastName} has paid R${payment.amountRands.toLocaleString()} (${instalmentLabel}).\n\nTotal paid: R${totalPaid.toLocaleString()} of R${totalPriceRands.toLocaleString()}.\n\nView client: ${CLIENT_URL}/admin/clients/${payment.clientId}`,
-			);
+			await sendAdminNotificationByTrigger('admin_instalment_received', {
+				first_name: payment.client.firstName,
+				full_name: `${payment.client.firstName} ${payment.client.lastName}`,
+				amount: `R${payment.amountRands.toLocaleString()}`,
+				instalment_label: instalmentLabel,
+				total_paid: `R${totalPaid.toLocaleString()}`,
+				total_price: `R${totalPriceRands.toLocaleString()}`,
+				admin_link: `${CLIENT_URL}/admin/clients/${payment.clientId}`,
+			});
 		}
 	}
 
@@ -854,10 +867,13 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				payments_link: `${CLIENT_URL}/portal/payments`,
 			});
 
-			await sendAdminNotification(
-				`Final payment requested — ${client.firstName} ${client.lastName}`,
-				`Final payment of R${finalDue.toLocaleString()} has been requested from ${client.firstName} ${client.lastName}.\n\nTotal price: R${totalPriceRands.toLocaleString()} | Already paid: R${alreadyPaid.toLocaleString()}`,
-			);
+			await sendAdminNotificationByTrigger('admin_final_payment_requested', {
+				first_name: client.firstName,
+				full_name: `${client.firstName} ${client.lastName}`,
+				amount: `R${finalDue.toLocaleString()}`,
+				total_price: `R${totalPriceRands.toLocaleString()}`,
+				already_paid: `R${alreadyPaid.toLocaleString()}`,
+			});
 
 			return { paymentId: payment.id, finalDue, authorizationUrl };
 		},
@@ -1008,10 +1024,13 @@ export const paymentsRoutes = new Elysia({ prefix: '/payments' })
 				payments_link: `${CLIENT_URL}/portal/payments`,
 			});
 
-			await sendAdminNotification(
-				`Instalment plan created — ${client.firstName} ${client.lastName}`,
-				`${instalmentTotal}-instalment plan created for ${client.firstName} ${client.lastName}.\n\nBalance due: R${balanceDue.toLocaleString()}\n${scheduleLines}\n\nView client: ${CLIENT_URL}/admin/clients/${client.id}`,
-			);
+			await sendAdminNotificationByTrigger('admin_instalment_plan_created', {
+				first_name: client.firstName,
+				full_name: `${client.firstName} ${client.lastName}`,
+				instalment_total: String(instalmentTotal),
+				balance_due: `R${balanceDue.toLocaleString()}`,
+				admin_link: `${CLIENT_URL}/admin/clients/${client.id}`,
+			});
 
 			return { payments: createdPayments, balanceDue, instalmentTotal };
 		},
