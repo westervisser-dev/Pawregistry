@@ -83,6 +83,8 @@ export function AdminClients() {
 			if (bRank !== undefined) return 1;
 			const rankDiff = (STAGE_RANK[a.stage] ?? 99) - (STAGE_RANK[b.stage] ?? 99);
 			if (rankDiff !== 0) return rankDiff;
+			const tierDiff = tierRank(a) - tierRank(b);
+			if (tierDiff !== 0) return tierDiff;
 			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
 		});
 	}, [clients, filter, waitlistRankById]);

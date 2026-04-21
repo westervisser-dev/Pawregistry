@@ -588,8 +588,8 @@ export function PortalLitterDetail() {
 						</div>
 					)}
 
-					{/* Waitlist eligibility notice */}
-					{user && eligibility && !eligibility.isNotified && eligibility.position !== null && (
+					{/* Waitlist eligibility notice — hide when no puppies are available to claim */}
+					{user && eligibility && !eligibility.isNotified && eligibility.position !== null && litter.puppies.some((p) => p.status === 'available') && (
 						<div className="mb-4 p-4 rounded-xl border border-amber-200 bg-amber-50">
 							<p className="text-sm font-medium text-amber-800">You're on the waitlist</p>
 							<p className="text-sm text-amber-700 mt-0.5">
