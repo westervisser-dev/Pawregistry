@@ -198,6 +198,7 @@ export const updates = pgTable('updates', {
 	publishedAt: timestamp('published_at', { withTimezone: true }),
 	emailSentAt: timestamp('email_sent_at', { withTimezone: true }),
 	weekNumber: integer('week_number'),
+	targetedClientIds: jsonb('targeted_client_ids').$type<string[] | null>(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

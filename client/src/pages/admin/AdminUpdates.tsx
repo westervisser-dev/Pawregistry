@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
+import { Users } from 'lucide-react';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, EmptyState } from '@/components/ui';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import type { Litter, UpdateWithLitter } from '@paw-registry/shared';
+import { UpdateRecipientsModal, type RecipientCandidate } from './UpdateRecipientsModal';
 
 const EMPTY_FORM = {
 	litterId: '',
 	title: '',
 	body: '',
 	weekNumber: '',
-	isPublished: false,
 	sendEmail: false,
 };
 
@@ -29,6 +30,13 @@ export function AdminUpdates() {
 	const updateFileRef = useRef<HTMLInputElement>(null);
 	const [pendingUploadId, setPendingUploadId] = useState<string | null>(null);
 
+	// Recipient picker state (only meaningful when form.litterId is set)
+	const [candidates, setCandidates] = useState<RecipientCandidate[]>([]);
+	const [candidatesLoading, setCandidatesLoading] = useState(false);
+	// null = default (all eligible); Set = admin override
+	const [selectedRecipientIds, setSelectedRecipientIds] = useState<Set<string> | null>(null);
+	const [recipientsModalOpen, setRecipientsModalOpen] = useState(false);
+
 	usePageTitle('Updates');
 
 	useEffect(() => {
@@ -44,6 +52,23 @@ export function AdminUpdates() {
 
 	const reload = () =>
 		api.updates.admin.get().then(({ data }) => { if (data) setUpdates(data as UpdateWithLitter[]); });
+
+	// Fetch recipient candidates whenever the litter changes; reset override.
+	useEffect(() => {
+		setSelectedRecipientIds(null);
+		if (!form.litterId) {
+			setCandidates([]);
+			return;
+		}
+		setCandidatesLoading(true);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		((api.updates.admin as any)['recipient-candidates'].get({ query: { litterId: form.litterId } }) as Promise<{ data: RecipientCandidate[] | null }>)
+			.then(({ data }) => { if (data) setCandidates(data); })
+			.finally(() => setCandidatesLoading(false));
+	}, [form.litterId]);
+
+	const defaultRecipientIds = candidates.filter((c) => !c.optedOut).map((c) => c.id);
+	const recipientCount = selectedRecipientIds ? selectedRecipientIds.size : defaultRecipientIds.length;
 
 	const addPendingFiles = (files: FileList) => {
 		const newFiles = Array.from(files).map((file) => ({
@@ -69,13 +94,18 @@ export function AdminUpdates() {
 		if (!form.title) return;
 		setSaving(true);
 
+		const recipientClientIds = form.litterId && selectedRecipientIds
+			? [...selectedRecipientIds]
+			: null;
+
 		const res = await api.updates.post({
 			title: form.title,
 			body: form.body,
 			litterId: form.litterId || null,
 			weekNumber: form.weekNumber ? parseInt(form.weekNumber) : undefined,
-			isPublished: form.isPublished,
+			isPublished: true,
 			sendEmail: form.sendEmail,
+			recipientClientIds,
 		});
 
 		const created = res.data as UpdateWithLitter | undefined;
@@ -91,6 +121,7 @@ export function AdminUpdates() {
 		clearPendingFiles(pendingFiles);
 		setSaving(false);
 		setForm(EMPTY_FORM);
+		setSelectedRecipientIds(null);
 		reload();
 	};
 
@@ -208,26 +239,42 @@ export function AdminUpdates() {
 						min={1}
 						className="px-3 py-2 border border-warm-200 rounded-lg text-sm w-40"
 					/>
-					<div className="flex flex-col gap-2">
-						<label className="flex items-center gap-2 text-sm text-warm-700 cursor-pointer">
-							<input
-								type="checkbox"
-								checked={form.isPublished}
-								onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked, sendEmail: e.target.checked ? f.sendEmail : false }))}
-							/>
-							Publish immediately
-						</label>
-						{form.isPublished && (
-							<label className="flex items-center gap-2 text-sm text-warm-700 cursor-pointer ml-5">
-								<input
-									type="checkbox"
-									checked={form.sendEmail}
-									onChange={(e) => setForm((f) => ({ ...f, sendEmail: e.target.checked }))}
-								/>
-								Notify clients by email
-							</label>
-						)}
-					</div>
+					{form.litterId && (
+						<button
+							type="button"
+							onClick={() => setRecipientsModalOpen(true)}
+							disabled={candidatesLoading || candidates.length === 0}
+							className="flex items-center gap-2.5 px-3 py-2.5 border border-warm-200 rounded-lg text-sm hover:bg-warm-50 disabled:opacity-60 disabled:cursor-not-allowed text-left transition-colors"
+						>
+							<Users size={15} className="text-warm-500 flex-shrink-0" aria-hidden="true" />
+							<span className="flex-1 text-warm-700">
+								{candidatesLoading
+									? 'Loading recipients…'
+									: candidates.length === 0
+										? 'No clients are associated with this litter yet'
+										: (
+											<>
+												<span className="tabular-nums font-medium text-warm-900">{recipientCount}</span>
+												{' of '}
+												<span className="tabular-nums">{candidates.length}</span>
+												{' clients will receive this update'}
+												{form.sendEmail && ' and email'}
+											</>
+										)}
+							</span>
+							{candidates.length > 0 && !candidatesLoading && (
+								<span className="text-[11.5px] font-medium text-brand-500">Review</span>
+							)}
+						</button>
+					)}
+					<label className="flex items-center gap-2 text-sm text-warm-700 cursor-pointer">
+						<input
+							type="checkbox"
+							checked={form.sendEmail}
+							onChange={(e) => setForm((f) => ({ ...f, sendEmail: e.target.checked }))}
+						/>
+						Notify clients by email
+					</label>
 					<div className="flex flex-col gap-2">
 						{uploadProgress && (
 							<div className="h-1.5 bg-warm-200 rounded-full overflow-hidden">
@@ -357,6 +404,19 @@ export function AdminUpdates() {
 						setPendingUploadId(null);
 					}
 					e.target.value = '';
+				}}
+			/>
+
+			<UpdateRecipientsModal
+				open={recipientsModalOpen}
+				litterName={litters.find((l) => l.id === form.litterId)?.name ?? ''}
+				candidates={candidates}
+				initialSelected={selectedRecipientIds ?? new Set(defaultRecipientIds)}
+				sendEmail={form.sendEmail}
+				onClose={() => setRecipientsModalOpen(false)}
+				onConfirm={(ids) => {
+					setSelectedRecipientIds(ids);
+					setRecipientsModalOpen(false);
 				}}
 			/>
 		</div>

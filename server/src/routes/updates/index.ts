@@ -4,7 +4,7 @@ import { db } from '../../db';
 import { updates, clients, litterInterests, litterNotifications, litterUpdateOptOuts, puppies } from '../../db/schema';
 import { adminPlugin, clientPlugin } from '../../lib/auth';
 import { uploadFile, STORAGE_BUCKETS } from '../../lib/supabase';
-import { sendLitterUpdateEmails } from '../../lib/email';
+import { sendLitterUpdateEmails, getLitterUpdateRecipientCandidates } from '../../lib/email';
 
 export const updatesRoutes = new Elysia({ prefix: '/updates' })
 	// ── Client portal ──────────────────────────────────────────────────────────
@@ -51,10 +51,17 @@ export const updatesRoutes = new Elysia({ prefix: '/updates' })
 			)
 			: and(eq(updates.isPublished, true), isNull(updates.litterId));
 
-		return db.query.updates.findMany({
+		const rows = await db.query.updates.findMany({
 			where: whereClause,
 			orderBy: [desc(updates.publishedAt)],
 			with: { litter: true },
+		});
+
+		// Respect admin-chosen recipient override: when targetedClientIds is set,
+		// only clients in that list can see the update.
+		return rows.filter((u) => {
+			if (!u.targetedClientIds) return true;
+			return u.targetedClientIds.includes(client.id);
 		});
 	})
 
@@ -115,9 +122,22 @@ export const updatesRoutes = new Elysia({ prefix: '/updates' })
 		});
 	})
 
+	.get(
+		'/admin/recipient-candidates',
+		async ({ query }) => {
+			if (!query.litterId) return [];
+			return getLitterUpdateRecipientCandidates(query.litterId);
+		},
+		{ query: t.Object({ litterId: t.Optional(t.String()) }) },
+	)
+
 	.post(
 		'/',
 		async ({ body }) => {
+			const targetedClientIds = body.litterId && body.recipientClientIds
+				? body.recipientClientIds
+				: null;
+
 			const [update] = await db.insert(updates).values({
 				title: body.title,
 				body: body.body,
@@ -125,6 +145,7 @@ export const updatesRoutes = new Elysia({ prefix: '/updates' })
 				weekNumber: body.weekNumber ?? null,
 				isPublished: body.isPublished ?? false,
 				publishedAt: body.isPublished ? new Date() : null,
+				targetedClientIds,
 			}).returning();
 
 			if (update.isPublished && body.sendEmail && body.litterId) {
@@ -139,6 +160,7 @@ export const updatesRoutes = new Elysia({ prefix: '/updates' })
 						title: update.title,
 						body: update.body,
 						weekNumber: update.weekNumber,
+						targetedClientIds,
 					});
 				}
 			}
@@ -156,6 +178,7 @@ export const updatesRoutes = new Elysia({ prefix: '/updates' })
 				weekNumber: t.Optional(t.Nullable(t.Number())),
 				isPublished: t.Optional(t.Boolean()),
 				sendEmail: t.Optional(t.Boolean()),
+				recipientClientIds: t.Optional(t.Nullable(t.Array(t.String()))),
 			}),
 		},
 	)
@@ -197,6 +220,7 @@ export const updatesRoutes = new Elysia({ prefix: '/updates' })
 						title: updated.title,
 						body: updated.body,
 						weekNumber: updated.weekNumber,
+						targetedClientIds: updated.targetedClientIds,
 					});
 				}
 			}

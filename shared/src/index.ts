@@ -184,6 +184,7 @@ export interface Update {
 	publishedAt: string | null;
 	emailSentAt: string | null;
 	weekNumber: number | null; // week of life (1, 2, 3…)
+	targetedClientIds: string[] | null;
 	createdAt: string;
 	updatedAt: string;
 }
