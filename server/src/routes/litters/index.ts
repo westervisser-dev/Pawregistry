@@ -810,6 +810,8 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 	})
 
 	// ── Admin: notify selected clients by ID ──
+	// First call sets litters.launchedAt (opens the litter for reservations).
+	// Subsequent calls top-up notifications for newly-eligible clients.
 	.post(
 		'/admin/notifications/:litterId',
 		async ({ params, body, error }) => {
@@ -832,6 +834,17 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				.values(toNotify.map((clientId) => ({ litterId: params.litterId, clientId })))
 				.returning();
 
+			// First notification for this litter → mark it launched
+			let launchedAt = litter.launchedAt;
+			if (!launchedAt) {
+				const now = new Date();
+				await db
+					.update(litters)
+					.set({ launchedAt: now, updatedAt: now })
+					.where(eq(litters.id, params.litterId));
+				launchedAt = now;
+			}
+
 			await Promise.all(toNotify.map((id) => sendLitterNotificationEmail(id, params.litterId)));
 
 			const notifiedClients = await db.query.clients.findMany({
@@ -839,7 +852,7 @@ export const littersRoutes = new Elysia({ prefix: '/litters' })
 				columns: { id: true, firstName: true, lastName: true, priority: true },
 			});
 
-			return { notified: created.length, clients: notifiedClients };
+			return { notified: created.length, clients: notifiedClients, launchedAt };
 		},
 		{ body: t.Object({ clientIds: t.Array(t.String()) }) }
 	)

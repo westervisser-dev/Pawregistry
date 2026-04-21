@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users, Megaphone } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card, EmptyState, LoadingPage, PageHeader, Segmented } from '@/components/ui';
 import { parseBreedSize, BREEDS, BREED_SIZES, type LitterWithDogs, type LitterStatus } from '@paw-registry/shared';
@@ -146,6 +146,7 @@ function LitterCard({ litter, matchCount }: { litter: LitterWithDogs; matchCount
 	const availableCount = litter.puppies?.filter((p) => p.status === 'available').length ?? 0;
 	const hasAvailable = availableCount > 0;
 	const isPlanned = litter.status === 'planned';
+	const needsLaunch = litter.status === 'available' && !litter.launchedAt;
 
 	const stageDisplay = litter.status.charAt(0).toUpperCase() + litter.status.slice(1);
 
@@ -175,6 +176,14 @@ function LitterCard({ litter, matchCount }: { litter: LitterWithDogs; matchCount
 						{litter.name}
 					</h3>
 					<div className="flex items-center gap-1.5 flex-shrink-0 ml-2.5 mt-[2px]">
+						{needsLaunch && (
+							<span
+								className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap bg-brand-500 text-white"
+								title="This litter is available but clients haven't been notified yet. Open it to allow reservations."
+							>
+								<Megaphone size={11} aria-hidden="true" /> Ready to launch
+							</span>
+						)}
 						{!litter.isPublic && (
 							<span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-[3px] rounded-full whitespace-nowrap bg-warm-900/10 text-warm-700">
 								Private

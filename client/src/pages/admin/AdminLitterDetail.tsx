@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Megaphone, CheckCircle2, UserPlus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { LoadingPage, Card, PageHeader, Badge, PuppyStatusBadge, EmptyState, Segmented } from '@/components/ui';
 import type { Litter, LitterImage, LitterStatus, MatchingClient, PuppyImage, PaymentSummary } from '@paw-registry/shared';
 import { BREEDS, BREED_SIZES, buildBreedSize, parseBreedSize, getBreedSizeLabel } from '@paw-registry/shared';
 import { DeleteModal } from './_shared';
+import { LaunchLitterModal } from './LaunchLitterModal';
 
 const COLLAR_COLOURS = [
 	'aqua', 'black', 'blue', 'gray', 'green', 'lime', 'maroon', 'navy',
@@ -170,6 +171,8 @@ export function AdminLitterDetail() {
 	const [notifyOpen, setNotifyOpen] = useState(false);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 	const [notifying, setNotifying] = useState(false);
+	const [launchModalOpen, setLaunchModalOpen] = useState(false);
+	const [launchSending, setLaunchSending] = useState(false);
 	const [masterListClients, setMasterListClients] = useState<Array<{ id: string; firstName: string; lastName: string; priority: number; depositStatus: string; waitlistPosition: number }>>([]);
 	const [masterListLoading, setMasterListLoading] = useState(false);
 	const [puppyImagesMap, setPuppyImagesMap] = useState<Record<string, PuppyImage[]>>({});
@@ -266,6 +269,10 @@ export function AdminLitterDetail() {
 		setFormError('');
 		if (!newForm.name.trim() || !newForm.breedKey) {
 			setFormError('Name and Breed are required.');
+			return;
+		}
+		if ((BREED_SIZES[newForm.breedKey]?.length ?? 0) > 1 && !newForm.sizeKey) {
+			setFormError('Size is required for this breed.');
 			return;
 		}
 		if (!newForm.selectionDate) {
@@ -556,15 +563,36 @@ export function AdminLitterDetail() {
 		setNotifying(true);
 		try {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			await (api.litters.admin as any).notifications({ litterId: id }).post({ clientIds: [...selectedIds] });
+			const { data } = await (api.litters.admin as any).notifications({ litterId: id }).post({ clientIds: [...selectedIds] });
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			(api.litters.admin as any).notifications({ litterId: id }).get().then(({ data: fresh }: { data: typeof notifications | null }) => {
 				if (fresh) setNotifications(fresh);
 			});
+			// Optimistically mark the litter as launched if this was the first notification
+			if (data?.launchedAt && litter && !litter.launchedAt) {
+				setLitter({ ...litter, launchedAt: data.launchedAt });
+			}
 		} catch { /* ignore */ }
 		setNotifying(false);
 		setNotifyOpen(false);
 		setSelectedIds(new Set());
+	};
+
+	const handleLaunchConfirm = async (clientIds: string[]) => {
+		if (!id || clientIds.length === 0) return;
+		setLaunchSending(true);
+		try {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const { data } = await (api.litters.admin as any).notifications({ litterId: id }).post({ clientIds });
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const { data: fresh } = await (api.litters.admin as any).notifications({ litterId: id }).get();
+			if (fresh) setNotifications(fresh);
+			if (data?.launchedAt && litter && !litter.launchedAt) {
+				setLitter({ ...litter, launchedAt: data.launchedAt });
+			}
+		} catch { /* ignore */ }
+		setLaunchSending(false);
+		setLaunchModalOpen(false);
 	};
 
 	const openNotifyPanel = () => setNotifyOpen(true);
@@ -600,6 +628,61 @@ export function AdminLitterDetail() {
 			return next;
 		});
 	};
+
+	// ── Eligible-not-yet-notified clients, grouped by segment, for the LaunchLitterModal ─
+	const eligibleInterested = litterInterested
+		.filter((li) => !notifiedMap[li.clientId] && !isInProgress(li.client.stage))
+		.map((li) => ({
+			id: li.clientId,
+			firstName: li.client.firstName,
+			lastName: li.client.lastName,
+			city: li.client.city,
+			depositStatus: li.client.depositStatus,
+			waitlistPosition: li.client.waitlistPosition,
+			matchReasons: matchingClientMap[li.clientId]?.matchReasons,
+		}));
+	const eligibleMatched = dedupedMatchingClients
+		.filter((mc) => !notifiedMap[mc.id] && !notifiedInProgressMap[mc.id])
+		.map((mc) => ({
+			id: mc.id,
+			firstName: mc.firstName,
+			lastName: mc.lastName,
+			city: mc.city,
+			depositStatus: mc.depositStatus,
+			waitlistPosition: mc.waitlistPosition,
+			matchReasons: mc.matchReasons,
+		}));
+	const eligibleWaitlist = dedupedMasterListClients
+		.filter((c) => !notifiedMap[c.id] && !notifiedInProgressMap[c.id])
+		.map((c) => ({
+			id: c.id,
+			firstName: c.firstName,
+			lastName: c.lastName,
+			city: null as string | null,
+			depositStatus: c.depositStatus,
+			waitlistPosition: c.waitlistPosition,
+		}));
+	const eligibleCount = eligibleInterested.length + eligibleMatched.length + eligibleWaitlist.length;
+	const launchSegments = [
+		{
+			key: 'interested' as const,
+			label: 'Interested in this breed',
+			description: 'Clients who flagged interest in this litter.',
+			clients: eligibleInterested,
+		},
+		{
+			key: 'matched' as const,
+			label: 'Matched by breed preference',
+			description: 'Waitlisted clients whose preferences match this breed.',
+			clients: eligibleMatched,
+		},
+		{
+			key: 'waitlist' as const,
+			label: 'Other waitlisted clients',
+			description: 'Remaining waitlist — broader reach.',
+			clients: eligibleWaitlist,
+		},
+	];
 
 	if (loading) return <LoadingPage />;
 
@@ -642,16 +725,19 @@ export function AdminLitterDetail() {
 								))}
 							</select>
 							{newForm.breedKey && (BREED_SIZES[newForm.breedKey]?.length ?? 0) > 1 && (
-								<select
-									value={newForm.sizeKey}
-									onChange={(e) => setNewForm((f) => ({ ...f, sizeKey: e.target.value }))}
-									className="w-full mt-2 px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
-								>
-									<option value="">Select size…</option>
-									{(BREED_SIZES[newForm.breedKey] ?? []).map((s) => (
-										<option key={s.value} value={s.value}>{s.label}</option>
-									))}
-								</select>
+								<>
+									<label className="block text-xs font-medium text-warm-500 mt-2 mb-1">Size<span className="text-red-400 ml-0.5">*</span></label>
+									<select
+										value={newForm.sizeKey}
+										onChange={(e) => setNewForm((f) => ({ ...f, sizeKey: e.target.value }))}
+										className="w-full px-3 py-2 border border-warm-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+									>
+										<option value="">Select size…</option>
+										{(BREED_SIZES[newForm.breedKey] ?? []).map((s) => (
+											<option key={s.value} value={s.value}>{s.label}</option>
+										))}
+									</select>
+								</>
 							)}
 						</div>
 						<div>
@@ -979,6 +1065,95 @@ export function AdminLitterDetail() {
 				</div>
 			</div>
 
+			{/* Launch banner — 4 states gating whether clients can reserve/book puppies */}
+			{(() => {
+				const status = litter.status as LitterStatus;
+				const isAvailable = status === 'available';
+				const hasLaunched = !!litter.launchedAt;
+				const notifiedCount = notifications.length;
+
+				// State A: not yet available (planned) — muted info
+				if (status === 'planned') {
+					return (
+						<div className="mb-6 rounded-xl border border-warm-200 bg-warm-50 p-4 flex items-start gap-3">
+							<Megaphone size={18} className="text-warm-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+							<div className="flex-1 min-w-0">
+								<p className="text-sm font-medium text-warm-800">This litter is not open for reservations yet.</p>
+								<p className="text-[12.5px] text-warm-500 mt-0.5">
+									Once the puppies are born, mark the litter as <strong>Available</strong> to notify clients and open it for reservations.
+								</p>
+							</div>
+						</div>
+					);
+				}
+
+				// State B: available, never launched — primary CTA
+				if (isAvailable && !hasLaunched) {
+					return (
+						<div className="mb-6 rounded-xl border-2 border-brand-500 bg-brand-50 p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4">
+							<Megaphone size={22} className="text-brand-600 flex-shrink-0" aria-hidden="true" />
+							<div className="flex-1 min-w-0">
+								<p className="text-[15px] font-semibold text-warm-900">Ready to open for puppy reservations</p>
+								<p className="text-[12.5px] text-warm-700 mt-0.5">
+									{eligibleCount > 0
+										? `${eligibleCount} client${eligibleCount === 1 ? ' is' : 's are'} waiting. Clients can't reserve a puppy from this litter until you notify them.`
+										: 'No eligible clients are waiting yet. Approved, waitlisted clients will appear here once they exist.'}
+								</p>
+							</div>
+							<button
+								type="button"
+								onClick={() => setLaunchModalOpen(true)}
+								disabled={eligibleCount === 0}
+								className="flex-shrink-0 px-5 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-lg hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+							>
+								Open for puppy reservations
+							</button>
+						</div>
+					);
+				}
+
+				// State C/D: launched
+				if (isAvailable && hasLaunched) {
+					const launchedDate = new Date(litter.launchedAt as string).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+					// State D: new eligible clients since launch — subtle with top-up CTA
+					if (eligibleCount > 0) {
+						return (
+							<div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 flex flex-col md:flex-row md:items-center gap-3">
+								<UserPlus size={18} className="text-amber-600 flex-shrink-0" aria-hidden="true" />
+								<div className="flex-1 min-w-0">
+									<p className="text-sm font-medium text-warm-900">
+										Opened {launchedDate} &middot; {notifiedCount} client{notifiedCount === 1 ? '' : 's'} notified
+									</p>
+									<p className="text-[12.5px] text-warm-700 mt-0.5">
+										{eligibleCount} new eligible client{eligibleCount === 1 ? '' : 's'} since launch. Notify them so they can reserve a puppy too.
+									</p>
+								</div>
+								<button
+									type="button"
+									onClick={() => setLaunchModalOpen(true)}
+									className="flex-shrink-0 px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition-colors"
+								>
+									Notify new clients ({eligibleCount})
+								</button>
+							</div>
+						);
+					}
+					// State C: everyone eligible has been notified — subtle confirmation
+					return (
+						<div className="mb-6 rounded-xl border border-warm-200 bg-white p-4 flex items-center gap-3">
+							<CheckCircle2 size={18} className="text-green-600 flex-shrink-0" aria-hidden="true" />
+							<p className="text-sm text-warm-700">
+								<span className="font-medium text-warm-900">Open for reservations</span> since {launchedDate}
+								<span className="mx-1.5 text-warm-300">&middot;</span>
+								<span className="text-warm-500">{notifiedCount} client{notifiedCount === 1 ? '' : 's'} notified</span>
+							</p>
+						</div>
+					);
+				}
+
+				// booked / completed — nothing to show; existing section below already explains
+				return null;
+			})()}
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
@@ -1541,12 +1716,15 @@ export function AdminLitterDetail() {
 
 			{/* Potential Clients */}
 			<Card className="p-6 mb-6">
-				<div className="flex items-center justify-between mb-3">
+				<div className="flex items-center justify-between mb-2">
 					<h3 className="font-serif text-[15px] text-warm-900">Potential Clients</h3>
 					{(litterInterested.length > 0 || matchingClients.length > 0 || masterListClients.length > 0) && (
 						<span className="text-xs font-medium text-warm-500">{litterInterested.length + dedupedMatchingClients.length + dedupedMasterListClients.length} match{litterInterested.length + dedupedMatchingClients.length + dedupedMasterListClients.length !== 1 ? 'es' : ''}</span>
 					)}
 				</div>
+				<p className="text-[12.5px] text-warm-500 mb-3">
+					Clients can&apos;t reserve puppies in this litter until you notify them. Use the banner above for the main flow, or fine-tune the recipient list below.
+				</p>
 
 				{/* Notify bar */}
 				{!matchingLoading && (
@@ -1574,13 +1752,19 @@ export function AdminLitterDetail() {
 									) : (
 										<button
 											onClick={openNotifyPanel}
-											className="px-3 py-1.5 text-xs bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
+											className="px-3 py-1.5 text-xs bg-white border border-warm-300 text-warm-700 rounded-md hover:bg-warm-50 transition-colors"
 										>
-											Send litter notification
+											Pick clients manually
 										</button>
 									)
 								) : (
-									<span className="text-xs text-warm-400 italic">Notifications available once litter is born</span>
+									<span className="text-xs text-warm-400 italic">
+										{litter.status === 'booked'
+											? 'All puppies booked \u2014 no notifications needed'
+											: litter.status === 'completed'
+												? 'Litter completed'
+												: 'Notifications available once litter is born'}
+									</span>
 								)}
 								{notifyOpen && (
 									<button
@@ -1998,6 +2182,17 @@ export function AdminLitterDetail() {
 					onNext={() => setLightbox((prev) => prev ? { ...prev, index: prev.index < prev.urls.length - 1 ? prev.index + 1 : 0 } : null)}
 				/>
 			)}
+
+			<LaunchLitterModal
+				open={launchModalOpen}
+				mode={litter.launchedAt ? 'topup' : 'launch'}
+				litterName={litter.name}
+				litterBreedLabel={litter.breed ? getBreedSizeLabel(litter.breed) : null}
+				segments={launchSegments}
+				sending={launchSending}
+				onClose={() => setLaunchModalOpen(false)}
+				onConfirm={handleLaunchConfirm}
+			/>
 		</div>
 	);
 }

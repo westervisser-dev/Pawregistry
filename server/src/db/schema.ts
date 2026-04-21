@@ -61,6 +61,7 @@ export const litters = pgTable('litters', {
 	notes: text('notes'),
 	coverImageUrl: text('cover_image_url'),
 	isPublic: boolean('is_public').notNull().default(false),
+	launchedAt: timestamp('launched_at', { withTimezone: true }),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

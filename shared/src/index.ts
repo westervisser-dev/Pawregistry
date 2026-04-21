@@ -23,6 +23,7 @@ export interface Litter {
 	notes: string | null;
 	coverImageUrl: string | null;
 	isPublic: boolean;
+	launchedAt: string | null; // first time a notification was sent for this litter — opens it for reservations
 	createdAt: string;
 	updatedAt: string;
 }
