@@ -11,17 +11,17 @@ const applicationDataSchema = t.Object({
 	// ── Existing fields ──
 	livingType: t.Union([t.Literal('house'), t.Literal('townhouse'), t.Literal('apartment'), t.Literal('farm'), t.Literal('other')]),
 	otherLivingType: t.Optional(t.Nullable(t.String())),
-	hasGarden: t.Boolean(),
+	hasGarden: t.Optional(t.Boolean()),
 	hasChildren: t.Boolean(),
 	childrenAges: t.Array(t.Number()),
 	hasOtherPets: t.Boolean(),
 	otherPetsDescription: t.Nullable(t.String()),
-	previousDogExperience: t.Boolean(),
+	previousDogExperience: t.Optional(t.Boolean()),
 	experienceDescription: t.Nullable(t.String()),
 	preferredSex: t.Union([t.Literal('male'), t.Literal('female'), t.Literal('no_preference')]),
 	preferredColour: t.Nullable(t.String()),
 	reasonForBreed: t.Optional(t.Nullable(t.String())),
-	references: t.Nullable(t.String()),
+	references: t.Optional(t.Nullable(t.String())),
 	agreedToContract: t.Boolean(),
 	// ── Personal ──
 	puppyPurpose: t.Optional(t.Nullable(t.String())),
@@ -30,6 +30,7 @@ const applicationDataSchema = t.Object({
 	allergiesToDogs: t.Optional(t.Boolean()),
 	allFamilyMembersAgree: t.Optional(t.Boolean()),
 	dogLivesIndoors: t.Optional(t.Boolean()),
+	dogLocation: t.Optional(t.Nullable(t.Union([t.Literal('indoors'), t.Literal('outdoors')]))),
 	// ── Home ──
 	yardSize: t.Optional(t.Nullable(t.String())),
 	hasPoolOrDriveway: t.Optional(t.Boolean()),
