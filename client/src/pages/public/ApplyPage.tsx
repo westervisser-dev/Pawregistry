@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { usePageTitle } from '@/hooks/usePageTitle';
 
-type Step = 'personal' | 'home' | 'experience' | 'preferences' | 'deposit' | 'confirm' | 'done';
+type Step = 'personal' | 'home' | 'preferences' | 'deposit' | 'confirm' | 'done';
 
 interface FormData {
 	// Personal
@@ -12,41 +12,18 @@ interface FormData {
 	phone: string;
 	city: string;
 	country: string;
-	primaryCaregiver: string;
 	// Home & Life
-	residenceOwnership: 'own' | 'rent' | '';
 	livingType: 'house' | 'townhouse' | 'apartment' | 'farm' | 'other';
 	otherLivingType: string;
-	hasGarden: boolean;
-	yardSize: string;
-	hasPoolOrDriveway: boolean;
-	poolDrivewayFenced: boolean;
-	neighbourhoodRestrictions: boolean;
-	neighbourhoodRestrictionsDetails: string;
-	dogLivesIndoors: boolean;
-	puppyDaytimeLocation: string;
+	dogLocation: 'indoors' | 'outdoors' | '';
 	hoursAlonePerDay: string;
-	someoneHomeDuringDay: boolean;
-	aloneArrangements: string;
 	activityLevel: string;
-	allFamilyMembersAgree: boolean;
 	allergiesToDogs: boolean;
 	hasChildren: boolean;
 	childrenGenderAges: string;
 	hasOtherPets: boolean;
 	otherPetsDescription: string;
-	// Experience
-	previousDogExperience: boolean;
-	breedsOwnedPast: string;
-	experienceDescription: string;
-	returnedPetToBreeder: boolean;
-	returnedPetDetails: string;
-	givenPetAway: boolean;
-	givenPetAwayDetails: string;
-	willingForObedienceClasses: boolean;
-	references: string;
 	// Preferences
-	puppyPurpose: string;
 	readyTimeframe: 'asap' | '6_months' | '1_year' | '';
 	preferredBreed: string;
 	preferredSize: string;
@@ -72,25 +49,13 @@ interface FormData {
 
 const initial: FormData = {
 	firstName: '', lastName: '', email: '', phone: '', city: '', country: 'ZA',
-	primaryCaregiver: '',
-	residenceOwnership: '',
 	livingType: 'house', otherLivingType: '',
-	hasGarden: false, yardSize: '',
-	hasPoolOrDriveway: false, poolDrivewayFenced: false,
-	neighbourhoodRestrictions: false, neighbourhoodRestrictionsDetails: '',
-	dogLivesIndoors: false,
-	puppyDaytimeLocation: '', hoursAlonePerDay: '',
-	someoneHomeDuringDay: false, aloneArrangements: '',
+	dogLocation: '',
+	hoursAlonePerDay: '',
 	activityLevel: '',
-	allFamilyMembersAgree: true, allergiesToDogs: false,
+	allergiesToDogs: false,
 	hasChildren: false, childrenGenderAges: '',
 	hasOtherPets: false, otherPetsDescription: '',
-	previousDogExperience: false, breedsOwnedPast: '', experienceDescription: '',
-	returnedPetToBreeder: false, returnedPetDetails: '',
-	givenPetAway: false, givenPetAwayDetails: '',
-	willingForObedienceClasses: false,
-	references: '',
-	puppyPurpose: '',
 	readyTimeframe: '', preferredBreed: '', preferredSize: '',
 	hasSecondChoiceBreed: false, secondChoiceBreed: '', secondChoiceSize: '',
 	hasSecondChoiceSize: false,
@@ -106,19 +71,19 @@ const initial: FormData = {
 	budget: '',
 };
 
-const steps: Step[] = ['personal', 'home', 'experience', 'preferences', 'deposit', 'confirm', 'done'];
+const steps: Step[] = ['personal', 'home', 'preferences', 'deposit', 'confirm', 'done'];
 
 // Breed & size constants imported from shared
 import { BREEDS, BREED_SIZES } from '@paw-registry/shared';
 
 function StepIndicator({ current }: { current: Step }) {
-	const labels = ['Personal', 'Home & Life', 'Experience', 'Preferences', 'Deposit'];
+	const labels = ['Personal', 'Home & Life', 'Preferences', 'Deposit'];
 	const currentIdx = steps.indexOf(current);
 	return (
-		<div className="flex mb-10">
-			{labels.map((label, i) => (
-				<div key={label} className="flex items-start flex-1 sm:flex-none">
-					<div className="flex flex-col items-center min-w-0">
+		<div className="flex items-start mb-10">
+			{labels.flatMap((label, i) => {
+				const circle = (
+					<div key={label} className="flex flex-col items-center flex-none">
 						<div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-medium transition-colors ${
 							i < currentIdx ? 'bg-brand-500 text-white' :
 							i === currentIdx ? 'bg-brand-500 text-white ring-4 ring-brand-100' :
@@ -133,11 +98,12 @@ function StepIndicator({ current }: { current: Step }) {
 							{i === currentIdx ? label : ''}
 						</span>
 					</div>
-					{i < labels.length - 1 && (
-						<div className={`h-px flex-1 sm:w-16 sm:flex-none mx-1.5 mt-4 ${i < currentIdx ? 'bg-brand-300' : 'bg-warm-200'}`} />
-					)}
-				</div>
-			))}
+				);
+				if (i < labels.length - 1) {
+					return [circle, <div key={`c${i}`} className={`h-px flex-1 mx-1.5 mt-4 ${i < currentIdx ? 'bg-brand-300' : 'bg-warm-200'}`} />];
+				}
+				return [circle];
+			})}
 		</div>
 	);
 }
@@ -255,7 +221,6 @@ export function ApplyPage() {
 		if (s === 'preferences') {
 			const sizes = BREED_SIZES[f.preferredBreed] ?? [];
 			if (
-				!f.puppyPurpose.trim() ||
 				!f.readyTimeframe ||
 				!f.preferredBreed ||
 				(sizes.length > 1 && !f.preferredSize) ||
@@ -324,44 +289,22 @@ export function ApplyPage() {
 				// Existing
 				livingType: form.livingType,
 				otherLivingType: form.otherLivingType || null,
-				hasGarden: form.hasGarden,
 				hasChildren: form.hasChildren,
 				childrenAges: [],
 				childrenGenderAges: form.childrenGenderAges || null,
 				hasOtherPets: form.hasOtherPets,
 				otherPetsDescription: form.otherPetsDescription || null,
-				previousDogExperience: form.previousDogExperience,
-				experienceDescription: form.experienceDescription || null,
 				preferredSex: form.preferredSex,
 				preferredColour: form.preferredColour || null,
 				reasonForBreed: null,
-				references: form.references || null,
 				agreedToContract: form.agreedToContract,
 				// Personal
-				puppyPurpose: form.puppyPurpose || null,
-				residenceOwnership: form.residenceOwnership || null,
-				primaryCaregiver: form.primaryCaregiver || null,
 				allergiesToDogs: form.allergiesToDogs,
-				allFamilyMembersAgree: form.allFamilyMembersAgree,
-				dogLivesIndoors: form.dogLivesIndoors,
+				dogLivesIndoors: form.dogLocation === 'indoors',
+				dogLocation: form.dogLocation || null,
 				// Home
-				yardSize: form.yardSize || null,
-				hasPoolOrDriveway: form.hasPoolOrDriveway,
-				poolDrivewayFenced: form.poolDrivewayFenced,
-				puppyDaytimeLocation: form.puppyDaytimeLocation || null,
 				hoursAlonePerDay: form.hoursAlonePerDay || null,
-				someoneHomeDuringDay: form.someoneHomeDuringDay,
-				aloneArrangements: form.aloneArrangements || null,
-				neighbourhoodRestrictions: form.neighbourhoodRestrictions,
-				neighbourhoodRestrictionsDetails: form.neighbourhoodRestrictionsDetails || null,
-				// Experience
-				breedsOwnedPast: form.breedsOwnedPast || null,
-				returnedPetToBreeder: form.returnedPetToBreeder,
-				returnedPetDetails: form.returnedPetDetails || null,
-				givenPetAway: form.givenPetAway,
-				givenPetAwayDetails: form.givenPetAwayDetails || null,
 				activityLevel: form.activityLevel || null,
-				willingForObedienceClasses: form.willingForObedienceClasses,
 				// Preferences
 				readyTimeframe: form.readyTimeframe || null,
 				preferredBreedSize: preferredBreedSize || null,
@@ -476,12 +419,6 @@ export function ApplyPage() {
 							<Input required label="City" value={form.city} onChange={(e) => set('city', e.target.value)} />
 							<Input label="Country" value={form.country} onChange={(e) => set('country', e.target.value)} />
 						</div>
-						<Input
-							label="Who will be primarily responsible for the dog's care?"
-							value={form.primaryCaregiver}
-							onChange={(e) => set('primaryCaregiver', e.target.value)}
-							placeholder="e.g. myself, my partner…"
-						/>
 					</div>
 				)}
 
@@ -489,16 +426,6 @@ export function ApplyPage() {
 				{step === 'home' && (
 					<div className="flex flex-col gap-5">
 						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Home & Life</h2>
-
-						<ButtonGroup
-							label="Do you own or rent your home?"
-							options={[
-								{ value: 'own', label: 'Own' },
-								{ value: 'rent', label: 'Rent' },
-							]}
-							value={form.residenceOwnership}
-							onChange={(v) => set('residenceOwnership', v)}
-						/>
 
 						<div>
 							<label className="block text-sm font-medium text-warm-700 mb-2">Type of home<span className="text-red-500 ml-0.5">*</span></label>
@@ -530,37 +457,14 @@ export function ApplyPage() {
 							)}
 						</div>
 
-						<Toggle label="We have a securely fenced yard" checked={form.hasGarden} onChange={(v) => set('hasGarden', v)} />
-						{form.hasGarden && (
-							<Input
-								label="Describe the size of your yard"
-								value={form.yardSize}
-								onChange={(e) => set('yardSize', e.target.value)}
-								placeholder="e.g. large suburban garden, small courtyard…"
-							/>
-						)}
-
-						<Toggle label="We have a pool or open driveway in our yard" checked={form.hasPoolOrDriveway} onChange={(v) => set('hasPoolOrDriveway', v)} />
-						{form.hasPoolOrDriveway && (
-							<Toggle label="The pool / driveway is safely fenced off or closed" checked={form.poolDrivewayFenced} onChange={(v) => set('poolDrivewayFenced', v)} />
-						)}
-
-						<Toggle label="There are neighbourhood or lease restrictions on owning a dog" checked={form.neighbourhoodRestrictions} onChange={(v) => set('neighbourhoodRestrictions', v)} />
-						{form.neighbourhoodRestrictions && (
-							<Textarea
-								label="Please describe the restrictions"
-								value={form.neighbourhoodRestrictionsDetails}
-								onChange={(e) => set('neighbourhoodRestrictionsDetails', e.target.value)}
-							/>
-						)}
-
-						<Toggle label="The dog will spend most of its time indoors as part of the family" checked={form.dogLivesIndoors} onChange={(v) => set('dogLivesIndoors', v)} />
-
-						<Input
-							label="Where will the puppy spend time during the day?"
-							value={form.puppyDaytimeLocation}
-							onChange={(e) => set('puppyDaytimeLocation', e.target.value)}
-							placeholder="e.g. indoors with family, in a covered outside area…"
+						<ButtonGroup
+							label="The dog will spend most of its time"
+							options={[
+								{ value: 'indoors', label: 'Indoors' },
+								{ value: 'outdoors', label: 'Outdoors' },
+							]}
+							value={form.dogLocation}
+							onChange={(v) => set('dogLocation', v)}
 						/>
 
 						<Input
@@ -569,16 +473,6 @@ export function ApplyPage() {
 							onChange={(e) => set('hoursAlonePerDay', e.target.value)}
 							placeholder="e.g. 2–3 hours"
 						/>
-
-						<Toggle label="Someone is home during the day to look after the puppy" checked={form.someoneHomeDuringDay} onChange={(v) => set('someoneHomeDuringDay', v)} />
-						{!form.someoneHomeDuringDay && (
-							<Textarea
-								label="What arrangements have you made for when the puppy is alone?"
-								value={form.aloneArrangements}
-								onChange={(e) => set('aloneArrangements', e.target.value)}
-								placeholder="e.g. dog sitter, doggy daycare, neighbour…"
-							/>
-						)}
 
 						<ButtonGroup
 							label="How active is your household?"
@@ -592,7 +486,6 @@ export function ApplyPage() {
 							cols={3}
 						/>
 
-						<Toggle label="All family members are on board with getting a puppy" checked={form.allFamilyMembersAgree} onChange={(v) => set('allFamilyMembersAgree', v)} />
 						<Toggle label="Someone in our household has dog allergies" checked={form.allergiesToDogs} onChange={(v) => set('allergiesToDogs', v)} />
 
 						<Toggle label="We have children in the home" checked={form.hasChildren} onChange={(v) => set('hasChildren', v)} />
@@ -616,85 +509,10 @@ export function ApplyPage() {
 					</div>
 				)}
 
-				{/* ── Experience ── */}
-				{step === 'experience' && (
-					<div className="flex flex-col gap-5">
-						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Experience</h2>
-
-						<Toggle
-							label="I've owned dogs before"
-							checked={form.previousDogExperience}
-							onChange={(v) => set('previousDogExperience', v)}
-						/>
-						{form.previousDogExperience && (
-							<>
-								<Input
-									label="What breeds have you owned in the past?"
-									value={form.breedsOwnedPast}
-									onChange={(e) => set('breedsOwnedPast', e.target.value)}
-									placeholder="e.g. Labrador, Border Collie…"
-								/>
-								<Textarea
-									label="Tell us about your experience"
-									value={form.experienceDescription}
-									onChange={(e) => set('experienceDescription', e.target.value)}
-								/>
-							</>
-						)}
-
-						<Toggle
-							label="I have at some point returned a pet to its breeder"
-							checked={form.returnedPetToBreeder}
-							onChange={(v) => set('returnedPetToBreeder', v)}
-						/>
-						{form.returnedPetToBreeder && (
-							<Textarea
-								label="Please describe the circumstances"
-								value={form.returnedPetDetails}
-								onChange={(e) => set('returnedPetDetails', e.target.value)}
-							/>
-						)}
-
-						<Toggle
-							label="I have at some point given a pet away"
-							checked={form.givenPetAway}
-							onChange={(v) => set('givenPetAway', v)}
-						/>
-						{form.givenPetAway && (
-							<Textarea
-								label="What were the circumstances?"
-								value={form.givenPetAwayDetails}
-								onChange={(e) => set('givenPetAwayDetails', e.target.value)}
-							/>
-						)}
-
-						<Toggle
-							label="I am willing to take the dog to obedience classes"
-							checked={form.willingForObedienceClasses}
-							onChange={(v) => set('willingForObedienceClasses', v)}
-						/>
-
-						<Textarea
-							label="References (optional)"
-							value={form.references}
-							onChange={(e) => set('references', e.target.value)}
-							placeholder="Please list 2 references with name, phone and email — e.g. vet, trainer or personal reference…"
-						/>
-					</div>
-				)}
-
 				{/* ── Puppy Preferences ── */}
 				{step === 'preferences' && (
 					<div className="flex flex-col gap-5">
 						<h2 className="font-serif text-xl font-bold text-warm-900 mb-2">Puppy Preferences</h2>
-
-						<Textarea
-							required
-						label="For what purpose(s) are you purchasing a puppy?"
-							value={form.puppyPurpose}
-							onChange={(e) => set('puppyPurpose', e.target.value)}
-							placeholder="e.g. family companion, therapy dog…"
-						/>
 
 						<ButtonGroup
 							required
