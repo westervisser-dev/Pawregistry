@@ -17,7 +17,7 @@ const applicationDataSchema = t.Object({
 	hasOtherPets: t.Boolean(),
 	otherPetsDescription: t.Nullable(t.String()),
 	previousDogExperience: t.Optional(t.Boolean()),
-	experienceDescription: t.Nullable(t.String()),
+	experienceDescription: t.Optional(t.Nullable(t.String())),
 	preferredSex: t.Union([t.Literal('male'), t.Literal('female'), t.Literal('no_preference')]),
 	preferredColour: t.Nullable(t.String()),
 	reasonForBreed: t.Optional(t.Nullable(t.String())),
