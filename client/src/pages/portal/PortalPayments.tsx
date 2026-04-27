@@ -56,8 +56,9 @@ function StatusBadge({ status }: { status: Payment['status'] }) {
 
 // ─── Deposit upgrade card ──────────────────────────────────────────────────────
 
-function DepositUpgradeCard({ currentTier, onPay }: {
+function DepositUpgradeCard({ currentTier, depositStatus, onPay }: {
 	currentTier: 'r500' | null;
+	depositStatus: string;
 	onPay: (tier: 'r5000' | 'r500') => Promise<void>;
 }) {
 	const [paying, setPaying] = useState(false);
@@ -69,18 +70,26 @@ function DepositUpgradeCard({ currentTier, onPay }: {
 	};
 
 	if (currentTier === 'r500') {
+		// If R500 deposit is already paid, only the R4,500 top-up is charged.
+		// Otherwise (pending / not yet received) the full R5,000 is charged.
+		const alreadyPaid = depositStatus === 'paid';
+		const upgradeAmount = alreadyPaid ? 'R4,500' : 'R5,000';
+		const upgradeDetail = alreadyPaid
+			? 'Pay R4,500 to top up to the full R5,000 secured deposit. You\'ll get first pick from every litter.'
+			: 'Pay R5,000 to join the Secured List. You\'ll get first pick from every litter.';
+
 		return (
 			<div className="bg-white border border-warm-200 rounded-xl p-5 flex flex-col gap-3">
 				<div>
 					<p className="font-semibold text-warm-900 text-sm">Upgrade to Secured List</p>
-					<p className="text-xs text-warm-500 mt-1">Pay R4,500 to upgrade from Standard to Secured. You'll get first pick from every litter.</p>
+					<p className="text-xs text-warm-500 mt-1">{upgradeDetail}</p>
 				</div>
 				<button
 					onClick={handleUpgrade}
 					disabled={paying}
 					className="self-start px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
 				>
-					{paying ? 'Redirecting…' : 'Upgrade — pay R4,500'}
+					{paying ? 'Redirecting…' : `Upgrade — pay ${upgradeAmount}`}
 				</button>
 			</div>
 		);
@@ -322,7 +331,7 @@ export function PortalPayments() {
 			{!depositNotPaid && client?.depositTier === 'r500' && !hasPendingBooking && (
 				<section className="mb-8">
 					<h2 className="text-sm font-semibold text-warm-500 uppercase tracking-wide mb-3">Upgrade</h2>
-					<DepositUpgradeCard currentTier="r500" onPay={handlePay} />
+					<DepositUpgradeCard currentTier="r500" depositStatus={client?.depositStatus ?? 'none'} onPay={handlePay} />
 				</section>
 			)}
 
